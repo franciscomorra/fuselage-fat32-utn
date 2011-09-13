@@ -1,15 +1,15 @@
 // TEMPORAL
 
-#include "ppd_comm.h"
-#include "pfs_comm.h"
-#include "ppd_io.h"
 #include <fcntl.h>
 #include <stdint.h>
 
+#define HANDSHAKE 0
+#define READ 2
+#define WRITE 1
 
 int32_t ppd_send(char* msg)
 {
-	pfs_receive(msg);
+
 	return 1;
 }
 
