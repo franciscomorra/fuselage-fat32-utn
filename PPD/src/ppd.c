@@ -6,7 +6,6 @@
  */
 #include <stdio.h>
 #include <fcntl.h>
-#include "ppd_io.h"
 #include <stdint.h>
 
 int32_t sectors_perCluster;
