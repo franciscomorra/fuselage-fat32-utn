@@ -14,8 +14,7 @@
 #define WRITE_ERROR 2
 #define READ_ERROR 3
 
-int32_t leer_sector(int32_t file_descriptor,int32_t sector,char *buf);
-int32_t escribir_sector(int32_t file_descriptor, int32_t sector, char *buf);
-
+int32_t leer_sector(int32_t sector,char *buf);
+int32_t escribir_sector( int32_t sector, char *buf);
 
 #endif /* PPD_IO_H_ */

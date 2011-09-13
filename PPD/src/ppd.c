@@ -7,20 +7,23 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <math.h>
 
-int32_t sectors_perCluster;
-int32_t sectors_perFat;
-int32_t sectors_beforeFat;
-int32_t bytes_perSector;
+uint32_t sectors_perCluster;
+uint32_t sectors_perFat;
+uint32_t sectors_beforeFat;
+uint32_t bytes_perSector;
 
 
 int main(int argc, char *argv[])
 {
-	int32_t fd = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR);
 
 	char *data = (char*)malloc(512);
 	memset(data,0,512);
-	leer_sector(fd,0,data);
+	leer_sector(0,data);
 	//sectors_perFat = malloc(4);
 
 	memcpy(&sectors_perFat,data+0x24,4);
