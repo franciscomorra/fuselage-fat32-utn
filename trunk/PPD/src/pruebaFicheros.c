@@ -12,7 +12,7 @@
 
 int main() {
 
-	int pagina,numeroSector,fd;
+	int pagina,numeroSector,fd,byte,numeroByte;
 
 	fd = open("/home/utn_so/Desktop/FUSELAGE/fat32.disk",O_RDWR);
 	if (fd == -1)
@@ -22,13 +22,15 @@ int main() {
 	scanf("%d",&pagina);
 	printf("ingrese numero de sector: ");
 	scanf("%d",&numeroSector);
+	printf("ingresee numero de byte: ");
+	scanf("%d",&numeroByte);
 
 	char* pa = mmap(NULL, LEN, PROT_READ, MAP_PRIVATE, fd,(LEN*pagina));
 	if (pa == MAP_FAILED)
 		perror(mmap);
-
-	pa = pa + (0x200 * numeroSector);
-	printf("%X",(unsigned char)*pa);
+	byte = 0x200 * numeroSector + numeroByte;
+	pa = pa + byte;
+	printf("contenido del byte %d: %X",byte,(unsigned char)*pa);
 
 	close(fd);
 	return 0;
