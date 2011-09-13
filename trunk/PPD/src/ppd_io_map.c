@@ -20,6 +20,11 @@ int32_t leer_sector(int32_t sector, char* buf)
 	char* map = mmap(NULL,page_size , PROT_READ, MAP_PRIVATE, file_descriptor , page_size*page);
 
 	/*
+	 * Aviso al SO sobre el uso de la memoria ?
+	 */
+	posix_madvise(map+(sector-(sectors_perPage*page))*bytes_perSector,bytes_perSector,POSIX_MADV_WILLNEED);
+
+	/*
 	 * Calculo el numero de sector (0-7) dentro de la pagina con la formula "sector-(sectors_perPage*page)" y
 	 * copio los datos a buf
 	 */
@@ -39,9 +44,14 @@ int32_t escribir_sector(int32_t sector, char *buf)
 	uint32_t file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR);
 
 	//Mapeo solo la pagina que contiene el sector buscado
-		char* map = mmap(NULL,page_size , PROT_WRITE, MAP_SHARED, file_descriptor ,page_size*page);
+	char* map = mmap(NULL,page_size , PROT_WRITE, MAP_SHARED, file_descriptor ,page_size*page);
 
-		/*
+	/*
+	 * Aviso al SO sobre el uso de la memoria ?
+	 */
+	posix_madvise(map+(sector-(sectors_perPage*page))*bytes_perSector,bytes_perSector,POSIX_MADV_RANDOM);
+
+	/*
 	 * Calculo el numero de sector (0-7) dentro de la pagina con la formula "sector-(sectors_perPage*page)"
 	 * y copio en él los datos de buf
 	 *  */
