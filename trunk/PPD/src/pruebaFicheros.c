@@ -19,10 +19,9 @@ int main() {
 		perror(open);
 
 	printf("ingrese numero de pagina a mappear: ");
-	pagina = ((int)getchar() - 48);
-	printf("%d\n",pagina);
+	scanf("%d",&pagina);
 	printf("ingrese numero de sector: ");
-	numeroSector = (int)getchar() - 48;
+	scanf("%d",&numeroSector);
 
 	char* pa = mmap(NULL, LEN, PROT_READ, MAP_PRIVATE, fd,(LEN*pagina));
 	if (pa == MAP_FAILED)
