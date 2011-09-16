@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 
-int main(int argc,char** argv[])
+int main(int argc,char **argv[])
 {
 	printf("%d",sizeof(uint32_t));
 	config_param *first_param;
