@@ -5,32 +5,23 @@
  *      Author: utn_so
  */
 #include <stdio.h>
-#include <fcntl.h>
-#include <stdint.h>
 #include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <math.h>
+#include <stdint.h>
+#include "config_manager.h"
 
-uint32_t sectors_perCluster;
-uint32_t sectors_perFat;
-uint32_t sectors_beforeFat;
-uint32_t bytes_perSector;
+uint32_t Cylinder;
+uint32_t Head;
+uint32_t Sector;
 
 
 int main(int argc, char *argv[])
 {
+	config_param *ppd_config;
+	CONFIG_read("config/ppd.config",&ppd_config);
 
-	char *data = (char*)malloc(512);
-	memset(data,0,512);
-	leer_sector(0,data);
-	//sectors_perFat = malloc(4);
-
-	memcpy(&sectors_perFat,data+0x24,4);
-	memcpy(&sectors_perCluster,data+0x0D,1);
-	memcpy(&sectors_beforeFat,data+0x0E,2);
-	memcpy(&bytes_perSector,data+0x0B,2);
-
+	Cylinder = atoi(CONFIG_getValue(ppd_config,"Cylinder"));
+	Head =  atoi(CONFIG_getValue(ppd_config,"Head"));
+	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));
 
 	return 1;
 }
