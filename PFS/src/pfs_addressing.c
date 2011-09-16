@@ -6,3 +6,9 @@
  */
 
 
+#include <sys/types.h>
+
+uint32_t cluster_to_sector(uint32_t cluster)
+{
+
+}
