@@ -8,7 +8,7 @@
 #ifndef CONFIG_MANAGER_H_
 #define CONFIG_MANAGER_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 
 
 typedef struct param
@@ -18,7 +18,7 @@ typedef struct param
 	struct config_param *nextParam;
 } config_param;
 
-int CONFIG_read(const char* path,config_param **first_param);
+uint32_t CONFIG_read(const char *path,config_param **first_param);
 char* CONFIG_getValue(config_param *first_param, const char* key);
 
 #endif /* CONFIG_MANAGER_H_ */
