@@ -9,6 +9,9 @@
 #define TAD_FAT_H_
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "pfs_fat32.h"
 
 typedef struct cluster_node
 {
@@ -17,17 +20,12 @@ typedef struct cluster_node
 
 } cluster_node;
 
-//___STRUCT_FAT_TABLE
-typedef struct {
-	uint32_t *table;
-	uint32_t size;
-
-} FAT_struct;
-//___STRUCT_FAT_TABLE
-
-
+//saque la definicion de FAT_struct xq ya esta definido en pfs_fat32, si queres sacalo de ahi y ponelo aca
 
 // fat32_getClusterChain: Obtiene la cadena de clusters que le sigue al cluster pasado
 cluster_node* FAT_getClusterChain(FAT_struct *fat,uint32_t first_cluster);
+
+//FAT32_getFreeClusters: Obtiene una lista de clusters libres
+uint32_t FAT32_getFreeClusters(cluster_node* first);
 
 #endif /* TAD_FAT_H_ */
