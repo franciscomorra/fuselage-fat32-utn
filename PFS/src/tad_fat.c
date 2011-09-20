@@ -55,3 +55,36 @@ cluster_node* FAT_getClusterChain(FAT_struct *fat,uint32_t init_cluster)
 
 	return first;
 }
+
+uint32_t FAT32_getFreeClusters(cluster_node* first) {
+	uint32_t i;
+	FAT_struct* FAT = malloc(sizeof(FAT_struct));
+	cluster_node* new;
+	cluster_node* last;
+
+	last = 0;
+	if (FAT32_readFAT(FAT) != 0)
+		printf("error lectura FAT");
+
+	for(i=0;i<(256*512);i++)
+		if(*(FAT->table + i) == 0){
+			if (last == 0){
+				first = malloc(sizeof(cluster_node));
+				first->number = i;
+				last = first;
+			}
+			else {
+				new = malloc(sizeof(cluster_node));
+				new->number = i;
+				last->next = new;
+				last = new;
+				free(new);
+			}
+		}
+	if(first == 0)
+		exit(1);
+
+	free(FAT);
+	free(last);
+	return 0;
+}

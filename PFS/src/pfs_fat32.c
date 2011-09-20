@@ -8,6 +8,8 @@
 #include "pfs_fat32.h"
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 
@@ -15,8 +17,10 @@ uint32_t FAT32_readFAT(FAT_struct *fat)
 {
 
 	uint32_t file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR); //TEMPORAL
+	if (file_descriptor == -1)
+		perror(open);
 	int i;
-	fat->table = malloc(512*1024);
+	fat->table = malloc(512*1024*4);
 	fat->size = 512*1024;
 	memset(fat->table,0,512*1024);
 	char* tmp = (char*) malloc(512);
@@ -50,4 +54,6 @@ uint32_t FAT32_readBootSector(BS_struct *bs)
 	return 0;
 
 }
+
+
 

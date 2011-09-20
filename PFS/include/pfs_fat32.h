@@ -12,8 +12,8 @@
 
 #define EOC 0x0FFFFFFF;
 
-typedef struct FAT {
-	char *table;
+typedef struct { //le saque lo de FAT, no se porque si se lo pongo me tira un monton de errores de debug en tad_fat.c
+	uint32_t *table;
 	uint32_t size;
 
 } FAT_struct;
