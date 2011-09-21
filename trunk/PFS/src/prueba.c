@@ -10,10 +10,15 @@
 
 int main () {
 	cluster_node* firstFreeCluster = malloc(sizeof(cluster_node));
+	uint32_t i;
 
 	printf("iniciando prueba\n");
-	FAT32_getFreeClusters(firstFreeCluster);
-	printf("numero de cluster libre %d",firstFreeCluster->number);
+	if(FAT32_getFreeClusters(firstFreeCluster) == 1)
+		printf("no hay clusters libres");
+
+	printf("numero de cluster libre: ");
+	for(i=0;i<= 10;i++)
+		printf("%d ",firstFreeCluster[i].number);
 
 	free(firstFreeCluster);
 	return 0;

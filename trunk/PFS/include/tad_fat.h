@@ -16,7 +16,7 @@
 typedef struct cluster_node
 {
 	uint32_t number;
-	struct cluster_node * next;
+	struct cluster_node* next;
 
 } cluster_node;
 
