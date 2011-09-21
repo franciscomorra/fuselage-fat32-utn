@@ -66,10 +66,9 @@ uint32_t FAT32_getFreeClusters(cluster_node* first) {
 	if (FAT32_readFAT(FAT) != 0)
 		printf("error lectura FAT");
 
-	for(i=0;i<(256*512);i++)
+	for(i=3;i<(FAT->size);i++)
 		if(*(FAT->table + i) == 0){
 			if (last == 0){
-				first = malloc(sizeof(cluster_node));
 				first->number = i;
 				last = first;
 			}
