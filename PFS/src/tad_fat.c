@@ -10,8 +10,7 @@
 cluster_node* FAT_getClusterChain(FAT_struct *fat,uint32_t init_cluster)
 {
 	uint32_t cluster_no = init_cluster;
-	cluster_node *new;
-	cluster_node *first;
+	cluster_node *new,*first;
 
 	if (fat->table[cluster_no] == 0x0)
 	{
@@ -20,30 +19,31 @@ cluster_node* FAT_getClusterChain(FAT_struct *fat,uint32_t init_cluster)
 	else if (fat->table[cluster_no] < 0x0FFFFFF8)
 	{
 		cluster_node *last;
-		uint32_t first_cluster = 1;
+		last = 0x0;
+
 		while (fat->table[cluster_no] < 0x0FFFFFF8)
 		{
 			new = malloc(sizeof(cluster_node));
 			new->number = cluster_no;
 			new->next = 0;
 
-			if (first_cluster)
+			if (last == 0x0)
 			{
-				first=new;
-				first_cluster = 0;
+				first=last=new;
 			}
 			else
 			{
 				last->next=new;
+				last = new;
 			}
-			last = new;
+
 			cluster_no = fat->table[cluster_no];
 		}
 
-			new = malloc(sizeof(cluster_node));
-			new->number = cluster_no;
-			new->next = 0;
-			last->next=new;
+		new = malloc(sizeof(cluster_node));
+		new->number = cluster_no;
+		new->next = 0;
+		last->next=new;
 	}
 	else
 	{
@@ -56,32 +56,30 @@ cluster_node* FAT_getClusterChain(FAT_struct *fat,uint32_t init_cluster)
 	return first;
 }
 
-uint32_t FAT_getFreeClusters(cluster_node* first, FAT_struct* FAT) {
-	uint32_t i;
+cluster_node* FAT_getFreeClusters(FAT_struct* FAT) {
 
-	cluster_node* new;
-	cluster_node* last;
-
-	last = 0;
+	uint32_t cluster_no;
+	cluster_node *new,*first, *last =0x0;
 
 
-	for(i=3;i<(FAT->size);i++)
-		if(*(FAT->table + i) == 0){
-			if (last == 0){
-				first->number = i;
-				last = first;
+	for(cluster_no = 2;cluster_no < FAT->size;cluster_no++)
+	{
+		if(FAT->table[cluster_no] == 0)
+		{
+			new = malloc(sizeof(cluster_node));
+			new->number = cluster_no;
+
+			if (last == 0x0)
+			{
+				last = first = new;
 			}
-			else {
-				new = malloc(sizeof(cluster_node));
-				new->number = i;
+			else
+			{
 				last->next = new;
 				last = new;
-				free(new);
 			}
 		}
-	if(first == 0)
-		exit(1);
+	}
 
-	free(last);
-	return 0;
+	return first;
 }
