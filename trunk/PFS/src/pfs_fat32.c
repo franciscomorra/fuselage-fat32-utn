@@ -15,7 +15,7 @@
 uint32_t FAT32_readFAT(FAT_struct *fat,uint32_t sectors_per_fat)
 {
 	fat->table = malloc(512*sectors_per_fat);
-	fat->size = (512*sectors_per_fat) / 4;
+	fat->size = (512*sectors_per_fat);
 	memset(fat->table,0,512*sectors_per_fat);
 
 	//Luego se reemplazara esto  por el envio del mensaje al PPD/PRAID
