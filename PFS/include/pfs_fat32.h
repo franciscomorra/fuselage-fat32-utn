@@ -3,22 +3,26 @@
  *
  *  Created on: 14/09/2011
  *      Author: utn_so
+ *
+ * __attribute__((__packed__)) :  Atributo para que use la menos cantidad de bytes posibles para este struct,
+ * 								  sino los datos se corren porque el compilador agrega un
+ * 								  espaciado de bytes para alinear los datos en memoria
  */
+
 
 #ifndef PFS_FAT32_H_
 #define PFS_FAT32_H_
 
 #include <stdint.h>
+#include <stdbool.h>
+#include "tad_fat.h"
 
-#define EOC 0x0FFFFFFF;
+#define EOC 0x0FFFFFF8;
 
-typedef struct { //le saque lo de FAT, no se porque si se lo pongo me tira un monton de errores de debug en tad_fat.c
-	uint32_t *table;
-	uint32_t size;
 
-} FAT_struct;
 
-struct boot_sector
+//___STRUCT_BOOT_SECTOR_STRUCT
+typedef struct
 {
 	char jmp[3];
 	char oem_name[8];
@@ -49,23 +53,19 @@ struct boot_sector
 	char fat_type[8];
 	char os_bootcode[420];
 	char boot_sign[2];
-} __attribute__((__packed__)); /*
- * Atributo para que use la menos cantidad de bytes posibles para este struct,
- * sino los datos se corren porque el compilador agrega un
- *  espaciado de bytes para alinear los datos en memoria
- */
+} __attribute__((__packed__)) BS_struct;
+//___STRUCT_BOOT_SECTOR_STRUCT
 
-typedef struct boot_sector BS_struct;
 
 
 // fat32_readFAT: Lee la tabla fat en la estructura FAT_struct
-uint32_t FAT32_readFAT(FAT_struct *fat);
-
-// fat32_getClusterChain: Obtiene la cadena de clusters que le sigue al cluster pasado
-uint32_t FAT32_getClusterChain(FAT_struct *fat,uint32_t first_cluster,char* cluster_chain);
+uint32_t FAT32_readFAT(FAT_struct *fat,uint32_t sectors_per_fat);
 
 //FAT32_readBootSector: Lee el boot sector en la estructura BS_struct
 uint32_t FAT32_readBootSector(BS_struct *bs);
+
+uint32_t FAT32_getClusterData(uint32_t cluster_no,char** buf);
+
 
 
 #endif /* PFS_FAT32_H_ */

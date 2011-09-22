@@ -4,56 +4,46 @@
  *  Created on: 14/09/2011
  *      Author: utn_so
  */
-#include "ppd_io.h"
+#include "pfs_comm.h"
 #include "pfs_fat32.h"
+#include "tad_fat.h"
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 
-uint32_t FAT32_readFAT(FAT_struct *fat)
+uint32_t FAT32_readFAT(FAT_struct *fat,uint32_t sectors_per_fat)
 {
-
-	uint32_t file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR); //TEMPORAL
-	if (file_descriptor == -1)
-		perror(open);
-	int i;
-	fat->table = malloc(512*1024*4);
-	fat->size = 512*1024;
-	memset(fat->table,0,512*1024);
-	char* tmp = (char*) malloc(512);
+	fat->table = malloc(512*sectors_per_fat);
+	fat->size = (512*sectors_per_fat) / 4;
+	memset(fat->table,0,512*sectors_per_fat);
 
 	//Luego se reemplazara esto  por el envio del mensaje al PPD/PRAID
-	for (i = 32; i < 1057; i++)
+	uint32_t sectors[sectors_per_fat];
+	int sector;
+	for (sector = 32; sector <= 32+sectors_per_fat; sector++)
 	{
-		read_sector(file_descriptor,i,tmp);
-		memcpy((fat->table)+(512*(i-32)),tmp,512);
-
-
+		sectors[sector-32] = sector;
 	}
-	//-------
-	free(tmp);
-	close(file_descriptor); //TEMPORAL
+
+	fat->table = (uint32_t*) PFS_requestSectorsRead(sectors,sectors_per_fat);
 	return 0;
 }
 
-uint32_t FAT32_getClusterChain(FAT_struct *fat,uint32_t first_cluster,char* cluster_chain)
-{
-	return 0;
-}
 
 uint32_t FAT32_readBootSector(BS_struct *bs)
 {
-	uint32_t file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR); //TEMPORAL
-
-	//Luego se reemplazara esto  por el envio del mensaje al PPD/PRAID
-	read_sector(file_descriptor,0,bs);
-	close(file_descriptor); //TEMPORAL
+	uint32_t sectors[1] = {0};
+	char *bootsector_data = PFS_requestSectorsRead(sectors,1);
+	memcpy(bs,bootsector_data,512);
 	return 0;
 
 }
 
-
+uint32_t FAT32_getClusterData(uint32_t cluster_no,char** buf)
+{
+	uint32_t *sectors = cluster_to_sectors(cluster_no);
+	buf = PFS_requestSectorsRead(sectors,8);
+	return 0;
+}
 
