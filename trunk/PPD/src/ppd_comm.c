@@ -20,8 +20,6 @@ char* ppd_receive(char* msg)
 	uint32_t type = 0;
 	switch (type)
 	{
-		char* buf;
-		int32_t fd;
 
 		case HANDSHAKE:
 		break;

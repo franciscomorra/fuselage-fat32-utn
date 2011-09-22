@@ -7,22 +7,31 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "fuse_operations.h"
-#include "pfs_comm.h"
+
 #include "pfs_fat32.h"
+#include "pfs_comm.h"
+#include "ppd_io.h"
+#include "tad_fat.h"
+#include "pfs_addressing.h"
 
 
 
 int main(int argc, char *argv[])
 {
-	//SANTIAGO
+
+
 	FAT_struct fat;
-	FAT32_readFAT(&fat);
-
 	BS_struct boot_sector;
+
 	FAT32_readBootSector(&boot_sector);
+	FAT32_readFAT(&fat,boot_sector.sectors_perFat32);
 
 
-	printf("%d",boot_sector.sectors_perFat32);
+	cluster_node *first;
+	FAT_getFreeClusters(first,&fat);
+
+	char *buf;
+	FAT32_getClusterData(2,&buf);
 
 	//
 

@@ -6,6 +6,7 @@
  */
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include "config_manager.h"
@@ -26,7 +27,6 @@ uint32_t CONFIG_read(const char *path,config_param **first_param)
 	 {
 		 if (strcmp(chr,";") == 0)
 		 {
-			 char* key;
 			 char* p = strtok(tmp,"=");
 
 			 new_param = malloc(sizeof(config_param));
