@@ -96,9 +96,9 @@ typedef struct file_node
 
 typedef struct lfn_sequence_number
 {
-	uint32_t number :6;
-	bool last 	 	:1;
-	bool deleted 	:1;
+	bool deleted 	 	:1;
+	bool last 			:1;
+	uint32_t number 	:6; //lo dimos vuelta porque los bits last y del son los de mas peso
 
 }__attribute__((__packed__)) lfn_sequence_number;
 
