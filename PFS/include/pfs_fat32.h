@@ -59,7 +59,7 @@ typedef struct
 
 
 //fat32_readFAT: Lee la tabla fat en la estructura FAT_struct
-uint32_t fat32_readFAT(FAT_struct *fat,uint32_t sectors_per_fat);
+uint32_t fat32_readFAT(FAT_struct *fat);
 
 //fat32_readBootSector: Lee el boot sector en la estructura BS_struct
 uint32_t fat32_readBootSector(BS_struct *bs);
