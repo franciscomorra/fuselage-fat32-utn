@@ -12,21 +12,24 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
-uint32_t fat32_readFAT(FAT_struct *fat,uint32_t sectors_per_fat)
+uint32_t fat32_readFAT(FAT_struct *fat)
 {
-	fat->table = malloc(512*sectors_per_fat);
-	fat->size = (512*sectors_per_fat);
-	memset(fat->table,0,512*sectors_per_fat);
+	extern BS_struct boot_sector;
+
+	uint32_t bytes_perFATentry = 4;
+	fat->table = malloc(512*(boot_sector.sectors_perFat32));
+	fat->size = (512*(boot_sector.sectors_perFat32)) / bytes_perFATentry;
+	memset(fat->table,0,512*(boot_sector.sectors_perFat32));
 
 	//Luego se reemplazara esto  por el envio del mensaje al PPD/PRAID
-	uint32_t sectors[sectors_per_fat];
+	uint32_t sectors[boot_sector.sectors_perFat32];
 	int sector;
-	for (sector = 32; sector <= 32+sectors_per_fat; sector++)
+	for (sector = 32; sector <= 32+boot_sector.sectors_perFat32; sector++)
 	{
 		sectors[sector-32] = sector;
 	}
 
-	fat->table = (uint32_t*) PFS_requestSectorsRead(sectors,sectors_per_fat);
+	fat->table = (uint32_t*) PFS_requestSectorsRead(sectors,boot_sector.sectors_perFat32);
 	return 0;
 }
 

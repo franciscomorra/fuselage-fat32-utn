@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <fcntl.h>
 
+
+
 cluster_node* FAT_getClusterChain(FAT_struct *fat,uint32_t init_cluster)
 {
 	uint32_t cluster_no = init_cluster;
@@ -61,6 +63,7 @@ cluster_node* FAT_getFreeClusters(FAT_struct* FAT) {
 
 	uint32_t cluster_no;
 	cluster_node *new,*first, *last =0x0;
+
 
 
 	for(cluster_no = 2;cluster_no < FAT->size;cluster_no++)

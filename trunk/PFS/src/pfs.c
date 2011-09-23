@@ -14,17 +14,17 @@
 #include "tad_fat.h"
 #include "pfs_addressing.h"
 
-
+BS_struct boot_sector;
 
 int main(int argc, char *argv[])
 {
 
 
 	FAT_struct fat;
-	BS_struct boot_sector;
+
 
 	fat32_readBootSector(&boot_sector);
-	fat32_readFAT(&fat,boot_sector.sectors_perFat32);
+	fat32_readFAT(&fat);
 
 	FAT_getClusterChain(&fat,9);
 
