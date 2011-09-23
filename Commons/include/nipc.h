@@ -6,7 +6,7 @@
 
 typedef struct {
 	char type;
-	uint32_t len;
+	char len[2]; //la memoria es un gran array y aca reservo 2 posiciones
 	uint32_t* payload;
 } msgNIPC_t;
 
