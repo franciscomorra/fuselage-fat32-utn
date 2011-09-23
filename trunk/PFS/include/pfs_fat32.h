@@ -58,14 +58,12 @@ typedef struct
 
 
 
-// fat32_readFAT: Lee la tabla fat en la estructura FAT_struct
-uint32_t FAT32_readFAT(FAT_struct *fat,uint32_t sectors_per_fat);
+//fat32_readFAT: Lee la tabla fat en la estructura FAT_struct
+uint32_t fat32_readFAT(FAT_struct *fat,uint32_t sectors_per_fat);
 
-//FAT32_readBootSector: Lee el boot sector en la estructura BS_struct
-uint32_t FAT32_readBootSector(BS_struct *bs);
+//fat32_readBootSector: Lee el boot sector en la estructura BS_struct
+uint32_t fat32_readBootSector(BS_struct *bs);
 
-uint32_t FAT32_getClusterData(uint32_t cluster_no,char** buf);
-
-
+uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf);
 
 #endif /* PFS_FAT32_H_ */

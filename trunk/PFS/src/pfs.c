@@ -23,15 +23,16 @@ int main(int argc, char *argv[])
 	FAT_struct fat;
 	BS_struct boot_sector;
 
-	FAT32_readBootSector(&boot_sector);
-	FAT32_readFAT(&fat,boot_sector.sectors_perFat32);
+	fat32_readBootSector(&boot_sector);
+	fat32_readFAT(&fat,boot_sector.sectors_perFat32);
 
+	FAT_getClusterChain(&fat,9);
 
 	cluster_node *first;
 	first = FAT_getFreeClusters(&fat);
 
 	char *buf;
-	FAT32_getClusterData(2,&buf);
+	fat32_getClusterData(2,&buf);
 
 	//
 
