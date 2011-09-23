@@ -30,7 +30,8 @@ char* PFS_requestSectorsRead(uint32_t *sectors,size_t sectors_count)
 	memcpy(msg,&type,1);
 	memcpy(msg+1,&len,2);
 	memcpy(msg+3,payload,len);
-	return PFS_request(msg);
+	char *buf = PFS_request(msg);
+	return buf;
 }
 
 uint32_t PFS_requestSectorsWrite(uint32_t *sectors)

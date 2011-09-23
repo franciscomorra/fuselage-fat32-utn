@@ -46,7 +46,7 @@ uint32_t fat32_readBootSector(BS_struct *bs)
 uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf)
 {
 	uint32_t *sectors = cluster_to_sectors(cluster_no);
-	buf = PFS_requestSectorsRead(sectors,8);
+	*buf = PFS_requestSectorsRead(sectors,8);
 	return 0;
 }
 

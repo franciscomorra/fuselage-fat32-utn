@@ -60,7 +60,7 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry excluding="ppd_linkedinclude/pruebaFicherosConMmap.c|ppd_linkedinclude/pruebaFicheros.c|ppd_linkedinclude/ppd.c|ppd_linkedinclude/ppd_io_stream.c|ppd_linkedinclude/ppd_comm.c|PPD/src/ppd.c|src" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
-						<entry excluding="pfs.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry excluding="prueba.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
