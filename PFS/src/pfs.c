@@ -33,11 +33,13 @@ int main(int argc, char *argv[])
 
 	char *buf;
 	fat32_getClusterData(2,&buf);
+	DIRENTRY_getFileList(buf);
 
 	//
 
-	return 0;
- //return fuse_main(argc, argv, &fuselage_oper,NULL);
+return 0;
+//return fuse_main(argc, argv, &fuselage_oper,NULL);
+
 }
 
 

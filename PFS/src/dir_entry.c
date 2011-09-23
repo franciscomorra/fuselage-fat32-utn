@@ -18,7 +18,35 @@ uint32_t DIRENTRY_getClusterNumber(directory_entry *entry)
 	return arrToInt;
 }
 
-uint32_t DIRENTRY_getLongFilename(long_filename_entry *lfn)
+char* DIRENTRY_getLongFileName(long_filename_entry lfn)
 {
+	return strcat(lfn.name_chars3,strcat(lfn.name_chars1,lfn.name_chars2));
 
 }
+
+file_node* DIRENTRY_getFileList(char* cluster_data)
+{
+	char *tmp;
+	tmp = cluster_data + 96;
+	long_filename_entry *lfn_entry;
+	lfn_sequence_number *seq = malloc(sizeof(lfn_sequence_number));
+	char * lfn = malloc(500);
+	while (*tmp != 0x00)
+	{
+		memcpy(seq,tmp,1);
+		if (seq->number > 1)
+		{
+			memcpy(lfn_entry,tmp,32);
+			memcpy(lfn,DIRENTRY_getLongFileName(*lfn_entry),32);
+			tmp += 32;
+		}
+		else if (seq->number == 1)
+		{
+			break;
+		}
+	}
+	return 0;
+}
+
+
+
