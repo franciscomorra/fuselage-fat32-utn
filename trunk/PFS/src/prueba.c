@@ -13,11 +13,13 @@ int main () {
 	uint32_t sectors_per_fat = 1024;
 	FAT_struct* fat=0x0;
 
-	printf("iniciando prueba, \n");
-
-
-	if (FAT32_readFAT(fat,sectors_per_fat) != 0)
+	printf("iniciandoprueba ");
+	fflush(stdout);
+	if (fat32_readFAT(fat,sectors_per_fat) != 0)
 		printf("error readFat");
+	else
+		printf("ok readFAT");
+	fflush(stdout);
 
 	first = FAT_getFreeClusters(fat);
 	if(first == 0x0)
