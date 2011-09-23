@@ -9,18 +9,22 @@
 
 
 int main () {
-	cluster_node* firstFreeCluster = malloc(sizeof(cluster_node));
-	uint32_t i;
+	cluster_node* first;
+	uint32_t sectors_per_fat = 1024;
+	FAT_struct* fat=0x0;
 
-	printf("iniciando prueba\n");
-	if(FAT32_getFreeClusters(firstFreeCluster) == 1)
+	printf("iniciando prueba, \n");
+
+
+	if (FAT32_readFAT(fat,sectors_per_fat) != 0)
+		printf("error readFat");
+
+	first = FAT_getFreeClusters(fat);
+	if(first == 0x0)
 		printf("no hay clusters libres");
+	printf("%d ",first->number);
 
-	printf("numero de cluster libre: ");
-	for(i=0;i<= 10;i++)
-		printf("%d ",firstFreeCluster[i].number);
-
-	free(firstFreeCluster);
+	free(first);
 	return 0;
 }
 
