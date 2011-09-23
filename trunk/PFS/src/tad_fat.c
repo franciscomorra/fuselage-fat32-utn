@@ -97,13 +97,13 @@ uint32_t FAT_addCluster(cluster_node* first, cluster_node* new){
 	new->next = aux;
 	last->next = new;
 
-	free(last);
 	return 0;
 }
 
 uint32_t FAT_takeCluster(cluster_node* first, uint32_t clusterNumber){
 	cluster_node* aux = first;
 	cluster_node* last = aux;
+	uint32_t number;
 
 	while(aux->number != clusterNumber){
 		last = aux;
@@ -111,10 +111,9 @@ uint32_t FAT_takeCluster(cluster_node* first, uint32_t clusterNumber){
 	}
 	if(aux->next == 0x0)
 		exit(-1);
-	else {
+	else
 		last->next = aux->next;
-		free(aux->next);
-	}
-	free(last);
-	return(aux->number);
+	number=(aux->number);
+	free(aux);
+	return(number);
 }
