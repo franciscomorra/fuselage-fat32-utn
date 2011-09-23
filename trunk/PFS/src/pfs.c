@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 
 
 	cluster_node *first;
-	FAT_getFreeClusters(first,&fat);
+	first = FAT_getFreeClusters(&fat);
 
 	char *buf;
 	FAT32_getClusterData(2,&buf);
