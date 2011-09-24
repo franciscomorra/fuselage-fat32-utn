@@ -29,8 +29,9 @@ uint32_t takeRequest(msgNIPC_t msg, nipc_node* first) {
 	first = aux;
 	msg = first->info;
 	first = first->next;
+	free(aux->info);
+	free(aux->next);
 	free(aux);
-
 	return 0;
 }
 
