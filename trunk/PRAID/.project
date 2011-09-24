@@ -3,6 +3,7 @@
 	<name>PRAID</name>
 	<comment></comment>
 	<projects>
+		<project>Commons</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
