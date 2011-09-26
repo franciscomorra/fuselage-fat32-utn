@@ -3,6 +3,7 @@
 	<name>PFS</name>
 	<comment></comment>
 	<projects>
+		<project>commons3</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
