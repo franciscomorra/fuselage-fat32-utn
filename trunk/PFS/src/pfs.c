@@ -13,6 +13,7 @@
 #include "ppd_io.h"
 #include "tad_fat.h"
 #include "pfs_addressing.h"
+#include "dir_entry.h"
 
 BS_struct boot_sector;
 
