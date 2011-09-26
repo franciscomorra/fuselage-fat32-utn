@@ -6,7 +6,12 @@
  */
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include "dir_entry.h"
+#include "utils.h"
+
 
 uint32_t DIRENTRY_getClusterNumber(directory_entry *entry)
 {
@@ -20,30 +25,23 @@ uint32_t DIRENTRY_getClusterNumber(directory_entry *entry)
 
 char* DIRENTRY_getLongFileName(long_filename_entry lfn)
 {
-	return strcat(lfn.name_chars3,strcat(lfn.name_chars1,lfn.name_chars2));
+	uint16_t* src_utf16;
 
+	src_utf16 =	strcat(lfn.name_chars3,strcat(lfn.name_chars1,lfn.name_chars2));
+
+	return unicode_utf16_to_utf8(const uint16_t *src_utf16, const size_t src_utf16size, size_t *dest_utf8size)
 }
 
 file_node* DIRENTRY_getFileList(char* cluster_data)
 {
 	char *tmp;
-	tmp = cluster_data + 96;
-	long_filename_entry *lfn_entry;
-	lfn_sequence_number *seq = malloc(sizeof(lfn_sequence_number));
+	tmp = cluster_data + 32;
+	long_filename_entry *lfn_entry = 0x0;
 	char * lfn = malloc(500);
-	while (*tmp != 0x00)
-	{
-		memcpy(seq,tmp,1);
-		if (seq->number > 1)
-		{
+	while (*tmp != 0x00){
 			memcpy(lfn_entry,tmp,32);
 			memcpy(lfn,DIRENTRY_getLongFileName(*lfn_entry),32);
 			tmp += 32;
-		}
-		else if (seq->number == 1)
-		{
-			break;
-		}
 	}
 	return 0;
 }
