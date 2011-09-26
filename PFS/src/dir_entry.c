@@ -25,24 +25,26 @@ uint32_t DIRENTRY_getClusterNumber(directory_entry *entry)
 
 char* DIRENTRY_getLongFileName(long_filename_entry lfn)
 {
-	uint16_t* src_utf16;
+	char* str1 = malloc(50);
+	char* str2 = malloc(sizeof(char)*50);
+	char* str3 = malloc(sizeof(char)*50);
 
-	src_utf16 =	strcat(lfn.name_chars3,strcat(lfn.name_chars1,lfn.name_chars2));
+		str1 = unicode_utf16_to_utf8(lfn.name_chars1,10,5); // aca rompe todo (L)
+		str2 = unicode_utf16_to_utf8(lfn.name_chars2,12,6); // santi te queremos
+		str3 = unicode_utf16_to_utf8(lfn.name_chars3,4,2);
 
-	return unicode_utf16_to_utf8(const uint16_t *src_utf16, const size_t src_utf16size, size_t *dest_utf8size)
+		return strcat(str3,strcat(str1,str2));
 }
 
 file_node* DIRENTRY_getFileList(char* cluster_data)
 {
 	char *tmp;
 	tmp = cluster_data + 32;
-	long_filename_entry *lfn_entry = 0x0;
-	char * lfn = malloc(500);
-	while (*tmp != 0x00){
+	long_filename_entry *lfn_entry;
+	char * lfn = malloc(50);
 			memcpy(lfn_entry,tmp,32);
 			memcpy(lfn,DIRENTRY_getLongFileName(*lfn_entry),32);
-			tmp += 32;
-	}
+			printf("%s",lfn);
 	return 0;
 }
 
