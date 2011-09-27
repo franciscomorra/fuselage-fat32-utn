@@ -1,0 +1,8 @@
+#labels PFS,SourceFiles
+pfs.c
+
+Archivo que contiene el cuerpo principal (main) del Proceso File System, en esta capa se hace uso de  FUSE.
+
+Incluye:
+- pfs_fat32.h
+- tad_fat.h
