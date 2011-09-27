@@ -9,6 +9,8 @@
 #define PFS_COMM_H_
 #include <stdint.h>
 #include <stdlib.h>
+#include "nipc.h"
+
 
 enum {
 	HANDSHAKE=0x00, READ=0x01, WRITE=0x02
