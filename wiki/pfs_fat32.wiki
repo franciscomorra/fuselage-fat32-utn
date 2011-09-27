@@ -1,0 +1,15 @@
+#labels PFS,SourceFiles
+.c
+
+Archivo fuente que contiene lo que viene a ser la capa de implementacion de FAT32, en esta se encontrara el manejo especifico de este tipo de Filesystem. Incluye "tad_fat.h" para el manejo de la FAT.
+
+Hasta el momento contiene las funciones:
+
+// Lee la tabla fat en la estructura FAT_struct
+uint32_t fat32_readFAT(FAT_struct *fat);
+
+// Lee el boot sector en la estructura BS_struct
+uint32_t fat32_readBootSector(BS_struct *bs);
+
+// Obtiene los datos guardados en el cluster dado
+uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf);
