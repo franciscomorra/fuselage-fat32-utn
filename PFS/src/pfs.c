@@ -13,13 +13,16 @@
 #include "ppd_io.h"
 #include "tad_fat.h"
 #include "pfs_addressing.h"
-#include "dir_entry.h"
+#include "tad_direntry.h"
+#include "nipc.h"
 
 BS_struct boot_sector;
 
 int main(int argc, char *argv[])
 {
 
+	msgNIPC_t *msg;
+	msg = NIPC_createMsg(READ,2,"SA");
 
 	FAT_struct fat;
 

@@ -18,7 +18,7 @@ enum {
 
 
 //char* PFS_requestSectorsRead(uint32_t *sectors,size_t sectors_count);
-msgNIPC_t PFS_requestSectorsRead(uint32_t *sectors,size_t sectors_count);
+char* PFS_requestSectorsRead(uint32_t *sectors,size_t sectors_count);
 
 //char* PFS_request(char* msg);
 char* PFS_request(msgNIPC_t msg);
