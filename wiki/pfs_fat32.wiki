@@ -1,5 +1,5 @@
 #labels PFS,SourceFiles
-.c
+pfs_fat32.c
 
 Archivo fuente que contiene lo que viene a ser la capa de implementacion de FAT32, en esta se encontrara el manejo especifico de este tipo de Filesystem. Incluye "tad_fat.h" para el manejo de la FAT.
 
