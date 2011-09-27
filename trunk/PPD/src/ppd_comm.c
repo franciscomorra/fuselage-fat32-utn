@@ -9,7 +9,7 @@
 #define READ 2
 #define WRITE 1
 
-int32_t ppd_send(char* msg)
+int32_t ppd_send(msgNIPC_t msg)
 {
 
 	return 1;
