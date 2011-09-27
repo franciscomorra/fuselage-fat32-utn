@@ -1,0 +1,12 @@
+#labels PFS,SourceFiles
+tad_fat.c /.h
+
+Contiene la definicion del tipo de dato estructura de una tabla FAT y las operaciones que se peuden realizar sobre este.
+
+Funciones:
+
+// Obtiene la cadena de clusters que le sigue al cluster pasado
+cluster_node* FAT_getClusterChain(FAT_struct *fat,uint32_t first_cluster);
+
+// Obtiene una lista de clusters libres
+cluster_node* FAT_getFreeClusters(FAT_struct* FAT);
