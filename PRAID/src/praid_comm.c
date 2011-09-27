@@ -5,7 +5,8 @@
 #include "nipc.h"
 #include "praid_comm.h"
 
-uint32_t PRAID_takeRequest(msgNIPC_t msg,nipc_node* first, nipc_node* last){
+uint32_t PRAID_takeRequest(msgNIPC_t msg,nipc_node* first, nipc_node* last)
+{
 	nipc_node* new = malloc(sizeof(nipc_node));
 	new->info = msg;
 	new->next = 0x0;

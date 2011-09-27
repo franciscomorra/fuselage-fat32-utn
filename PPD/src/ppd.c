@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 	config_param *ppd_config;
 	CONFIG_read("config/ppd.config",&ppd_config);
 
-	Cylinder = atoi(CONFIG_getValue(ppd_config,"Cylinder"));
+	Cylinder   = atoi(CONFIG_getValue(ppd_config,"Cylinder"));
 	Head =  atoi(CONFIG_getValue(ppd_config,"Head"));
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));
 

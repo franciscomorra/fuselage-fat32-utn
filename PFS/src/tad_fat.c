@@ -88,11 +88,13 @@ cluster_node* FAT_getFreeClusters(FAT_struct* FAT) {
 	return first;
 }
 
-uint32_t FAT_addCluster(cluster_node* first, cluster_node* new){
+uint32_t FAT_addCluster(cluster_node* first, cluster_node* new)
+{
 	cluster_node* aux = first;
 	cluster_node* last = aux;
 
-	while(aux->number < new->number){
+	while(aux->number < new->number)
+	{
 		last = aux;
 		aux = aux->next;
 	}
@@ -103,19 +105,23 @@ uint32_t FAT_addCluster(cluster_node* first, cluster_node* new){
 	return 0;
 }
 
-uint32_t FAT_takeCluster(cluster_node* first, uint32_t clusterNumber){
+uint32_t FAT_takeCluster(cluster_node* first, uint32_t clusterNumber)
+{
 	cluster_node* aux = first;
 	cluster_node* last = aux;
 	uint32_t number;
 
-	while(aux->number != clusterNumber){
+	while(aux->number != clusterNumber)
+	{
 		last = aux;
 		aux = aux->next;
 	}
-	if(aux->next == 0x0)
+
+	if (aux->next == 0x0)
 		exit(-1);
 	else
 		last->next = aux->next;
+
 	number=(aux->number);
 	free(aux);
 	return(number);

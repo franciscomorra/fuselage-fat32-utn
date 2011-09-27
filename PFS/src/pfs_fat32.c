@@ -36,7 +36,7 @@ uint32_t fat32_readFAT(FAT_struct *fat)
 
 uint32_t fat32_readBootSector(BS_struct *bs)
 {
-	uint32_t sectors[1] = {0};
+	uint32_t sectors[1] = {0} ;
 	char *bootsector_data = PFS_requestSectorsRead(sectors,1);
 	memcpy(bs,bootsector_data,512);
 	return 0;

@@ -14,7 +14,7 @@
 #include "tad_fat.h"
 #include "pfs_addressing.h"
 #include "dir_entry.h"
-
+#include "utils.h"
 BS_struct boot_sector;
 
 int main(int argc, char *argv[])
