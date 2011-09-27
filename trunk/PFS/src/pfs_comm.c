@@ -17,21 +17,24 @@
 //ACA SE HACE LA CONEXION POR SOCKET Y LA VARIABLE QUE LA REPRESENTE SERA static
 //PARA QUE SU SCOPE SEA SOLO DENTRO DE ESTE ARCHIVO QUE MANEJARA LAS CONEXIONES
 
-msgNIPC_t PFS_requestSectorsRead(uint32_t *sectors,size_t sectors_count)
+char* PFS_requestSectorsRead(uint32_t *sectors,size_t sectors_count)
 {
 	msgNIPC_t msg;
 	msg.type = READ;
 	uint32_t index;
 
-	msg.len = sectors_count*sizeof(uint32_t);//VER COMO SE PASA DE CHAR[2] A SIZE_T
+	//msg.len = sectors_count*sizeof(uint32_t); //VER COMO SE PASA DE CHAR[2] A SIZE_T
 
 	msg.payload = malloc(sectors_count*sizeof(uint32_t));
+	memcpy(&msg.len,sizeof(msg.payload),2);
+
 	for (index=0;index<sectors_count;index++)
 	{
 		memcpy(msg.payload+index,sectors+index,sizeof(uint32_t));
 	}
 
-	return msg;
+
+	return PFS_request(msg);
 
 }
 
@@ -63,7 +66,7 @@ char* PFS_request(msgNIPC_t msg)
 		return buf;
 
 	}
-	else if (type == WRITE)
+	else if (msg.type == WRITE)
 	{
 
 	}

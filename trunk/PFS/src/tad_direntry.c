@@ -30,13 +30,8 @@ char* DIRENTRY_getLongFileName(long_filename_entry lfn)
 	char* str3 = malloc(sizeof(char)*50);
 	size_t utf8_size;
 
-
-	char* str1 = unicode_utf16_to_utf8((uint16_t*) &lfn.name_chars1,10,&utf8_size); // aca rompe todo (L)
-
-
+	char* str1 = unicode_utf16_to_utf8((uint16_t*) &lfn.name_chars1,10,&utf8_size); // TODO LALLALA
 	str2 = unicode_utf16_to_utf8(&lfn.name_chars2,12,&utf8_size); // santi te queremos
-
-
 	str3 = unicode_utf16_to_utf8(&lfn.name_chars3,4,&utf8_size);
 
 		return strcat(str3,strcat(str1,str2));
