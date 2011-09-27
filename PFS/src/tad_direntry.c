@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "dir_entry.h"
+#include "tad_direntry.h"
 #include "utils.h"
 
 
