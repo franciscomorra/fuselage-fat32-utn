@@ -1,0 +1,18 @@
+#labels PFS,SourceFiles
+tad_direntry.h /.c
+
+Contiene el tipo de dato estructura que representa una Entrada de Directorio y los Long File Name Entries asi como todas las operaciones posibles sobre estos.
+
+Tipos de Datos:
+
+- file_attr
+- time_bytes
+- date_bytes
+- directory_entry
+- long_filename_entry
+- file_node
+- lfn_sequence_number
+
+Funciones:
+
+- uint32_t DIRENTRY_getClusterNumber(directory_entry *dir_entry);
