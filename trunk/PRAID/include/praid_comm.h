@@ -15,8 +15,8 @@ enum {
 };
 
 
-uint32_t PRAID_takeRequest(msgNIPC_t msg, nipc_node* first);
-uint32_t PRAID_manageRequest(msgNIPC_t msg,nipc_node* first, nipc_node* last);
+uint32_t PRAID_takeRequest(msgNIPC_t msg,nipc_node* first, nipc_node* last);
+uint32_t PRAID_manageRequest(msgNIPC_t msg,nipc_node* first);
 
 
 #endif /* PRAID_COMM_H_ */

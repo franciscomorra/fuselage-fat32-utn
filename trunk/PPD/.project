@@ -79,11 +79,4 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
-	<linkedResources>
-		<link>
-			<name>src/config_manager.c</name>
-			<type>1</type>
-			<locationURI>WORKSPACE_LOC/Commons/src/config_manager.c</locationURI>
-		</link>
-	</linkedResources>
 </projectDescription>
