@@ -9,13 +9,14 @@
 #define PPD_COMM_H_
 
 #include <stdint.h>
+#include "nipc.h"
 
 enum {
 	HANDSHAKE=0x00, READ=0x01, WRITE=0x02
 };
 
 
-int32_t ppd_send(char* msg);
-char* ppd_receive(char* msg);
+int32_t ppd_send(msgNIPC_t msg);
+msgNIPC_t ppd_receive(msgNIPC_t msgIn);
 
 #endif /* PPD_COMM_H_ */
