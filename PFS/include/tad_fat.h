@@ -33,5 +33,11 @@ cluster_node* FAT_getClusterChain(FAT_struct *fat,uint32_t first_cluster);
 //FAT_getFreeClusters: Obtiene una lista de clusters libres
 cluster_node* FAT_getFreeClusters(FAT_struct* FAT);
 
+//FAT_takeCluster: Saca un nodo de una lista de clusters
+uint32_t FAT_takeCluster(cluster_node* first, uint32_t clusterNumber);
+
+//FAT_addCluster: Agrega un nodo a una lista de clusters
+uint32_t FAT_addCluster(cluster_node* first, cluster_node* new);
+
 
 #endif /* TAD_FAT_H_ */
