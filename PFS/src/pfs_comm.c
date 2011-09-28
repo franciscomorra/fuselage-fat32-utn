@@ -12,61 +12,47 @@
 #include <fcntl.h>
 #include "pfs_comm.h"
 #include "ppd_io.h"
-#include "nipc.h"
+#include "tad_bootsector.h"
 
 //ACA SE HACE LA CONEXION POR SOCKET Y LA VARIABLE QUE LA REPRESENTE SERA static
 //PARA QUE SU SCOPE SEA SOLO DENTRO DE ESTE ARCHIVO QUE MANEJARA LAS CONEXIONES
 
-char* PFS_requestSectorsRead(uint32_t *sectors,size_t sectors_count)
+extern BS_struct boot_sector;
+
+char* PFS_requestSectorsOperation(NIPC_type request_type,uint32_t *sectors,size_t sectors_count)
 {
-	msgNIPC_t msg;
-	msg.type = READ;
-	uint32_t index;
-
-	//msg.len = sectors_count*sizeof(uint32_t); //VER COMO SE PASA DE CHAR[2] A SIZE_T
-
-	msg.payload = malloc(sectors_count*sizeof(uint32_t));
-	memcpy(&msg.len,sizeof(msg.payload),2);
-
-	for (index=0;index<sectors_count;index++)
-	{
-		memcpy(msg.payload+index,sectors+index,sizeof(uint32_t));
-	}
-
-
+	NIPC_msg msg = NIPC_createMsg(request_type,sectors_count*sizeof(uint32_t),(char*) sectors);
 	return PFS_request(msg);
-
 }
 
-msgNIPC_t PFS_requestSectorsWrite(uint32_t *sectors)
+char* PFS_request(NIPC_msg msg)
 {
 
-}
-
-char* PFS_request(msgNIPC_t msg)
-{
 	//CAMBIAR POR ENVIO POR SOCKET
 	//CAMBIAR POR ENVIO POR SOCKET
 	//CAMBIAR POR ENVIO POR SOCKET
 
-	if (msg.type == READ)
+	if (msg.type == READ_SECTORS)
 	{
 		uint32_t file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR); //TEMPORAL
 
-		//size_t count = len/sizeof(uint32_t);
-		size_t count = msg.len;//VER COMO SE PASA DE CHAR[2] A SIZE_T
+		size_t bytes_count = 0;
+		memcpy(&bytes_count,msg.len,2);
 
-		uint32_t i;
-		char *buf = malloc(512*count);
-		for (i=0;i<count;i++)
+		size_t sectors_count = bytes_count / 4;
+		uint32_t index;
+		char *buf = malloc(boot_sector.bytes_perSector*sectors_count);
+		uint32_t *sectors_in_payload = (uint32_t*) msg.payload;
+		for (index=0;index<sectors_count;index++)
 		{
-			read_sector(file_descriptor,msg.payload[i],buf+(512*i));
+			//ERROR GRAVE: Payload muy grande
+			read_sector(file_descriptor, sectors_in_payload[index],buf+(boot_sector.bytes_perSector*index));
 		}
 		close(file_descriptor);
 		return buf;
 
 	}
-	else if (msg.type == WRITE)
+	else if (msg.type == WRITE_SECTORS)
 	{
 
 	}

@@ -9,6 +9,7 @@
 #define TAD_FAT_H_
 
 #include <stdint.h>
+#include <stdlib.h>
 
 typedef struct cluster_node
 {
@@ -20,7 +21,7 @@ typedef struct cluster_node
 //___STRUCT_FAT_TABLE
 typedef struct {
 	uint32_t *table;
-	uint32_t size;
+	size_t size;
 
 } FAT_struct;
 //___STRUCT_FAT_TABLE

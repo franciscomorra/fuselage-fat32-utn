@@ -12,15 +12,11 @@
 #include "nipc.h"
 
 
-enum {
-	HANDSHAKE=0x00, READ=0x01, WRITE=0x02
-};
-
 
 //char* PFS_requestSectorsRead(uint32_t *sectors,size_t sectors_count);
-char* PFS_requestSectorsRead(uint32_t *sectors,size_t sectors_count);
+char* PFS_requestSectorsOperation(NIPC_type request_type,uint32_t *sectors,size_t sectors_count);
 
 //char* PFS_request(char* msg);
-char* PFS_request(msgNIPC_t msg);
+char* PFS_request(NIPC_msg msg);
 
 #endif /* PFS_COMM_H_ */
