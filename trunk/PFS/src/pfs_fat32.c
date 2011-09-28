@@ -6,20 +6,17 @@
  */
 #include "pfs_comm.h"
 #include "pfs_fat32.h"
-#include "tad_fat.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 
+extern BS_struct boot_sector;
+
 uint32_t fat32_readFAT(FAT_struct *fat)
 {
-	extern BS_struct boot_sector;
-
 	uint32_t bytes_perFATentry = 4;
-	fat->table = malloc(512*(boot_sector.sectors_perFat32));
-	fat->size = (512*(boot_sector.sectors_perFat32)) / bytes_perFATentry;
-	memset(fat->table,0,512*(boot_sector.sectors_perFat32));
+	fat->size = (boot_sector.bytes_perSector*boot_sector.sectors_perFat32) / bytes_perFATentry;
 
 	//Luego se reemplazara esto  por el envio del mensaje al PPD/PRAID
 	uint32_t sectors[boot_sector.sectors_perFat32];
@@ -29,7 +26,7 @@ uint32_t fat32_readFAT(FAT_struct *fat)
 		sectors[sector-32] = sector;
 	}
 
-	fat->table = (uint32_t*) PFS_requestSectorsRead(sectors,boot_sector.sectors_perFat32);
+	fat->table = (uint32_t*) PFS_requestSectorsOperation(READ_SECTORS,sectors,boot_sector.sectors_perFat32);
 	return 0;
 }
 
@@ -37,7 +34,7 @@ uint32_t fat32_readFAT(FAT_struct *fat)
 uint32_t fat32_readBootSector(BS_struct *bs)
 {
 	uint32_t sectors[1] = {0} ;
-	char *bootsector_data = PFS_requestSectorsRead(sectors,1);
+	char *bootsector_data = PFS_requestSectorsOperation(READ_SECTORS,sectors,1);
 	memcpy(bs,bootsector_data,512);
 	return 0;
 
@@ -46,7 +43,7 @@ uint32_t fat32_readBootSector(BS_struct *bs)
 uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf)
 {
 	uint32_t *sectors = cluster_to_sectors(cluster_no);
-	*buf = PFS_requestSectorsRead(sectors,8);
+	*buf = PFS_requestSectorsOperation(READ_SECTORS,sectors,8);
 	return 0;
 }
 

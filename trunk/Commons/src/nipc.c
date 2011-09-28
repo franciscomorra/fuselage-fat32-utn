@@ -7,12 +7,12 @@
 
 #include "nipc.h"
 
-msgNIPC_t* NIPC_createMsg(char type,uint32_t len, char* payload)
+NIPC_msg NIPC_createMsg(NIPC_type type,uint32_t payload_bytes_len, char* payload_bytes)
 {
-	msgNIPC_t *msg = malloc(sizeof(msgNIPC_t));
-	msg->type = type;
-	memcpy(msg->len,&len,2);
-	msg->payload = malloc(len);
-	memcpy(msg->payload,payload,len);
+	NIPC_msg msg;
+	msg.type = type;
+	memcpy(msg.len,&payload_bytes_len,2);
+	msg.payload = malloc(payload_bytes_len);
+	memcpy(msg.payload,payload_bytes,payload_bytes_len);
 	return msg;
 }

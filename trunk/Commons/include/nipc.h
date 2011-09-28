@@ -4,17 +4,21 @@
 #include <stdio.h>
 #include <stdint.h>
 
-typedef struct {
-	char type;
+typedef enum {
+	HANDSHAKE=0x00, READ_SECTORS=0x01, WRITE_SECTORS=0x02
+} NIPC_type;
+
+typedef struct NIPC_msg {
+	NIPC_type type;
 	char len[2]; //la memoria es un gran array y aca reservo 2 posiciones
 	char *payload;
-} msgNIPC_t;
+} __attribute__((__packed__)) NIPC_msg;
 
 typedef struct {
-	msgNIPC_t info;
+	NIPC_msg msg;
 	struct nipc_node* next;
-}nipc_node;
+} NIPC_node;
 
-msgNIPC_t* NIPC_createMsg(char type,uint32_t len, char* payload);
+NIPC_msg NIPC_createMsg(NIPC_type type,uint32_t len, char* payload);
 
 #endif /* PRAID_REQUEST_H_ */

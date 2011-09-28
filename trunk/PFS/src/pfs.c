@@ -17,16 +17,11 @@
 #include "nipc.h"
 
 BS_struct boot_sector;
+FAT_struct fat;
 
 int main(int argc, char *argv[])
 {
-
-	msgNIPC_t *msg;
-	msg = NIPC_createMsg(READ,2,"SA");
-
-	FAT_struct fat;
-
-
+	boot_sector.bytes_perSector = 512; //Habra que hacer alguna funcion especial para leer solo el boot_sector;
 	fat32_readBootSector(&boot_sector);
 	fat32_readFAT(&fat);
 
