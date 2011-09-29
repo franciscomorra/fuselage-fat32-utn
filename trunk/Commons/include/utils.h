@@ -44,4 +44,8 @@
 
 	void string_split3( char *str, char delimitor, char **result );
 
+	uint32_t shiftbytes_right(char* buf,size_t size,size_t positions);
+
+	uint32_t shiftbytes_left(char* buf,size_t size,size_t positions);
+
 #endif /* UTILS_H_ */
