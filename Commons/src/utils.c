@@ -151,3 +151,23 @@ void string_split3( char *str, char delimitor, char **result ){
 
 	result[elementIndex + 1] = NULL;
 }
+
+uint32_t shiftbytes_right(char* buf,size_t size,size_t positions)
+{
+	char* tmp = malloc(size);
+	memset(tmp,0,size);
+	memcpy(tmp+positions,buf,size-positions);
+	memcpy(buf,tmp,size);
+	free(tmp);
+	return 1;
+}
+
+uint32_t shiftbytes_left(char* buf,size_t size,size_t positions)
+{
+	char* tmp = malloc(size);
+	memset(tmp,0,size);
+	memcpy(tmp,buf+positions,size-positions);
+	memcpy(buf,tmp,size);
+	free(tmp);
+	return 1;
+}

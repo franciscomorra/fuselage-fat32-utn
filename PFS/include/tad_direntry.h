@@ -75,9 +75,6 @@ typedef struct directory_entry
 typedef struct file_node
 {
 	char *long_file_name;
-	char file_name[12];
-	uint32_t cluster_no;
-	file_attr attr;
 	directory_entry dir_entry;
 	struct file_node * next;
 }__attribute__((__packed__)) file_node;
@@ -87,9 +84,6 @@ typedef struct lfn_sequence_number
 	uint32_t number 	:6; //lo dimos vuelta porque los bits last y del son los de mas peso ( LO DI VUELTA DE NUEVO, ACUERDENSE LO DE LITTLE ENDIAN!!! Y SOBRE TODO PRUEBEN SIEMPRE)
 	bool last 			:1;
 	bool deleted 	 	:1;
-
-
-
 }__attribute__((__packed__)) lfn_sequence_number;
 
 typedef struct long_filename_entry
@@ -107,6 +101,7 @@ typedef struct long_filename_entry
 //DIRENTRY_getClusterNumber: Obtiene el numero de cluster a partir de los bytes de la Directory Entry de un archivo
 uint32_t DIRENTRY_getClusterNumber(directory_entry *dir_entry);
 
+//DIRENTRY_getFileList: Interpreta una tabla de directorio y devuelve una lista de todos los archivos/directorios que aparecen en ella
 file_node* DIRENTRY_getFileList(char* cluster_data);
 
 #endif /* DIR_ENTRY_H_ */
