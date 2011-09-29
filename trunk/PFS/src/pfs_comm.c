@@ -31,6 +31,7 @@ char* PFS_requestSectorsOperation(NIPC_type request_type,uint32_t *sectors,size_
 	{
 		msg = NIPC_createMsg(request_type,sizeof(uint32_t), sectors+index);
 		tmp = PFS_request(msg);
+		NIPC_cleanMsg(&msg);
 		memcpy(buf+(index*boot_sector.bytes_perSector),tmp,boot_sector.bytes_perSector);
 		free(tmp);
 	}
@@ -52,6 +53,7 @@ char* PFS_request(NIPC_msg msg)
 		uint32_t *sector = malloc(sizeof(uint32_t));
 		memcpy(sector,msg.payload,4);
 		read_sector(file_descriptor, *sector, buf);
+		free(sector);
 		close(file_descriptor);
 		return buf;
 
