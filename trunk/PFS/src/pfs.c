@@ -16,6 +16,7 @@
 #include "tad_direntry.h"
 #include "nipc.h"
 
+
 BS_struct boot_sector;
 FAT_struct fat;
 
