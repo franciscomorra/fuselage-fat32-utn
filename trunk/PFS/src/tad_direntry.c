@@ -15,6 +15,7 @@
 
 uint32_t DIRENTRY_getClusterNumber(directory_entry *entry)
 {
+
 	unsigned char cluster[4] = {entry->high_cluster[1],entry->high_cluster[0],entry->low_cluster[1],entry->low_cluster[0]};
 	int i=0;
 	uint32_t arrToInt=0;
@@ -37,32 +38,63 @@ uint32_t DIRENTRY_getClusterNumber(directory_entry *entry)
 		return strcat(str3,strcat(str1,str2));
 }*/
 
-char* DIRENTRY_getLongFileName(long_filename_entry lfn)
+size_t DIRENTRY_getLongFileName(long_filename_entry lfn,char** ret_longfilename)
 {
-	char* str1 = malloc(sizeof(char)*50);
-	char* str2 = malloc(sizeof(char)*50);
-	char* str3 = malloc(sizeof(char)*50);
 	size_t utf8_size;
-
-
-	unicode_utf16_to_utf8_inbuffer((uint16_t*) &lfn.name_chars1,5,str1,&utf8_size); // TODO
-	unicode_utf16_to_utf8_inbuffer((uint16_t*) &lfn.name_chars2,6,str2,&utf8_size); // averiguar por que anda con la mitad de los bytes originales
-	unicode_utf16_to_utf8_inbuffer((uint16_t*) &lfn.name_chars3,2,str3,&utf8_size); // al armar un nombre corto te tira basura cuando lo mostras
-
-	return strcat(strcat(str1,str2),str3);
+	char* long_filename = malloc(26);
+	*ret_longfilename = malloc(13);
+	memcpy(long_filename,lfn.name_chars1,10);
+	memcpy(long_filename+10,lfn.name_chars2,12);
+	memcpy(long_filename+22,lfn.name_chars3,4);
+	unicode_utf16_to_utf8_inbuffer((uint16_t*)long_filename,13,*ret_longfilename,&utf8_size);
+	free(long_filename);
+	return strlen(*ret_longfilename);
 }
 
 
 file_node* DIRENTRY_getFileList(char* cluster_data)
 {
-	char *tmp;
-	tmp = cluster_data;
-	long_filename_entry *lfn_entry = malloc(sizeof(long_filename_entry));
-	char * lfn = malloc(50);
-			memcpy(lfn_entry,tmp,32);
-			memcpy(lfn,DIRENTRY_getLongFileName(*lfn_entry),32);
-			printf("%s",lfn);
-	return 0;
+	//TODO HAY QE INVERTIR EL ORDEN EN QUE CONCATENA PORQUE LEE PRIMERO LA ULTIMA PARTE DEL NOMBRE
+	long_filename_entry *lfn_entry = (long_filename_entry*) cluster_data;
+	char* new_longfilename;
+	char* longfilename_buf = malloc(255);
+	memset(longfilename_buf,0,255);
+	char* tmp_longfilename;
+	size_t tmp_longfilename_size = 0;
+	size_t new_longfilename_size = 0;
+
+
+	while (lfn_entry != 0x00)
+	{
+		if (lfn_entry->sequence_no.number == 1)
+		{
+			tmp_longfilename_size = DIRENTRY_getLongFileName(*lfn_entry,&tmp_longfilename);
+			new_longfilename_size += tmp_longfilename_size;
+			memcpy(strchr(longfilename_buf,'\0'),tmp_longfilename,tmp_longfilename_size);
+
+			new_longfilename = malloc(new_longfilename_size);
+			memcpy(new_longfilename,longfilename_buf,new_longfilename_size);
+			memset(longfilename_buf,0,255);
+
+			free(tmp_longfilename);
+
+			lfn_entry =  lfn_entry+(2);
+
+
+			new_longfilename_size = 0;
+		}
+		else
+		{
+			tmp_longfilename_size = DIRENTRY_getLongFileName(*lfn_entry,&tmp_longfilename);
+			new_longfilename_size += tmp_longfilename_size;
+			memcpy(strchr(longfilename_buf,'\0'),tmp_longfilename,tmp_longfilename_size);
+
+			lfn_entry++;
+			free(tmp_longfilename);
+
+		}
+	}
+
 }
 
 
