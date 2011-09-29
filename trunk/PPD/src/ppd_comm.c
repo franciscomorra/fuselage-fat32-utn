@@ -9,16 +9,16 @@
 #define READ 2
 #define WRITE 1
 
-int32_t ppd_send(msgNIPC_t msg)
+int32_t ppd_send(NIPC_msg msg)
 {
 
 	return 1;
 }
 
-msgNIPC_t ppd_receive(msgNIPC_t msgIn)
+NIPC_msg ppd_receive(NIPC_msg msgIn)
 {
 	/* Se obtienen los distintos campos del mensaje IPC*/
-	msgNIPC_t msgOut;
+	NIPC_msg msgOut;
 	uint32_t type = 0;
 	switch (msgIn.type)
 	{
