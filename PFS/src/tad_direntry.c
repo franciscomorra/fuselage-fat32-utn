@@ -57,7 +57,7 @@ file_node* DIRENTRY_getFileList(char* cluster_data)
 {
 	char *tmp;
 	tmp = cluster_data;
-	long_filename_entry *lfn_entry;
+	long_filename_entry *lfn_entry = malloc(sizeof(long_filename_entry));
 	char * lfn = malloc(50);
 			memcpy(lfn_entry,tmp,32);
 			memcpy(lfn,DIRENTRY_getLongFileName(*lfn_entry),32);
