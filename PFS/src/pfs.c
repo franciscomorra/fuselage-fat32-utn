@@ -30,10 +30,12 @@ int main(int argc, char *argv[])
 
 	cluster_node *first;
 	first = FAT_getFreeClusters(&fat);
+	FAT_cleanList(first);
 
 	char *buf;
 	fat32_getClusterData(2,&buf);
 	DIRENTRY_getFileList(buf);
+	free(buf);
 
 	//
 

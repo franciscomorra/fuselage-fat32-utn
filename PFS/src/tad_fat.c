@@ -58,6 +58,20 @@ cluster_node* FAT_getClusterChain(FAT_struct *fat,uint32_t init_cluster)
 
 	return first;
 }
+void FAT_cleanList(cluster_node* first)
+{
+	cluster_node* cur = first;
+	cluster_node* next;
+
+	while (cur->next != 0x0)
+	{
+		next=cur->next;
+		free(cur);
+		cur=next;
+	}
+
+	free(cur);
+}
 
 cluster_node* FAT_getFreeClusters(FAT_struct* FAT) {
 

@@ -36,6 +36,7 @@ uint32_t fat32_readBootSector(BS_struct *bs)
 	uint32_t sectors[1] = {0} ;
 	char *bootsector_data = PFS_requestSectorsOperation(READ_SECTORS,sectors,1);
 	memcpy(bs,bootsector_data,512);
+	free(bootsector_data);
 	return 0;
 
 }
@@ -44,6 +45,7 @@ uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf)
 {
 	uint32_t *sectors = cluster_to_sectors(cluster_no);
 	*buf = PFS_requestSectorsOperation(READ_SECTORS,sectors,8);
+	free(sectors);
 	return 0;
 }
 
