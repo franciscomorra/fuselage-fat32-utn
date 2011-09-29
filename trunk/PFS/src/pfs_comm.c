@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include "pfs_comm.h"
 #include "ppd_io.h"
@@ -55,9 +56,9 @@ char* PFS_request(NIPC_msg msg)
 		return buf;
 
 	}
-	else if (msg.type == WRITE_SECTORS)
-	{
+	else if (msg.type == WRITE_SECTORS){
 
 	}
+	return 0;
 }
 
