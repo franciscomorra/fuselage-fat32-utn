@@ -50,66 +50,90 @@ file_node* DIRENTRY_getFileList(char* cluster_data)
 
 	while (*((char*) lfn_entry) != 0x00) //Mientras el primer byte de cada 32 bytes que voy recorriendo sea distinto de 0x00 quiere decir que hay una LFN o una DIRENTRY
 	{
-		if (lfn_entry->sequence_no.number == 1) //Si es la ultima LFN del archivo
-		{
-			tmp_longfilename_part_size = DIRENTRY_getLongFileName(*lfn_entry,&tmp_longfilename_part); //Obtengo la ultima parte (Viene a ser la primera del nombre , estan dispuestas al reves)
-			new_longfilename_size += tmp_longfilename_part_size; //Aumento el tamaño del nombre para obtener el tamaño final
-			/* Corro lo que esta almacenado en el buffer
-			 * la cantidad de posiciones necesarias hacia la derecha para que entre
-			 * la ultima parte del nombre
-			 * */
-			shiftbytes_right(longfilename_buf,255,tmp_longfilename_part_size);
-			/* Copio la siguiente parte del nombre en el buffer donde
-			 * quedara el nombre completo
-			 */
-			memcpy(longfilename_buf,tmp_longfilename_part,tmp_longfilename_part_size);
-			new_longfilename = malloc(new_longfilename_size); /* Obtengo memoria para el nuevo nombre de archivo */
-			memcpy(new_longfilename,longfilename_buf,new_longfilename_size); /*Copio el nombre completo que esta en el buffer a la memoria almacenada antes */
-			memset(longfilename_buf,0,255); /* Seteo el buffer donde se van almacenando las partes a 0 para empezar con el siguiente archivo */
-			free(tmp_longfilename_part); //Libero memoria
+		//Borrado : number = 37
+			if (lfn_entry->sequence_no.number == 1 && lfn_entry->sequence_no.deleted == false) //Si es la ultima LFN del archivo y no esta eliminada (Saltea tambien la DIRENTRY ya que las marca igual que las LFN eliminadas)
+			{
+				tmp_longfilename_part_size = DIRENTRY_getLongFileName(*lfn_entry,&tmp_longfilename_part); //Obtengo la ultima parte (Viene a ser la primera del nombre , estan dispuestas al reves)
+				new_longfilename_size += tmp_longfilename_part_size; //Aumento el tamaño del nombre para obtener el tamaño final
+				/* Corro lo que esta almacenado en el buffer
+				 * la cantidad de posiciones necesarias hacia la derecha para que entre
+				 * la ultima parte del nombre
+				 * */
+				shiftbytes_right(longfilename_buf,255,tmp_longfilename_part_size);
+				/* Copio la siguiente parte del nombre en el buffer donde
+				 * quedara el nombre completo
+				 */
+				memcpy(longfilename_buf,tmp_longfilename_part,tmp_longfilename_part_size);
+				new_longfilename = malloc(new_longfilename_size+1); /* Obtengo memoria para el nuevo nombre de archivo */
+				memset(new_longfilename,0,new_longfilename_size+1); // Seteo a 0
+				memcpy(new_longfilename,longfilename_buf,new_longfilename_size); /*Copio el nombre completo que esta en el buffer a la memoria almacenada antes */
+				memset(longfilename_buf,0,255); /* Seteo el buffer donde se van almacenando las partes a 0 para empezar con el siguiente archivo */
+				free(tmp_longfilename_part); //Libero memoria
 
-			/* Aca empieza a leer la DIRENTRY del archivo */
-			directory_entry *direntry = (directory_entry*) ++lfn_entry;
+				/* Aca empieza a leer la DIRENTRY del archivo */
+				directory_entry *direntry = (directory_entry*) ++lfn_entry;
 
-			file_node *new_file = malloc(sizeof(file_node));
-			new_file->long_file_name = malloc(new_longfilename_size);
-			strcpy(new_file->long_file_name,new_longfilename);
-			memcpy(&(new_file->dir_entry),direntry,sizeof(directory_entry));
-			new_file->next = 0x0;
+				file_node *new_file = malloc(sizeof(file_node));
+				new_file->long_file_name = malloc(new_longfilename_size+1);
+				memset(new_file->long_file_name,0,new_longfilename_size+1); // Seteo a 0
+				strcpy(new_file->long_file_name,new_longfilename);
+				memcpy(&(new_file->dir_entry),direntry,sizeof(directory_entry));
+				new_file->next = 0x0;
 
-			if (first == 0x0) {
-				first = last = new_file;
-			} else {
-				last->next = new_file;
-				last = new_file;
+				if (first == 0x0) {
+					first = last = new_file;
+				} else {
+					last->next = new_file;
+					last = new_file;
+				}
+
+				/* Aca termina de leer la DIRENTRY del archivo */
+				lfn_entry++; // Apunto al primer LFN del siguiente archivo
+				free(new_longfilename);
+				new_longfilename_size = 0;
+			}
+			else if (lfn_entry->sequence_no.number != 1 && lfn_entry->sequence_no.deleted == false)//Si no es la ultima LFN del archivo
+			{
+				tmp_longfilename_part_size = DIRENTRY_getLongFileName(*lfn_entry,&tmp_longfilename_part); //Obtengo la cadena parte del nombre del LFN
+				new_longfilename_size += tmp_longfilename_part_size; //Aumento el tamaño del nombre del archivo que estoy leyendo
+				/* Corro lo que esta almacenado en el buffer
+				 * la cantidad de posiciones necesarias hacia la derecha para que entre
+				 * la siguiente parte del nombre
+				 * */
+				shiftbytes_right(longfilename_buf,255,tmp_longfilename_part_size);
+				/* Copio la siguiente parte del nombre en el buffer donde
+				 * voy uniendo las partes
+				 */
+				memcpy(longfilename_buf,tmp_longfilename_part,tmp_longfilename_part_size);
+				free(tmp_longfilename_part); //Libero la memoria usada
+				lfn_entry++; //Paso a la siguiente entrada LFN
+			}
+			else if (lfn_entry->sequence_no.deleted == true) //Si es una entrada eliminada la salteo
+			{
+				lfn_entry++;
 			}
 
-			/* Aca termina de leer la DIRENTRY del archivo */
-			lfn_entry++;
-			free(new_longfilename);
-			new_longfilename_size = 0;
-		}
-		else //Si no es la ultima LFN del archivo
-		{
-			tmp_longfilename_part_size = DIRENTRY_getLongFileName(*lfn_entry,&tmp_longfilename_part); //Obtengo la cadena parte del nombre del LFN
-			new_longfilename_size += tmp_longfilename_part_size; //Aumento el tamaño del nombre del archivo que estoy leyendo
-			/* Corro lo que esta almacenado en el buffer
-			 * la cantidad de posiciones necesarias hacia la derecha para que entre
-			 * la siguiente parte del nombre
-			 * */
-			shiftbytes_right(longfilename_buf,255,tmp_longfilename_part_size);
-			/* Copio la siguiente parte del nombre en el buffer donde
-			 * voy uniendo las partes
-			 */
-			memcpy(longfilename_buf,tmp_longfilename_part,tmp_longfilename_part_size);
-			free(tmp_longfilename_part); //Libero la memoria usada
-			lfn_entry++; //Paso a la siguiente entrada LFN
-		}
 	}
 
 	free(longfilename_buf);
 	return first; //Retorno un puntero al primer file_node
 }
 
+void DIRENTRY_cleanList(file_node* first)
+{
+	file_node* cur = first;
+	file_node* next;
+
+	while (cur->next != 0x0)
+	{
+		next=cur->next;
+		free(cur->long_file_name);
+		free(cur);
+		cur=next;
+	}
+
+	free(cur->long_file_name);
+	free(cur);
+}
 
 
