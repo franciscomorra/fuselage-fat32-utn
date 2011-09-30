@@ -34,7 +34,8 @@ int main(int argc, char *argv[])
 
 	char *buf;
 	fat32_getClusterData(2,&buf);
-	DIRENTRY_getFileList(buf);
+	file_node *list = DIRENTRY_getFileList(buf);
+	DIRENTRY_cleanList(list);
 	free(buf);
 
 	//

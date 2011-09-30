@@ -6,6 +6,9 @@
  */
 
 #include "nipc.h"
+#include <stdlib.h>
+#include <string.h>
+
 
 NIPC_msg NIPC_createMsg(NIPC_type type,uint32_t payload_bytes_len, char* payload_bytes)
 {
