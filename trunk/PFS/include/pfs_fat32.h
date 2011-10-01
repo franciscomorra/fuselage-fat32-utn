@@ -17,6 +17,8 @@
 #include <stdbool.h>
 #include "tad_fat.h"
 #include "tad_bootsector.h"
+#include "tad_filenode.h"
+
 #define EOC 0x0FFFFFF8;
 
 
@@ -29,4 +31,7 @@ uint32_t fat32_readBootSector(BS_struct *bs);
 
 uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf);
 
+FILE_NODE* fat32_getFileList(char* cluster_data);
+
+FILE_NODE* fat32_readDirectory(const char* path);
 #endif /* PFS_FAT32_H_ */

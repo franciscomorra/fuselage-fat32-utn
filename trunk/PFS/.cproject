@@ -42,7 +42,7 @@
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1008077269" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
-							<tool command="gcc -licui18n" id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.1099101837" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug">
+							<tool command="gcc" id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.1099101837" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug">
 								<option id="gnu.c.link.option.libs.1677246523" name="Libraries (-l)" superClass="gnu.c.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="Commons"/>
 									<listOptionValue builtIn="false" value="icui18n"/>
@@ -54,9 +54,8 @@
 								</option>
 								<option id="gnu.c.link.option.shared.1202456354" name="Shared (-shared)" superClass="gnu.c.link.option.shared" value="false" valueType="boolean"/>
 								<option id="gnu.c.link.option.other.898850734" name="Other options (-Xlinker [option])" superClass="gnu.c.link.option.other"/>
-								<option id="gnu.c.link.option.userobjs.1492599512" name="Other objects" superClass="gnu.c.link.option.userobjs" valueType="userObjs">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/Commons/Debug/libCommons.so}&quot;"/>
-								</option>
+								<option id="gnu.c.link.option.userobjs.1492599512" name="Other objects" superClass="gnu.c.link.option.userobjs" valueType="userObjs"/>
+								<option id="gnu.c.link.option.noshared.1663479948" name="No shared libraries (-static)" superClass="gnu.c.link.option.noshared" value="false" valueType="boolean"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.182941279" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>

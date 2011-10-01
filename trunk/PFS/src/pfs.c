@@ -7,14 +7,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "fuse_operations.h"
-
 #include "pfs_fat32.h"
-#include "pfs_comm.h"
-#include "ppd_io.h"
 #include "tad_fat.h"
-#include "pfs_addressing.h"
+#include "tad_bootsector.h"
 #include "tad_direntry.h"
-#include "nipc.h"
 
 
 BS_struct boot_sector;
@@ -23,8 +19,10 @@ FAT_struct fat;
 int main(int argc, char *argv[])
 {
 	boot_sector.bytes_perSector = 512; //Habra que hacer alguna funcion especial para leer solo el boot_sector;
+ 	fat32_readDirectory("/mnt/santi/");
+
 	fat32_readBootSector(&boot_sector);
-	fat32_readFAT(&fat);
+	fat32_readFAT(&fat);;
 
 	FAT_getClusterChain(&fat,9);
 
@@ -34,8 +32,8 @@ int main(int argc, char *argv[])
 
 	char *buf;
 	fat32_getClusterData(2,&buf);
-	file_node *list = DIRENTRY_getFileList(buf);
-	DIRENTRY_cleanList(list);
+	FILE_NODE *list = fat32_readDirectory("/nomb");
+	FILENODE_cleanList(list);
 	free(buf);
 
 	//
@@ -54,7 +52,7 @@ int fuselage_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t o
 
 	    filler(buf, ".", NULL, 0);
 	    filler(buf, "..", NULL, 0);
-	    filler(buf, "HOLA MUNDO", NULL, 0);
+	    filler(buf, path, NULL, 0);
 
 	    return 0;
 }
