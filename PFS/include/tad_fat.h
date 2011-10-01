@@ -40,5 +40,6 @@ uint32_t FAT_takeCluster(cluster_node* first, uint32_t clusterNumber);
 //FAT_addCluster: Agrega un nodo a una lista de clusters
 uint32_t FAT_addCluster(cluster_node* first, cluster_node* new);
 
+void FAT_cleanList(cluster_node* first);
 
 #endif /* TAD_FAT_H_ */

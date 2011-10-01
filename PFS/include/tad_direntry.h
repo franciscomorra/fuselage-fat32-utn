@@ -68,40 +68,16 @@ typedef struct directory_entry
 	date_bytes last_modified_date;
 	char low_cluster[2]; //Orden correcto: H H low_cluster[1] low_cluster[1]
 	uint32_t file_size	:32;
-} __attribute__((__packed__)) directory_entry;
+} __attribute__((__packed__)) DIR_ENTRY;
 //___STRUCT_DIR_ENTRY
 
 
-typedef struct file_node
-{
-	char *long_file_name;
-	directory_entry dir_entry;
-	struct file_node * next;
-}__attribute__((__packed__)) file_node;
 
-typedef struct lfn_sequence_number
-{
-	uint32_t number 	:6; //lo dimos vuelta porque los bits last y del son los de mas peso ( LO DI VUELTA DE NUEVO, ACUERDENSE LO DE LITTLE ENDIAN!!! Y SOBRE TODO PRUEBEN SIEMPRE)
-	bool last 			:1;
-	bool deleted 	 	:1;
-}__attribute__((__packed__)) lfn_sequence_number;
-
-typedef struct long_filename_entry
-{
-	lfn_sequence_number sequence_no;
-	char name_chars1[10];
-	char attr;
-	char reserved;
-	char checksum;
-	char name_chars2[12];
-	char first_cluster[2];
-	char name_chars3[4];
-
-} __attribute__((__packed__)) long_filename_entry;
 //DIRENTRY_getClusterNumber: Obtiene el numero de cluster a partir de los bytes de la Directory Entry de un archivo
-uint32_t DIRENTRY_getClusterNumber(directory_entry *dir_entry);
+uint32_t DIRENTRY_getClusterNumber(DIR_ENTRY *dir_entry);
 
 //DIRENTRY_getFileList: Interpreta una tabla de directorio y devuelve una lista de todos los archivos/directorios que aparecen en ella
-file_node* DIRENTRY_getFileList(char* cluster_data);
+
+
 
 #endif /* DIR_ENTRY_H_ */

@@ -15,9 +15,10 @@ int32_t ppd_send(NIPC_msg msg)
 	return 1;
 }
 
-NIPC_msg ppd_receive(NIPC_msg msgIn)
+NIPC_msg ppd_receive()
 {
 	/* Se obtienen los distintos campos del mensaje IPC*/
+
 	NIPC_msg msgOut;
 	uint32_t type = 0;
 	switch (msgIn.type)
