@@ -11,36 +11,35 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-typedef struct cluster_node
+typedef struct CLUSTER_NODE
 {
 	uint32_t number;
 	struct cluster_node * next;
 
-} cluster_node;
+} CLUSTER_NODE;
 
 //___STRUCT_FAT_TABLE
 typedef struct {
 	uint32_t *table;
 	size_t size;
 	uint32_t EOC;
-
-} FAT_struct;
+} FAT_TABLE;
 //___STRUCT_FAT_TABLE
 
 
 
 //FAT_getClusterChain: Obtiene la cadena de clusters que le sigue al cluster pasado
-cluster_node* FAT_getClusterChain(FAT_struct *fat,uint32_t first_cluster);
+CLUSTER_NODE* FAT_getClusterChain(FAT_TABLE *fat,uint32_t first_cluster);
 
 //FAT_getFreeClusters: Obtiene una lista de clusters libres
-cluster_node* FAT_getFreeClusters(FAT_struct* FAT);
+CLUSTER_NODE* FAT_getFreeClusters(FAT_TABLE* FAT);
 
 //FAT_takeCluster: Saca un nodo de una lista de clusters
-uint32_t FAT_takeCluster(cluster_node* first, uint32_t clusterNumber);
+uint32_t FAT_takeCluster(CLUSTER_NODE* first, uint32_t clusterNumber);
 
 //FAT_addCluster: Agrega un nodo a una lista de clusters
-uint32_t FAT_addCluster(cluster_node* first, cluster_node* new);
+uint32_t FAT_addCluster(CLUSTER_NODE* first, CLUSTER_NODE* new);
 
-void FAT_cleanList(cluster_node* first);
+void FAT_cleanList(CLUSTER_NODE* first);
 
 #endif /* TAD_FAT_H_ */

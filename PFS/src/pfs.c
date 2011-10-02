@@ -13,8 +13,8 @@
 #include "tad_direntry.h"
 
 
-BS_struct boot_sector;
-FAT_struct fat;
+BOOT_SECTOR boot_sector;
+FAT_TABLE fat;
 
 int main(int argc, char *argv[])
 {
@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 
 	FAT_getClusterChain(&fat,9);
 
-	cluster_node *first;
+	CLUSTER_NODE *first;
 	first = FAT_getFreeClusters(&fat);
 	FAT_cleanList(first);
 

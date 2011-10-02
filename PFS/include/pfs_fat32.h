@@ -19,15 +19,12 @@
 #include "tad_bootsector.h"
 #include "tad_filenode.h"
 
-#define EOC 0x0FFFFFF8;
-
-
 
 //fat32_readFAT: Lee la tabla fat en la estructura FAT_struct
-uint32_t fat32_readFAT(FAT_struct *fat);
+uint32_t fat32_readFAT(FAT_TABLE *fat);
 
 //fat32_readBootSector: Lee el boot sector en la estructura BS_struct
-uint32_t fat32_readBootSector(BS_struct *bs);
+uint32_t fat32_readBootSector(BOOT_SECTOR *bs);
 
 uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf);
 

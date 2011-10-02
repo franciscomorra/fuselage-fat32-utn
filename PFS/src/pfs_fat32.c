@@ -17,9 +17,9 @@
 #include "tad_filenode.h"
 #include "tad_lfnentry.h"
 
-extern BS_struct boot_sector;
+extern BOOT_SECTOR boot_sector;
 
-uint32_t fat32_readFAT(FAT_struct *fat)
+uint32_t fat32_readFAT(FAT_TABLE *fat)
 {
 	uint32_t bytes_perFATentry = 4;
 	fat->size = (boot_sector.bytes_perSector*boot_sector.sectors_perFat32) / bytes_perFATentry;
@@ -38,7 +38,7 @@ uint32_t fat32_readFAT(FAT_struct *fat)
 }
 
 
-uint32_t fat32_readBootSector(BS_struct *bs)
+uint32_t fat32_readBootSector(BOOT_SECTOR *bs)
 {
 	uint32_t sectors[1] = {0} ;
 	char *bootsector_data = PFS_requestSectorsOperation(READ_SECTORS,sectors,1);
