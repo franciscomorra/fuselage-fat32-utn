@@ -22,6 +22,7 @@ typedef struct cluster_node
 typedef struct {
 	uint32_t *table;
 	size_t size;
+	uint32_t EOC;
 
 } FAT_struct;
 //___STRUCT_FAT_TABLE
