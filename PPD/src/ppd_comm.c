@@ -15,7 +15,7 @@ int32_t ppd_send(NIPC_msg msg)
 	return 1;
 }
 
-NIPC_msg ppd_receive()
+NIPC_msg ppd_receive(NIPC_msg msgIn )
 {
 	/* Se obtienen los distintos campos del mensaje IPC*/
 
@@ -31,7 +31,7 @@ NIPC_msg ppd_receive()
 		break;
 
 		case READ:
-
+			REQUEST_add(msgIn.payload);
 		break;
 	}
 	return msgOut;
