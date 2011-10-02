@@ -8,14 +8,16 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "config_manager.h"
+#include "ppd_requestList.h"
 
 uint32_t Cylinder;
 uint32_t Head;
 uint32_t Sector;
-
+requestNode_t* first;
 
 int main(int argc, char *argv[])
 {
+	first = 0;
 	config_param *ppd_config;
 	CONFIG_read("config/ppd.config",&ppd_config);
 

@@ -9,6 +9,8 @@
 #define READ 2
 #define WRITE 1
 
+extern requestNode_t first;
+
 int32_t ppd_send(NIPC_msg msg)
 {
 
@@ -31,7 +33,7 @@ NIPC_msg ppd_receive(NIPC_msg msgIn )
 		break;
 
 		case READ:
-			REQUEST_add(msgIn.payload);
+			REQUEST_add(msgIn.payload,first);
 		break;
 	}
 	return msgOut;
