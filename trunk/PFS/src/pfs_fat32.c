@@ -33,6 +33,7 @@ uint32_t fat32_readFAT(FAT_struct *fat)
 	}
 
 	fat->table = (uint32_t*) PFS_requestSectorsOperation(READ_SECTORS,sectors,boot_sector.sectors_perFat32);
+	fat->EOC = *(fat->table + 1);
 	return 0;
 }
 
