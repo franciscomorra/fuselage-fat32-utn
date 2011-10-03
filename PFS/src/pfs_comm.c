@@ -30,7 +30,7 @@ char* PFS_requestSectorsOperation(NIPC_type request_type,uint32_t *sectors,size_
 
 	for (index = 0;index < sectors_count;index++)
 	{
-		msg = NIPC_createMsg(request_type,sizeof(uint32_t),(char*)  sectors+index);
+		msg = NIPC_createMsg(request_type,sizeof(uint32_t),(char*)  (sectors+index));
 		tmp = PFS_request(msg);
 		NIPC_cleanMsg(&msg);
 		memcpy(buf+(index*boot_sector.bytes_perSector),tmp,boot_sector.bytes_perSector);
