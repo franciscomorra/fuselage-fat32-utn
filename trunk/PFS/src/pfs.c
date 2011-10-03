@@ -13,8 +13,8 @@
 #include "tad_direntry.h"
 
 
-BOOT_SECTOR boot_sector;
-FAT_TABLE fat;
+bootSector_t boot_sector;
+fatTable_t fat;
 
 int main(int argc, char *argv[])
 {
@@ -26,13 +26,13 @@ int main(int argc, char *argv[])
 
 	FAT_getClusterChain(&fat,9);
 
-	CLUSTER_NODE *first;
+	clusterNode_t *first;
 	first = FAT_getFreeClusters(&fat);
 	FAT_cleanList(first);
 
 	char *buf;
 	fat32_getClusterData(2,&buf);
-	FILE_NODE *list = fat32_readDirectory("/nomb");
+	fileNode_t *list = fat32_readDirectory("/nomb");
 	FILENODE_cleanList(list);
 	free(buf);
 

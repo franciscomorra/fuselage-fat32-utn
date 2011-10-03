@@ -17,6 +17,6 @@
 char* PFS_requestSectorsOperation(NIPC_type request_type,uint32_t *sectors,size_t sectors_count);
 
 //char* PFS_request(char* msg);
-char* PFS_request(NIPC_msg msg);
+char* PFS_request(nipcMsg_t msg);
 
 #endif /* PFS_COMM_H_ */

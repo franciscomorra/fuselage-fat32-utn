@@ -12,12 +12,12 @@
 typedef struct FILE_NODE
 {
 	char *long_file_name;
-	DIR_ENTRY dir_entry;
+	dirEntry_t dir_entry;
 	struct FILE_NODE * next;
-}__attribute__((__packed__)) FILE_NODE;
+}__attribute__((__packed__)) fileNode_t;
 
-FILE_NODE* FILENODE_takeNode(FILE_NODE **first);
+fileNode_t* FILENODE_takeNode(fileNode_t **first);
 
-void FILENODE_cleanList(FILE_NODE* first);
+void FILENODE_cleanList(fileNode_t* first);
 
 #endif /* TAD_FILENODE_H_ */

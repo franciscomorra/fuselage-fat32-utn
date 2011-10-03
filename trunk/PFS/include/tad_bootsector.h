@@ -42,7 +42,7 @@ typedef struct
 	char fat_type[8];
 	char os_bootcode[420];
 	char boot_sign[2];
-} __attribute__((__packed__)) BOOT_SECTOR;
+} __attribute__((__packed__)) bootSector_t;
 //___STRUCT_BOOT_SECTOR_STRUCT
 
 #endif /* TAD_BOOTSECTOR_H_ */

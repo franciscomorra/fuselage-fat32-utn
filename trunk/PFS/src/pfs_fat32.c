@@ -17,9 +17,9 @@
 #include "tad_filenode.h"
 #include "tad_lfnentry.h"
 
-extern BOOT_SECTOR boot_sector;
+extern bootSector_t boot_sector;
 
-uint32_t fat32_readFAT(FAT_TABLE *fat)
+uint32_t fat32_readFAT(fatTable_t *fat)
 {
 	uint32_t bytes_perFATentry = 4;
 	fat->size = (boot_sector.bytes_perSector*boot_sector.sectors_perFat32) / bytes_perFATentry;
@@ -38,7 +38,7 @@ uint32_t fat32_readFAT(FAT_TABLE *fat)
 }
 
 
-uint32_t fat32_readBootSector(BOOT_SECTOR *bs)
+uint32_t fat32_readBootSector(bootSector_t *bs)
 {
 	uint32_t sectors[1] = {0} ;
 	char *bootsector_data = PFS_requestSectorsOperation(READ_SECTORS,sectors,1);
@@ -56,7 +56,7 @@ uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf)
 	return 0;
 }
 
-FILE_NODE* fat32_readDirectory(const char* path)
+fileNode_t* fat32_readDirectory(const char* path)
 {
 	char *token,*buf;
 	size_t len = strlen(path);
@@ -64,12 +64,12 @@ FILE_NODE* fat32_readDirectory(const char* path)
 	strcpy(string,path);
 
 	fat32_getClusterData(2,&buf);
-	FILE_NODE* list = fat32_getFileList(buf);
+	fileNode_t* list = fat32_getFileList(buf);
 	free(buf);
 
 
 	token = strtok(string,"/");
-	FILE_NODE* curr;
+	fileNode_t* curr;
 	do
 	{
 		while ((curr = FILENODE_takeNode(&list)) != 0x0)
@@ -89,13 +89,13 @@ FILE_NODE* fat32_readDirectory(const char* path)
 	return list;
 }
 
-FILE_NODE* fat32_getFileList(char* cluster_data) {
-	LFN_ENTRY *lfn_entry = (LFN_ENTRY*) cluster_data; //Uso este puntero para recorrer el cluster_data de a 32 bytes cada vez que incremento en 1 este puntero
+fileNode_t* fat32_getFileList(char* cluster_data) {
+	lfnEntry_t *lfn_entry = (lfnEntry_t*) cluster_data; //Uso este puntero para recorrer el cluster_data de a 32 bytes cada vez que incremento en 1 este puntero
 	char* longfilename_buf = malloc(255); //Uso este buffer para ir almacenando los LFN de un archivo
 	memset(longfilename_buf, 0, 255); //Lo seteo a 0
 	char *tmp_longfilename_part, *new_longfilename; //Puntero para UN LFN de UN archivo, y puntero para el nombre largo completo de un archivo
 	size_t tmp_longfilename_part_size = 0, new_longfilename_size = 0; //Tamaño de cadena de los punteros
-	FILE_NODE *last = 0x0, *first = 0x0; //Punteros a nodos de una lista que sera la que se obtenga de esta funcion
+	fileNode_t *last = 0x0, *first = 0x0; //Punteros a nodos de una lista que sera la que se obtenga de esta funcion
 
 	while (*((char*) lfn_entry) != 0x00) //Mientras el primer byte de cada 32 bytes que voy recorriendo sea distinto de 0x00 quiere decir que hay una LFN o una DIRENTRY
 	{
@@ -123,13 +123,13 @@ FILE_NODE* fat32_getFileList(char* cluster_data) {
 			free(tmp_longfilename_part); //Libero memoria
 
 			/* Aca empieza a leer la DIRENTRY del archivo (se podria cambiar por una funcion que cree el nodo) */
-			DIR_ENTRY *direntry = (DIR_ENTRY*) ++lfn_entry;
+			dirEntry_t *direntry = (dirEntry_t*) ++lfn_entry;
 
-			FILE_NODE *new_file = malloc(sizeof(FILE_NODE));
+			fileNode_t *new_file = malloc(sizeof(fileNode_t));
 			new_file->long_file_name = malloc(new_longfilename_size + 1);
 			memset(new_file->long_file_name, 0, new_longfilename_size + 1); // Seteo a 0
 			strcpy(new_file->long_file_name, new_longfilename);
-			memcpy(&(new_file->dir_entry), direntry, sizeof(DIR_ENTRY));
+			memcpy(&(new_file->dir_entry), direntry, sizeof(dirEntry_t));
 			new_file->next = 0x0;
 
 			if (first == 0x0) {

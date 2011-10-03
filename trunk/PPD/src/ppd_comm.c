@@ -11,17 +11,17 @@
 
 extern requestNode_t first;
 
-int32_t ppd_send(NIPC_msg msg)
+int32_t ppd_send(nipcMsg_t msg)
 {
 
 	return 1;
 }
 
-NIPC_msg ppd_receive(NIPC_msg msgIn )
+nipcMsg_t ppd_receive(nipcMsg_t msgIn )
 {
 	/* Se obtienen los distintos campos del mensaje IPC*/
 
-	NIPC_msg msgOut;
+	nipcMsg_t msgOut;
 	uint32_t type = 0;
 	switch (msgIn.type)
 	{

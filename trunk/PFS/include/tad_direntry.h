@@ -68,13 +68,13 @@ typedef struct directory_entry
 	date_bytes last_modified_date;
 	char low_cluster[2]; //Orden correcto: H H low_cluster[1] low_cluster[1]
 	uint32_t file_size	:32;
-} __attribute__((__packed__)) DIR_ENTRY;
+} __attribute__((__packed__)) dirEntry_t;
 //___STRUCT_DIR_ENTRY
 
 
 
 //DIRENTRY_getClusterNumber: Obtiene el numero de cluster a partir de los bytes de la Directory Entry de un archivo
-uint32_t DIRENTRY_getClusterNumber(DIR_ENTRY *dir_entry);
+uint32_t DIRENTRY_getClusterNumber(dirEntry_t *dir_entry);
 
 //DIRENTRY_getFileList: Interpreta una tabla de directorio y devuelve una lista de todos los archivos/directorios que aparecen en ella
 

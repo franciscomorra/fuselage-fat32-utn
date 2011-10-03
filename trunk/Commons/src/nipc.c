@@ -10,9 +10,9 @@
 #include <string.h>
 
 
-NIPC_msg NIPC_createMsg(NIPC_type type,uint32_t payload_bytes_len, char* payload_bytes)
+nipcMsg_t NIPC_createMsg(NIPC_type type,uint32_t payload_bytes_len, char* payload_bytes)
 {
-	NIPC_msg msg;
+	nipcMsg_t msg;
 	msg.type = type;
 	memcpy(msg.len,&payload_bytes_len,2);
 	msg.payload = malloc(payload_bytes_len);
@@ -21,7 +21,7 @@ NIPC_msg NIPC_createMsg(NIPC_type type,uint32_t payload_bytes_len, char* payload
 	return msg;
 }
 
-void NIPC_cleanMsg(NIPC_msg* msg)
+void NIPC_cleanMsg(nipcMsg_t* msg)
 {
 	free(msg->payload);
 	return;

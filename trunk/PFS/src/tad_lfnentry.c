@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include "utils.h"
 
-size_t LFNENTRY_getLongFileName(LFN_ENTRY lfn,char** ret_longfilename) {
+size_t LFNENTRY_getLongFileName(lfnEntry_t lfn,char** ret_longfilename) {
 	size_t utf8_size;
 	char* long_filename = malloc(26);
 	*ret_longfilename = malloc(13);
