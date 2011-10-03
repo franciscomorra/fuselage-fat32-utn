@@ -11,12 +11,7 @@
 #include <stdint.h>
 #include "nipc.h"
 
-enum {
-	HANDSHAKE=0x00, READ=0x01, WRITE=0x02
-};
-
-
-int32_t ppd_send(msgNIPC_t msg);
-msgNIPC_t ppd_receive(msgNIPC_t msgIn);
+int32_t ppd_send(nipcMsg_t msg);
+nipcMsg_t ppd_receive(nipcMsg_t msgIn);
 
 #endif /* PPD_COMM_H_ */

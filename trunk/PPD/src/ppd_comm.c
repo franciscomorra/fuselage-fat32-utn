@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include "nipc.h"
-
+#include "ppd_requestList.h"
 
 #define HANDSHAKE 0
 #define READ 2
@@ -33,7 +33,7 @@ nipcMsg_t ppd_receive(nipcMsg_t msgIn )
 		break;
 
 		case READ:
-			REQUEST_add(msgIn.payload,first);
+			REQUEST_add(msgIn.payload);
 		break;
 	}
 	return msgOut;
