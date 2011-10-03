@@ -12,13 +12,15 @@ typedef struct NIPC_msg {
 	NIPC_type type;
 	char len[2]; //la memoria es un gran array y aca reservo 2 posiciones
 	char *payload;
-} __attribute__((__packed__)) NIPC_msg;
+} __attribute__((__packed__)) nipcMsg_t;
 
 typedef struct {
-	NIPC_msg msg;
+	nipcMsg_t msg;
 	struct nipc_node* next;
 } NIPC_node;
 
-NIPC_msg NIPC_createMsg(NIPC_type type,uint32_t len, char* payload);
+nipcMsg_t NIPC_createMsg(NIPC_type type,uint32_t len, char* payload);
+
+void NIPC_cleanMsg(nipcMsg_t* msg);
 
 #endif /* PRAID_REQUEST_H_ */

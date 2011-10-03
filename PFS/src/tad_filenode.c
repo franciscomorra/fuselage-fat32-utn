@@ -6,9 +6,9 @@
  */
 #include "tad_filenode.h"
 
-void FILENODE_cleanList(FILE_NODE* first) {
-	FILE_NODE* cur = first;
-	FILE_NODE* next;
+void FILENODE_cleanList(fileNode_t* first) {
+	fileNode_t* cur = first;
+	fileNode_t* next;
 
 	while (cur->next != 0x0) {
 		next = cur->next;
@@ -21,9 +21,9 @@ void FILENODE_cleanList(FILE_NODE* first) {
 	free(cur);
 }
 
-FILE_NODE* FILENODE_takeNode(FILE_NODE **first)
+fileNode_t* FILENODE_takeNode(fileNode_t **first)
 {
-	FILE_NODE* tmp = *first;
+	fileNode_t* tmp = *first;
 	if (tmp != 0x0)	*first = (*first)->next;
 	return tmp;
 }

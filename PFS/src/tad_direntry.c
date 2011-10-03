@@ -13,7 +13,7 @@
 #include "utils.h"
 
 
-uint32_t DIRENTRY_getClusterNumber(DIR_ENTRY *entry)
+uint32_t DIRENTRY_getClusterNumber(dirEntry_t *entry)
 {
 	unsigned char cluster[4] = {entry->high_cluster[1],entry->high_cluster[0],entry->low_cluster[1],entry->low_cluster[0]};
 	int i=0;

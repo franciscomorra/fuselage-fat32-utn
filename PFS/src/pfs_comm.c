@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <string.h>
 #include "pfs_comm.h"
 #include "ppd_io.h"
 #include "tad_bootsector.h"
@@ -18,18 +19,18 @@
 //ACA SE HACE LA CONEXION POR SOCKET Y LA VARIABLE QUE LA REPRESENTE SERA static
 //PARA QUE SU SCOPE SEA SOLO DENTRO DE ESTE ARCHIVO QUE MANEJARA LAS CONEXIONES
 
-extern BOOT_SECTOR boot_sector;
+extern bootSector_t boot_sector;
 
 char* PFS_requestSectorsOperation(NIPC_type request_type,uint32_t *sectors,size_t sectors_count)
 {
 	uint32_t index;
-	NIPC_msg msg;
+	nipcMsg_t msg;
 	char *buf = malloc(sectors_count*boot_sector.bytes_perSector);
 	char *tmp;
 
 	for (index = 0;index < sectors_count;index++)
 	{
-		msg = NIPC_createMsg(request_type,sizeof(uint32_t), sectors+index);
+		msg = NIPC_createMsg(request_type,sizeof(uint32_t),(char*)  sectors+index);
 		tmp = PFS_request(msg);
 		NIPC_cleanMsg(&msg);
 		memcpy(buf+(index*boot_sector.bytes_perSector),tmp,boot_sector.bytes_perSector);
@@ -39,7 +40,7 @@ char* PFS_requestSectorsOperation(NIPC_type request_type,uint32_t *sectors,size_
 	return buf;
 }
 
-char* PFS_request(NIPC_msg msg)
+char* PFS_request(nipcMsg_t msg)
 {
 	//CAMBIAR POR ENVIO POR SOCKET
 	//CAMBIAR POR ENVIO POR SOCKET
