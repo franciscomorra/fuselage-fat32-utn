@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <sys/mman.h>
 
 #include "pfs_comm.h"
@@ -59,6 +60,7 @@ uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf)
 fileNode_t* fat32_readDirectory(const char* path)
 {
 	char *token,*buf;
+	bool dir_exists = false;
 	size_t len = strlen(path);
 	char string[len];
 	strcpy(string,path);
@@ -66,25 +68,36 @@ fileNode_t* fat32_readDirectory(const char* path)
 	fat32_getClusterData(2,&buf);
 	fileNode_t* list = fat32_getFileList(buf);
 	free(buf);
+	if (strcmp(path,"/") == 0) return list;
 
 
 	token = strtok(string,"/");
+
 	fileNode_t* curr;
 	do
 	{
+		dir_exists = false;
 		while ((curr = FILENODE_takeNode(&list)) != 0x0)
 		{
+
+
 			if (strcmp(curr->long_file_name,token) == 0 && (curr->dir_entry.file_attribute.subdirectory) == true)
 			{
+				dir_exists=true;
 				FILENODE_cleanList(list);
+				uint32_t clust = DIRENTRY_getClusterNumber(&(curr->dir_entry));
 				fat32_getClusterData(DIRENTRY_getClusterNumber(&(curr->dir_entry)),&buf);
 				list = fat32_getFileList(buf);
 				free(buf);
 				break;
 			}
 		}
+
+		if (dir_exists == false)
+			return 0x0;
+
 	}
-	while((token = strtok( NULL, "/" )) != NULL );
+	while((token = strtok( NULL, "/" )) != NULL && dir_exists == true);
 
 	return list;
 }
@@ -97,11 +110,22 @@ fileNode_t* fat32_getFileList(char* cluster_data) {
 	size_t tmp_longfilename_part_size = 0, new_longfilename_size = 0; //Tamaño de cadena de los punteros
 	fileNode_t *last = 0x0, *first = 0x0; //Punteros a nodos de una lista que sera la que se obtenga de esta funcion
 
+	if (*cluster_data == '.')
+	{
+		dirEntry_t *point = (dirEntry_t*) lfn_entry;
+		fileNode_t *first_node = FILENODE_createNode(".",point);
+		FILENODE_addNode(&first,&first_node);
+		lfn_entry++;
+		dirEntry_t *pointpoint = (dirEntry_t*) (lfn_entry);
+		fileNode_t *second_node = FILENODE_createNode("..",pointpoint);
+		FILENODE_addNode(&(first->next),&second_node);
+		++lfn_entry;
+	}
+
 	while (*((char*) lfn_entry) != 0x00) //Mientras el primer byte de cada 32 bytes que voy recorriendo sea distinto de 0x00 quiere decir que hay una LFN o una DIRENTRY
 	{
 		//Borrado : number = 37
-		if (lfn_entry->sequence_no.number == 1
-				&& lfn_entry->sequence_no.deleted == false) //Si es la ultima LFN del archivo y no esta eliminada (Saltea tambien la DIRENTRY ya que las marca igual que las LFN eliminadas)
+		if (lfn_entry->sequence_no.number == 1 && lfn_entry->sequence_no.deleted == false) //Si es la ultima LFN del archivo y no esta eliminada (Saltea tambien la DIRENTRY ya que las marca igual que las LFN eliminadas)
 				{
 			tmp_longfilename_part_size = LFNENTRY_getLongFileName(*lfn_entry,
 					&tmp_longfilename_part); //Obtengo la ultima parte (Viene a ser la primera del nombre , estan dispuestas al reves)
@@ -114,8 +138,7 @@ fileNode_t* fat32_getFileList(char* cluster_data) {
 			/* Copio la siguiente parte del nombre en el buffer donde
 			 * quedara el nombre completo
 			 */
-			memcpy(longfilename_buf, tmp_longfilename_part,
-					tmp_longfilename_part_size);
+			memcpy(longfilename_buf, tmp_longfilename_part,	tmp_longfilename_part_size);
 			new_longfilename = malloc(new_longfilename_size + 1); /* Obtengo memoria para el nuevo nombre de archivo */
 			memset(new_longfilename, 0, new_longfilename_size + 1); // Seteo a 0
 			memcpy(new_longfilename, longfilename_buf, new_longfilename_size); /*Copio el nombre completo que esta en el buffer a la memoria almacenada antes */
@@ -125,19 +148,8 @@ fileNode_t* fat32_getFileList(char* cluster_data) {
 			/* Aca empieza a leer la DIRENTRY del archivo (se podria cambiar por una funcion que cree el nodo) */
 			dirEntry_t *direntry = (dirEntry_t*) ++lfn_entry;
 
-			fileNode_t *new_file = malloc(sizeof(fileNode_t));
-			new_file->long_file_name = malloc(new_longfilename_size + 1);
-			memset(new_file->long_file_name, 0, new_longfilename_size + 1); // Seteo a 0
-			strcpy(new_file->long_file_name, new_longfilename);
-			memcpy(&(new_file->dir_entry), direntry, sizeof(dirEntry_t));
-			new_file->next = 0x0;
-
-			if (first == 0x0) {
-				first = last = new_file;
-			} else {
-				last->next = new_file;
-				last = new_file;
-			}
+			fileNode_t *new_node = FILENODE_createNode(new_longfilename,direntry);
+			FILENODE_addNode(&first,&new_node);
 
 			/* Aca termina de leer la DIRENTRY del archivo */
 			lfn_entry++; // Apunto al primer LFN del siguiente archivo
