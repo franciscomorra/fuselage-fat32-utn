@@ -7,6 +7,7 @@
 
 extern uint32_t Head;
 extern uint32_t Sector;
+extern uint32_t TrackJumpTime;
 extern requestNode_t* first;
 
 uint32_t SSTF_addRequest(uint32_t* sectorNum){
@@ -50,24 +51,15 @@ uint32_t SSTF_near(requestNode_t* new, requestNode_t* aux,requestNode_t* auxSig)
 	//se fija si la distancia entre  new y aux es menor que la de aux y auxSig
 	// si es asi devuelve True
 
-	uint32_t distSectorNA = abs(new->cylinder - aux->cylinder);
-	uint32_t distSectorAS = abs(auxSig->cylinder - aux->cylinder);
+	uint32_t distTrackNA = abs(new->cylinder - aux->cylinder);
+	uint32_t distTrackAS = abs(auxSig->cylinder - aux->cylinder);
 
-/*	switch (distSectorNA < distSectorAS) {
-
-		case(distSectorNA < distSectorAS):
-			return 1;
-
-		case(distSectorNA == distSectorAS):{
-			if(REQUEST_sectorDist((aux->sector)+1,new->sector) <= REQUEST_sectorDist((aux->sector)+1,auxSig->sector))
-				return 1;
-		} */
-
-	if (distSectorNA < distSectorAS)
+	if (distTrackNA < distTrackAS)
 		return 1;
 	else
-		if (distSectorNA == distSectorAS){
-			if(SSTF_sectorDist((aux->sector)+1,new->sector) <= SSTF_sectorDist((aux->sector)+1,auxSig->sector))
+		if (distTrackNA == distTrackAS){
+			if(SSTF_sectorDist(((aux->sector)+1)+(distTrackNA*TrackJumpTime),new->sector)
+			<= SSTF_sectorDist(((aux->sector)+1)+(distTrackNA*TrackJumpTime),auxSig->sector))
 				return 1;
 	}
 	return 0;
@@ -78,9 +70,9 @@ uint32_t SSTF_sectorDist(uint32_t fstSector, uint32_t lstSector){
 	//devuelve la cantidad de sectores que tiene que recorrer para llegar de fst a lst.
 
 	if (lstSector < fstSector)
-		exit (Sector - (fstSector - lstSector));
+		return (Sector - (fstSector - lstSector));
 	else
-		exit (lstSector - fstSector);
+		return (lstSector - fstSector);
 
 	return 0;
 }
