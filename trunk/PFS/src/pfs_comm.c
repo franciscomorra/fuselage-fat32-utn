@@ -26,6 +26,7 @@ char* PFS_requestSectorsOperation(NIPC_type request_type,uint32_t *sectors,size_
 	uint32_t index;
 	nipcMsg_t msg;
 	char *buf = malloc(sectors_count*boot_sector.bytes_perSector);
+	memset(buf,0,sectors_count*boot_sector.bytes_perSector);
 	char *tmp;
 
 	for (index = 0;index < sectors_count;index++)

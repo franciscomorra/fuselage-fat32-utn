@@ -31,4 +31,6 @@ uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf);
 fileNode_t* fat32_getFileList(char* cluster_data);
 
 fileNode_t* fat32_readDirectory(const char* path);
+
+dirEntry_t* fat32_getAttr(char* path);
 #endif /* PFS_FAT32_H_ */

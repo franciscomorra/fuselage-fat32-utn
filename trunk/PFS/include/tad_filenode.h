@@ -20,4 +20,10 @@ fileNode_t* FILENODE_takeNode(fileNode_t **first);
 
 void FILENODE_cleanList(fileNode_t* first);
 
+fileNode_t* FILENODE_searchNode(char* filename, fileNode_t *list);
+
+fileNode_t* FILENODE_createNode(char* filename,dirEntry_t *dirEntry);
+
+void FILENODE_addNode(fileNode_t **first,fileNode_t **new_node);
+
 #endif /* TAD_FILENODE_H_ */

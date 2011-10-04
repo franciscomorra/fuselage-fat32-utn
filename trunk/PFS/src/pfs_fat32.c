@@ -11,17 +11,20 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <sys/mman.h>
-
+#include <assert.h>
 #include "pfs_comm.h"
 #include "pfs_fat32.h"
 #include "tad_direntry.h"
 #include "tad_filenode.h"
 #include "tad_lfnentry.h"
+#include "log.h"
 
 extern bootSector_t boot_sector;
+extern t_log *log;
 
 uint32_t fat32_readFAT(fatTable_t *fat)
 {
+	log_debug(log,"PFS","Leyendo FAT Table");
 	uint32_t bytes_perFATentry = 4;
 	fat->size = (boot_sector.bytes_perSector*boot_sector.sectors_perFat32) / bytes_perFATentry;
 
@@ -34,6 +37,8 @@ uint32_t fat32_readFAT(fatTable_t *fat)
 	}
 
 	fat->table = (uint32_t*) PFS_requestSectorsOperation(READ_SECTORS,sectors,boot_sector.sectors_perFat32);
+	assert(*((char*) fat->table) == boot_sector.media_descriptor);
+	log_debug(log,"PFS","FAT Table OK");
 	fat->EOC = *(fat->table + 1);
 	return 0;
 }
@@ -41,8 +46,11 @@ uint32_t fat32_readFAT(fatTable_t *fat)
 
 uint32_t fat32_readBootSector(bootSector_t *bs)
 {
+	log_debug(log,"PFS","Leyendo Boot Sector");
 	uint32_t sectors[1] = {0} ;
 	char *bootsector_data = PFS_requestSectorsOperation(READ_SECTORS,sectors,1);
+	assert(*bootsector_data != 0x00);
+	log_debug(log,"PFS","Boot Sector OK");
 	memcpy(bs,bootsector_data,512);
 	free(bootsector_data);
 	return 0;
@@ -51,8 +59,10 @@ uint32_t fat32_readBootSector(bootSector_t *bs)
 
 uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf)
 {
-	uint32_t *sectors = cluster_to_sectors(cluster_no);
+	uint32_t *sectors = (uint32_t*) cluster_to_sectors(cluster_no);
 	*buf = PFS_requestSectorsOperation(READ_SECTORS,sectors,8);
+	log_debug(log,"PFS","Leyendo Cluster %d (Sectores: %d %d %d %d %d %d %d %d)",cluster_no,
+	sectors[0],sectors[1],sectors[2],sectors[3],sectors[4],sectors[5],sectors[6],sectors[7]);
 	free(sectors);
 	return 0;
 }
@@ -77,15 +87,12 @@ fileNode_t* fat32_readDirectory(const char* path)
 	do
 	{
 		dir_exists = false;
-		while ((curr = FILENODE_takeNode(&list)) != 0x0)
+		while ((curr = FILENODE_takeNode(&list)) != NULL)
 		{
-
-
 			if (strcmp(curr->long_file_name,token) == 0 && (curr->dir_entry.file_attribute.subdirectory) == true)
 			{
 				dir_exists=true;
 				FILENODE_cleanList(list);
-				uint32_t clust = DIRENTRY_getClusterNumber(&(curr->dir_entry));
 				fat32_getClusterData(DIRENTRY_getClusterNumber(&(curr->dir_entry)),&buf);
 				list = fat32_getFileList(buf);
 				free(buf);
@@ -94,7 +101,10 @@ fileNode_t* fat32_readDirectory(const char* path)
 		}
 
 		if (dir_exists == false)
-			return 0x0;
+		{
+			FILENODE_cleanList(list);
+			return NULL;
+		}
 
 	}
 	while((token = strtok( NULL, "/" )) != NULL && dir_exists == true);
@@ -108,12 +118,12 @@ fileNode_t* fat32_getFileList(char* cluster_data) {
 	memset(longfilename_buf, 0, 255); //Lo seteo a 0
 	char *tmp_longfilename_part, *new_longfilename; //Puntero para UN LFN de UN archivo, y puntero para el nombre largo completo de un archivo
 	size_t tmp_longfilename_part_size = 0, new_longfilename_size = 0; //Tamaño de cadena de los punteros
-	fileNode_t *last = 0x0, *first = 0x0; //Punteros a nodos de una lista que sera la que se obtenga de esta funcion
+	fileNode_t *first = NULL; //Punteros a nodos de una lista que sera la que se obtenga de esta funcion
 
 	if (*cluster_data == '.')
 	{
 		dirEntry_t *point = (dirEntry_t*) lfn_entry;
-		fileNode_t *first_node = FILENODE_createNode(".",point);
+		fileNode_t *first_node =  FILENODE_createNode(".",point);
 		FILENODE_addNode(&first,&first_node);
 		lfn_entry++;
 		dirEntry_t *pointpoint = (dirEntry_t*) (lfn_entry);
@@ -127,8 +137,7 @@ fileNode_t* fat32_getFileList(char* cluster_data) {
 		//Borrado : number = 37
 		if (lfn_entry->sequence_no.number == 1 && lfn_entry->sequence_no.deleted == false) //Si es la ultima LFN del archivo y no esta eliminada (Saltea tambien la DIRENTRY ya que las marca igual que las LFN eliminadas)
 				{
-			tmp_longfilename_part_size = LFNENTRY_getLongFileName(*lfn_entry,
-					&tmp_longfilename_part); //Obtengo la ultima parte (Viene a ser la primera del nombre , estan dispuestas al reves)
+			tmp_longfilename_part_size = LFNENTRY_getLongFileName(*lfn_entry,&tmp_longfilename_part); //Obtengo la ultima parte (Viene a ser la primera del nombre , estan dispuestas al reves)
 			new_longfilename_size += tmp_longfilename_part_size; //Aumento el tamaño del nombre para obtener el tamaño final
 			/* Corro lo que esta almacenado en el buffer
 			 * la cantidad de posiciones necesarias hacia la derecha para que entre
@@ -155,11 +164,10 @@ fileNode_t* fat32_getFileList(char* cluster_data) {
 			lfn_entry++; // Apunto al primer LFN del siguiente archivo
 			free(new_longfilename);
 			new_longfilename_size = 0;
-		} else if (lfn_entry->sequence_no.number != 1
-				&& lfn_entry->sequence_no.deleted == false) //Si no es la ultima LFN del archivo
-				{
-			tmp_longfilename_part_size = LFNENTRY_getLongFileName(*lfn_entry,
-					&tmp_longfilename_part); //Obtengo la cadena parte del nombre del LFN
+		}
+		else if (lfn_entry->sequence_no.number != 1 && lfn_entry->sequence_no.deleted == false) //Si no es la ultima LFN del archivo
+		{
+			tmp_longfilename_part_size = LFNENTRY_getLongFileName(*lfn_entry, &tmp_longfilename_part); //Obtengo la cadena parte del nombre del LFN
 			new_longfilename_size += tmp_longfilename_part_size; //Aumento el tamaño del nombre del archivo que estoy leyendo
 			/* Corro lo que esta almacenado en el buffer
 			 * la cantidad de posiciones necesarias hacia la derecha para que entre
@@ -169,12 +177,12 @@ fileNode_t* fat32_getFileList(char* cluster_data) {
 			/* Copio la siguiente parte del nombre en el buffer donde
 			 * voy uniendo las partes
 			 */
-			memcpy(longfilename_buf, tmp_longfilename_part,
-					tmp_longfilename_part_size);
+			memcpy(longfilename_buf, tmp_longfilename_part,	tmp_longfilename_part_size);
 			free(tmp_longfilename_part); //Libero la memoria usada
 			lfn_entry++; //Paso a la siguiente entrada LFN
-		} else if (lfn_entry->sequence_no.deleted == true) //Si es una entrada eliminada la salteo
-				{
+		}
+		else if (lfn_entry->sequence_no.deleted == true) //Si es una entrada eliminada la salteo
+		{
 			lfn_entry++;
 		}
 
@@ -184,3 +192,38 @@ fileNode_t* fat32_getFileList(char* cluster_data) {
 	return first; //Retorno un puntero al primer FILE_NODE
 }
 
+dirEntry_t* fat32_getAttr(char* path)
+{
+	size_t len = strlen(path);
+	char string[len];
+	strcpy(string,path);
+	char *tmp = strtok(string,"/");
+	char *filename = tmp;
+	while ((tmp = strtok(NULL,"/")) != NULL)
+	{
+		filename = tmp;
+	}
+
+	size_t location_size = strlen(path) - strlen(filename);
+	char* location = malloc(location_size+1);
+	memset(location,0,location_size+1);
+	memcpy(location,path,location_size);
+
+	fileNode_t *list = fat32_readDirectory(location); //Obtengo una lista de los ficheros que hay en "location"
+	free(location); //Libero la memoria de location
+
+	fileNode_t *file_found;
+	dirEntry_t *found;
+	if ((file_found = FILENODE_searchNode(filename,list)) != NULL) //Si existe el archivo que estoy buscando
+	{
+		found  = malloc(sizeof(dirEntry_t));
+		memcpy(found,&(file_found->dir_entry),sizeof(dirEntry_t)); //Copio la direntry hacia una estructura a devolver
+	}
+	else //Si no existe
+	{
+		found = NULL;
+	}
+
+	FILENODE_cleanList(list);
+	return found;
+}

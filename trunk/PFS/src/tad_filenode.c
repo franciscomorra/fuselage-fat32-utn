@@ -12,9 +12,9 @@ void FILENODE_cleanList(fileNode_t* first) {
 	fileNode_t* cur = first;
 	fileNode_t* next;
 
-	if (first != 0x0)
+	if (first != NULL)
 	{
-		while (cur->next != 0x0) {
+		while (cur->next != NULL) {
 			next = cur->next;
 			free(cur->long_file_name);
 			free(cur);
@@ -30,20 +30,20 @@ void FILENODE_cleanList(fileNode_t* first) {
 fileNode_t* FILENODE_takeNode(fileNode_t **first)
 {
 	fileNode_t* tmp = *first;
-	if (tmp != 0x0) *first = (*first)->next;
+	if (tmp != NULL) *first = (*first)->next;
 	return tmp;
 }
 
 void FILENODE_addNode(fileNode_t **first,fileNode_t **new_node)
 {
 
-			assert(*new_node != 0x0);
+			assert(*new_node != NULL);
 
-			if (*first == 0x0) {
+			if (*first == NULL) {
 				*first =  *new_node;
-			} else if ((*first)->next != 0x0){
+			} else if ((*first)->next != NULL){
 				fileNode_t *cur = (*first);
-				while (cur->next != 0x0)
+				while (cur->next != NULL)
 				{
 					cur = cur->next;
 				}
@@ -58,12 +58,30 @@ void FILENODE_addNode(fileNode_t **first,fileNode_t **new_node)
 
 fileNode_t* FILENODE_createNode(char* filename,dirEntry_t *dirEntry)
 {
-			assert(dirEntry != 0x0);
+			assert(dirEntry != NULL);
 			fileNode_t *new_file = malloc(sizeof(fileNode_t));
 			new_file->long_file_name = malloc(strlen(filename)+1);
 			memset(new_file->long_file_name, 0, strlen(filename) + 1); // Seteo a 0
 			strcpy(new_file->long_file_name, filename);
 			memcpy(&(new_file->dir_entry), dirEntry, sizeof(dirEntry_t));
-			new_file->next = 0x0;
+			new_file->next = NULL;
 			return new_file;
+}
+
+fileNode_t* FILENODE_searchNode(char* filename, fileNode_t *list)
+{
+	if ( list != NULL)
+	{
+		fileNode_t *cur = list;
+		while (cur != NULL)
+		{
+			if (strcmp(cur->long_file_name,filename) == 0)
+			{
+				return cur;
+			}
+					cur = cur->next;
+		}
+		return NULL;
+	 }
+	return NULL;
 }

@@ -15,16 +15,16 @@ clusterNode_t* FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 	uint32_t cluster_no = init_cluster;
 	clusterNode_t *new,*first;
 
-	if (fat->table[cluster_no] == 0x0)
+	if (fat->table[cluster_no] == NULL)
 	{
 		return 0;
 	}
-	else if (fat->table[cluster_no] < 0x0FFFFFF8)
+	else if (fat->table[cluster_no] < fat->EOC)
 	{
 		clusterNode_t *last;
 		last = 0x0;
 
-		while (fat->table[cluster_no] < 0x0FFFFFF8)
+		while (fat->table[cluster_no] < fat->EOC)
 		{
 			new = malloc(sizeof(clusterNode_t));
 			new->number = cluster_no;
@@ -63,7 +63,7 @@ void FAT_cleanList(clusterNode_t* first)
 	clusterNode_t* cur = first;
 	clusterNode_t* next;
 
-	while (cur->next != 0x0)
+	while (cur->next != NULL)
 	{
 		next=cur->next;
 		free(cur);
@@ -76,7 +76,7 @@ void FAT_cleanList(clusterNode_t* first)
 clusterNode_t* FAT_getFreeClusters(fatTable_t* FAT) {
 
 	uint32_t cluster_no;
-	clusterNode_t *new,*first, *last =0x0;
+	clusterNode_t *new,*first, *last =NULL;
 
 
 
@@ -87,7 +87,7 @@ clusterNode_t* FAT_getFreeClusters(fatTable_t* FAT) {
 			new = malloc(sizeof(clusterNode_t));
 			new->number = cluster_no;
 
-			if (last == 0x0)
+			if (last == NULL)
 			{
 				last = first = new;
 			}
@@ -131,7 +131,7 @@ uint32_t FAT_takeCluster(clusterNode_t* first, uint32_t clusterNumber)
 		aux = aux->next;
 	}
 
-	if (aux->next == 0x0)
+	if (aux->next == NULL)
 		exit(-1);
 	else
 		last->next = aux->next;
