@@ -12,8 +12,8 @@
 
 #include <fuse.h>
 
-/*static int fuselage_getattr(const char *, struct stat *);
-static int fuselage_open(const char *, struct fuse_file_info *);
+static int fuselage_getattr(const char *, struct stat *);
+/*static int fuselage_open(const char *, struct fuse_file_info *);
 static int fuselage_read(const char *, char *, size_t, off_t, struct fuse_file_info *);
 static int fuselage_write(const char *, const char *, size_t, off_t, struct fuse_file_info *);
 static int fuselage_create(const char *, mode_t, struct fuse_file_info *);
@@ -26,9 +26,11 @@ int fuselage_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t o
 
 struct fuse_operations fuselage_oper = {
 	.readdir	= fuselage_readdir,
-   /*.getattr	= fuselage_getattr,
+  .getattr	= fuselage_getattr,
 
+  /*
    .open	= fuselage_open,
+
    .read	= fuselage_read,
    .write = fuselage_write,
    .create = fuselage_create,
