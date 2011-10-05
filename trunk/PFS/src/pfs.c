@@ -13,21 +13,25 @@
 #include "fuse_operations.h"
 #include "pfs_fat32.h"
 #include "tad_fat.h"
+#include "tad_list.h"
+#include "tad_file.h"
 #include "tad_bootsector.h"
 #include "tad_direntry.h"
 #include "log.h"
 
 bootSector_t boot_sector;
 fatTable_t fat;
-t_log *log;
-fileNode_t *current_dir;
+t_log *log_file;
+dirEntry_t *current_file;
 
 int main(int argc, char *argv[])
 {
-	log = log_create("PFS","pfs.log",DEBUG,M_CONSOLE_DISABLE);
-	log_debug(log,"PFS","Inicio PFS");
+
+	log_file = log_create("PFS","pfs.log",INFO,M_CONSOLE_DISABLE);
+	log_debug(log_file,"PFS","Inicio PFS");
 
 	boot_sector.bytes_perSector = 512; //Habra que hacer alguna funcion especial para leer solo el boot_sector;
+
 	fat32_readBootSector(&boot_sector);
 	fat32_readFAT(&fat);
 
@@ -38,17 +42,22 @@ return fuse_main(argc, argv, &fuselage_oper,NULL);
 
 int fuselage_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t offset, struct fuse_file_info *fi)
 {
-	fileNode_t *file_list = fat32_readDirectory(path); //Obtengo una lista de los ficheros que hay en "path"
-	log_debug(log,"PFS","Leyendo directorio %s",path);
+	log_debug(log_file,"PFS","fuselage_readdir -> fat32_readDirectory(%s)",path);
+	listNode_t *file_list = fat32_readDirectory(path); //Obtengo una lista de los ficheros que hay en "path"
+
 	assert(file_list != NULL); //Si falla es que fuselage_getattr no detecto que no era un directorio valido
-	fileNode_t *cur = file_list;
-	while (cur != NULL)
+	listNode_t *curr_file_node = file_list;
+	fat32file_t *curr_file;
+	while (curr_file_node != NULL)
 	{
-		log_debug(log,"PFS","Listando %s",cur->long_file_name);
-		filler(buf, cur->long_file_name, NULL, 0);
-		cur = cur->next;
+		curr_file = (fat32file_t*) curr_file_node->data;
+		filler(buf, curr_file->long_file_name, NULL, 0);
+		curr_file_node = curr_file_node->next;
 	}
-	FILENODE_cleanList(file_list);
+
+	log_debug(log_file,"PFS","fuselage_readdir -> LIST_destroyList(0x%x,FAT32FILE_T)",file_list);
+	LIST_destroyList(&file_list,FAT32FILE_T);
+
 	return 0;
 }
 
@@ -56,33 +65,35 @@ static int fuselage_getattr(const char *path, struct stat *stbuf)
 {
 	int res = 0;
 	memset(stbuf, 0, sizeof(struct stat));
-	log_debug(log,"PFS","Obteniendo atributos de %s",path);
+
 	if (strcmp(path,"/") == 0) //Si se solicitan los atributos del directorio raiz
 	{
 	  stbuf->st_mode = S_IFDIR | 0755;
 	  stbuf->st_nlink = 2;
 	  return res;
 	}
+	log_debug(log_file,"PFS","fuselage_getattr -> fat32_getDirEntry(%s)",path);
+	current_file =  fat32_getDirEntry(path); //Obtengo la dirEntry_t del fichero apuntado por path
 
-	dirEntry_t *file =  fat32_getAttr(path); //Obtengo la dirEntry_t del fichero apuntado por path
-
-	if (file == NULL) //SI DEVOLVIO NULL, EL ARCHIVO O DIRECTORIO NO EXISTE
+	if (current_file == NULL) //SI DEVOLVIO NULL, EL ARCHIVO O DIRECTORIO NO EXISTE
 	{
-		log_debug(log,"PFS","No existe el fichero o directorio %s",path);
 		res = -ENOENT;
 	}
-	else if (file->file_attribute.subdirectory == true) //Si es un directorio
+	else if (current_file->file_attribute.subdirectory == true) //Si es un directorio
 	{
 		stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 2;
-		free(file); //Libero la memoria de file
+		; //Libero la memoria de file
 	}
-	else if (file->file_attribute.archive == true) //Si es un archivo
+	else if (current_file->file_attribute.archive == true) //Si es un archivo
 	{
 		stbuf->st_mode = S_IFREG | 0444;
 		stbuf->st_nlink = 1;
-		stbuf->st_size = file->file_size;
-		free(file); //Libero la memoria de file
+		stbuf->st_size = current_file->file_size;
+		log_debug(log_file,"PFS","fuselage_getattr -> DIRENTRY_getClusterNumber(%s)",current_file->dos_name);
+		stbuf->st_ino = DIRENTRY_getClusterNumber(current_file);
+
+		//Libero la memoria de file
 	}
 
 	return res;
@@ -90,7 +101,12 @@ static int fuselage_getattr(const char *path, struct stat *stbuf)
 
 static int fuselage_open(const char *path, struct fuse_file_info *fi)
 {
-	printf(path);
-	fflush(stdout);
+	current_file =  fat32_getDirEntry(path);
+	fi->fh = (uint64_t) DIRENTRY_getClusterNumber(current_file);
+	return 0;
+}
 
+static int fuselage_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+{
+	dirEntry_t *file =  fat32_getDirEntry(path);
 }

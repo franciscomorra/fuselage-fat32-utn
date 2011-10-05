@@ -17,7 +17,8 @@
 #include <stdbool.h>
 #include "tad_fat.h"
 #include "tad_bootsector.h"
-#include "tad_filenode.h"
+#include "tad_list.h"
+#include "tad_direntry.h"
 
 
 //fat32_readFAT: Lee la tabla fat en la estructura FAT_struct
@@ -28,9 +29,9 @@ uint32_t fat32_readBootSector(bootSector_t *bs);
 
 uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf);
 
-fileNode_t* fat32_getFileList(char* cluster_data);
+listNode_t* fat32_getFileList(char* cluster_data);
 
-fileNode_t* fat32_readDirectory(const char* path);
+listNode_t* fat32_readDirectory(const char* path);
 
-dirEntry_t* fat32_getAttr(char* path);
+dirEntry_t* fat32_getDirEntry(char* path);
 #endif /* PFS_FAT32_H_ */

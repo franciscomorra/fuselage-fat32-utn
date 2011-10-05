@@ -7,136 +7,65 @@
 #include "tad_fat.h"
 #include <stdlib.h>
 #include <fcntl.h>
+#include "log.h"
 
+extern t_log* log_file;
 
-
-clusterNode_t* FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
+listNode_t* FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 {
-	uint32_t cluster_no = init_cluster;
-	clusterNode_t *new,*first;
+	uint32_t  *cluster_number, cluster_no = init_cluster;
+	listNode_t *new_cluster_node,*cluster_list = NULL;
 
-	if (fat->table[cluster_no] == NULL)
+	if (fat->table[cluster_no] == 0x00)
 	{
-		return 0;
+		return NULL;
 	}
-	else if (fat->table[cluster_no] < fat->EOC)
+	else if (fat->table[cluster_no] != fat->EOC)
 	{
-		clusterNode_t *last;
-		last = 0x0;
-
-		while (fat->table[cluster_no] < fat->EOC)
+		while (fat->table[cluster_no] != fat->EOC)
 		{
-			new = malloc(sizeof(clusterNode_t));
-			new->number = cluster_no;
-			new->next = 0;
-
-			if (last == 0x0)
-			{
-				first=last=new;
-			}
-			else
-			{
-				last->next=new;
-				last = new;
-			}
-
+			cluster_number = malloc(sizeof(uint32_t));
+			*cluster_number = cluster_no;
+			log_debug(log_file,"PFS","FAT_getClusterChain() -> LIST_addNode(0x%x,0x%x)",cluster_list,cluster_number);
+			new_cluster_node = LIST_createNode(cluster_number);
+			LIST_addNode(&cluster_list,&new_cluster_node);
 			cluster_no = fat->table[cluster_no];
 		}
 
-		new = malloc(sizeof(clusterNode_t));
-		new->number = cluster_no;
-		new->next = 0;
-		last->next=new;
+		cluster_number = malloc(sizeof(uint32_t));
+		*cluster_number = cluster_no;
+		log_debug(log_file,"PFS","FAT_getClusterChain() -> LIST_addNode(0x%x,0x%x)",cluster_list,cluster_number);
+		new_cluster_node = LIST_createNode(cluster_number);
+		LIST_addNode(&cluster_list,&new_cluster_node);
 	}
 	else
 	{
-		new = malloc(sizeof(clusterNode_t));
-		new->number = cluster_no;
-		new->next = 0;
-		first=new;
+		cluster_number = malloc(sizeof(uint32_t));
+		*cluster_number = cluster_no;
+		log_debug(log_file,"PFS","FAT_getClusterChain() -> LIST_addNode(0x%x,0x%x)",cluster_list,cluster_number);
+		new_cluster_node = LIST_createNode(cluster_number);
+		LIST_addNode(&cluster_list,&new_cluster_node);
 	}
 
-	return first;
-}
-void FAT_cleanList(clusterNode_t* first)
-{
-	clusterNode_t* cur = first;
-	clusterNode_t* next;
-
-	while (cur->next != NULL)
-	{
-		next=cur->next;
-		free(cur);
-		cur=next;
-	}
-
-	free(cur);
+	return cluster_list;
 }
 
-clusterNode_t* FAT_getFreeClusters(fatTable_t* FAT) {
+listNode_t* FAT_getFreeClusters(fatTable_t* FAT) {
 
-	uint32_t cluster_no;
-	clusterNode_t *new,*first, *last =NULL;
-
-
+	uint32_t cluster_no, *cluster_number;
+	listNode_t *new_cluster_node,*cluster_list, *last_cluster_node =NULL;
 
 	for(cluster_no = 2;cluster_no < FAT->size;cluster_no++)
 	{
 		if(FAT->table[cluster_no] == 0)
 		{
-			new = malloc(sizeof(clusterNode_t));
-			new->number = cluster_no;
-
-			if (last == NULL)
-			{
-				last = first = new;
-			}
-			else
-			{
-				last->next = new;
-				last = new;
-			}
+			cluster_number = malloc(sizeof(uint32_t));
+			*cluster_number = cluster_no;
+			LIST_addNode(&cluster_list,&cluster_number);
 		}
 	}
 
-	return first;
+	return cluster_list;
 }
 
-uint32_t FAT_addCluster(clusterNode_t* first, clusterNode_t* new)
-{
-	clusterNode_t* aux = first;
-	clusterNode_t* last = aux;
 
-	while(aux->number < new->number)
-	{
-		last = aux;
-		aux = aux->next;
-	}
-
-	new->next = aux;
-	last->next = new;
-
-	return 0;
-}
-
-uint32_t FAT_takeCluster(clusterNode_t* first, uint32_t clusterNumber)
-{
-	clusterNode_t* aux = first;
-	clusterNode_t* last = aux;
-	uint32_t number;
-
-	while(aux->number != clusterNumber)
-	{
-		last = aux;
-		aux = aux->next;
-	}
-
-	if (aux->next == NULL)
-		exit(-1);
-	else
-		last->next = aux->next;
-
-	number=(aux->number);
-	free(aux);
-	return(number);
-}
