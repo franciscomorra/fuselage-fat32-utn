@@ -81,7 +81,7 @@ listLine_t* fat32_readDirectory(const char* path)
 	log_debug(log_file,"PFS","fat32_readDirectory() -> fat32_getClusterData(2,0x%x)",buf);
 	fat32_getClusterData(2,&buf);
 	log_debug(log_file,"PFS","fat32_readDirectory() -> getFileList(0x%x)",buf);
-	listLine_t* file_list = fat32_getFileList(buf);
+	listLine_t* file_list = DIRENTRY_interpretDirTableData(buf);
 
 	free(buf);
 	if (strcmp(path,"/") == 0) return file_list;
@@ -135,7 +135,7 @@ listLine_t* fat32_readDirectory(const char* path)
 
 				 //Obtengo la lista de archivos
 				log_debug(log_file,"PFS","fat32_readDirectory() -> fat32_getFileList(0x%x)",data_of_clusters);
-				file_list = fat32_getFileList(data_of_clusters);
+				file_list = DIRENTRY_interpretDirTableData(data_of_clusters);
 				free(data_of_clusters);
 				break;
 			}
@@ -154,144 +154,51 @@ listLine_t* fat32_readDirectory(const char* path)
 	return file_list;
 }
 
-listLine_t* fat32_getFileList(char* cluster_data) {
-	lfnEntry_t *lfn_entry = (lfnEntry_t*) cluster_data; //Uso este puntero para recorrer el cluster_data de a 32 bytes cada vez que incremento en 1 este puntero
-	char* longfilename_buf = malloc(255); //Uso este buffer para ir almacenando los LFN de un archivo
-	memset(longfilename_buf, 0, 255); //Lo seteo a 0
-	char *tmp_longfilename_part, *new_longfilename; //Puntero para UN LFN de UN archivo, y puntero para el nombre largo completo de un archivo
-	size_t tmp_longfilename_part_size = 0, new_longfilename_size = 0; //Tamaño de cadena de los punteros
-	listNode_t *new_file_node; //Punteros a nodos de una lista que sera la que se obtenga de esta funcion
-	listLine_t *file_list;
-	LIST_initialize(&file_list);
-
-	if (*cluster_data == '.')
-	{
-		dirEntry_t *point = (dirEntry_t*) lfn_entry;
-		fat32file_t *pointFile = FILE_createStruct(".",point);
-		new_file_node = LIST_createNode(pointFile);
-		LIST_addNode(&file_list,&new_file_node);
-		lfn_entry++;
-
-		dirEntry_t *pointpoint = (dirEntry_t*) (lfn_entry);
-		fat32file_t *pointpointFile = FILE_createStruct("..",pointpoint);
-		new_file_node = LIST_createNode(pointpointFile);
-		LIST_addNode(&file_list,&new_file_node);
-		++lfn_entry;
-	}
-
-
-	while (*((char*) lfn_entry) != 0x00) //Mientras el primer byte de cada 32 bytes que voy recorriendo sea distinto de 0x00 quiere decir que hay una LFN o una DIRENTRY
-	{
-		//Borrado : number = 37
-		if (lfn_entry->sequence_no.number == 1 && lfn_entry->sequence_no.deleted == false) //Si es la ultima LFN del archivo y no esta eliminada (Saltea tambien la DIRENTRY ya que las marca igual que las LFN eliminadas)
-		{
-
-			tmp_longfilename_part_size = LFNENTRY_getLongFileName(*lfn_entry,&tmp_longfilename_part); //Obtengo la ultima parte (Viene a ser la primera del nombre , estan dispuestas al reves)
-			new_longfilename_size += tmp_longfilename_part_size; //Aumento el tamaño del nombre para obtener el tamaño final
-			/* Corro lo que esta almacenado en el buffer
-			 * la cantidad de posiciones necesarias hacia la derecha para que entre
-			 * la ultima parte del nombre
-			 * */
-
-			shiftbytes_right(longfilename_buf, 255, tmp_longfilename_part_size);
-			/* Copio la siguiente parte del nombre en el buffer donde
-			 * quedara el nombre completo
-			 */
-			memcpy(longfilename_buf, tmp_longfilename_part,	tmp_longfilename_part_size);
-			new_longfilename = malloc(new_longfilename_size + 1); /* Obtengo memoria para el nuevo nombre de archivo */
-			memset(new_longfilename, 0, new_longfilename_size + 1); // Seteo a 0
-			memcpy(new_longfilename, longfilename_buf, new_longfilename_size); /*Copio el nombre completo que esta en el buffer a la memoria almacenada antes */
-			memset(longfilename_buf, 0, 255); /* Seteo el buffer donde se van almacenando las partes a 0 para empezar con el siguiente archivo */
-			free(tmp_longfilename_part); //Libero memoria
-
-			/* Aca empiLOG_DEBUG(eza a leer la DIRENTRY del archivo (se podria cambiar por una funcion que cree el nodo) */
-			dirEntry_t *direntry = (dirEntry_t*) ++lfn_entry;
-
-			fat32file_t *new_file = FILE_createStruct(new_longfilename,direntry);
-			listNode_t *new_file_node = LIST_createNode(new_file);
-			LIST_addNode(&file_list,&new_file_node);
-
-			/* Aca termina de leer la DIRENTRY del archivo */
-			lfn_entry++; // Apunto al primer LFN del siguiente archivo
-
-			free(new_longfilename);
-
-			new_longfilename_size = 0;
-
-		}
-		else if (lfn_entry->sequence_no.number != 1 && lfn_entry->sequence_no.deleted == false) //Si no es la ultima LFN del archivo
-		{
-			tmp_longfilename_part_size = LFNENTRY_getLongFileName(*lfn_entry, &tmp_longfilename_part); //Obtengo la cadena parte del nombre del LFN
-			new_longfilename_size += tmp_longfilename_part_size; //Aumento el tamaño del nombre del archivo que estoy leyendo
-			/* Corro lo que esta almacenado en el buffer
-			 * la cantidad de posiciones necesarias hacia la derecha para que entre
-			 * la siguiente parte del nombre
-			 * */
-			shiftbytes_right(longfilename_buf, 255, tmp_longfilename_part_size);
-			/* Copio la siguiente parte del nombre en el buffer donde
-			 * voy uniendo las partes
-			 */
-			memcpy(longfilename_buf, tmp_longfilename_part,	tmp_longfilename_part_size);
-			free(tmp_longfilename_part); //Libero la memoria usada
-			lfn_entry++; //Paso a la siguiente entrada LFN
-		}
-		else if (lfn_entry->sequence_no.deleted == true) //Si es una entrada eliminada la salteo
-		{
-			lfn_entry++;
-		}
-
-	}
-
-	free(longfilename_buf);
-
-	return file_list; //Retorno un puntero al primer FILE_NODE
-}
-
 dirEntry_t* fat32_getDirEntry(char* path)
 {
-	size_t len = strlen(path);
-	char string[len];
-	strcpy(string,path);
-	char *tmp = strtok(string,"/");
-	char *filename = tmp;
-	while ((tmp = strtok(NULL,"/")) != NULL)
+	size_t len = strlen(path); //Obtengo el largo del path
+	char string[len]; //Creo un array para la cadena
+	strcpy(string,path); //Copio la cadena al array
+	char *tmp = strtok(string,"/"); //Obtengo el primer token de la cadena (separando por "/")
+	char *filename = tmp; //Guardo el primer token en 'filename'
+	while ((tmp = strtok(NULL,"/")) != NULL) //Mientras la funcion devuelva un token != NULL guardo ese token en filename
 	{
-		filename = tmp ;
+		filename = tmp ; //Al final contendra el filename del archivo que se busca
 	}
 
-	size_t location_size = strlen(path) - strlen(filename);
-	char* location = malloc(location_size+1);
-	memset(location,0,location_size+1);
-	memcpy(location,path,location_size);
+	size_t location_size = strlen(path) - strlen(filename); //Calculo el largo del path al archivo (sin incluir el filename del archivo)
+	char* location = malloc(location_size+1); //Alloco la cantidad necesaria calculada +1 por el caracter '\0'
+	memset(location,0,location_size+1); //Seteo a 0 la cadena location
+	memcpy(location,path,location_size); //Copio el path (hasta donde empeiza el filename sin incluirlo) a location
 	//TODO: Primero buscar en cache
 
 	log_debug(log_file,"PFS","fat32_getDirEntry() -> fat32_readDirectory(%s)",location);
 	listLine_t *file_list = fat32_readDirectory(location); //Obtengo una lista de los ficheros que hay en "location"
 
-	listNode_t *curr_file_node;
+	listNode_t *curr_file_node; //Creo un puntero que apuntara al file_node en proceso
 	free(location); //Libero la memoria de location
 
-	fat32file_t *curr_file;
-	dirEntry_t *direntry_found = NULL;
+	fat32file_t *curr_file; //Creo un puntero que apuntara al file struct en proceso
+	dirEntry_t *direntry_found = NULL;//Apunto direntry_found a NULL, si al final de la funcion sigue en NULL es que no existe el archivo/carpeta
 
-	while  ((curr_file_node = LIST_removeFromBegin(&file_list)) != NULL)
+	while  ((curr_file_node = LIST_removeFromBegin(&file_list)) != NULL) //Voy tomando los nodos de la cola
 	{
-		curr_file = (fat32file_t*) curr_file_node->data;
+		curr_file = (fat32file_t*) curr_file_node->data; //Casteo el puntero 'data' a el puntero file en proceso
 
 		if (strcmp(curr_file->long_file_name,filename) == 0) //Si existe el archivo que estoy buscando
 		{
-			direntry_found  = malloc(sizeof(dirEntry_t));
+			direntry_found  = malloc(sizeof(dirEntry_t)); //Alloco lo necesario para la dirEntry
 			memcpy(direntry_found,&(curr_file->dir_entry),sizeof(dirEntry_t)); //Copio la direntry hacia una estructura a devolver
 		}
 
 		log_debug(log_file,"PFS","fat32_getDirEntry() -> LIST_destroyNode(0x%x->data(0x%x)),FAT32FILE_T)",curr_file_node,curr_file_node->data);
-		LIST_destroyNode(&curr_file_node,FAT32FILE_T);
+		LIST_destroyNode(&curr_file_node,FAT32FILE_T); //Destruyo el nodo que tome de la cola
 
-		if (direntry_found != NULL) break;
+		if (direntry_found != NULL) break; //Si encontro algo, salgo del ciclo whuile
 	}
 
-	LIST_destroyList(&file_list,FAT32FILE_T);
-	free(file_list);
+	LIST_destroyList(&file_list,FAT32FILE_T); //Destruyo la cola
+	free(file_list); //Libero el puntero a la estructura de cola
 
-	return direntry_found;
+	return direntry_found; //Retorno el puntero a la direntry del archivo buscado
 }
