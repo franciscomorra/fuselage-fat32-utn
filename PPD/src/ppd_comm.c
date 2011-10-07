@@ -4,12 +4,7 @@
 #include <stdint.h>
 #include "nipc.h"
 #include "ppd_SSTF.h"
-
-#define HANDSHAKE 0
-#define READ 2
-#define WRITE 1
-
-extern requestNode_t first;
+#include "ppd_comm.h"
 
 int32_t ppd_send(nipcMsg_t msg)
 {

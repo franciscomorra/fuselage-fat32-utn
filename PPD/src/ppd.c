@@ -12,11 +12,13 @@
 #include <unistd.h>
 #include "config_manager.h"
 #include "ppd_SSTF.h"
+#include "ppd_common.h"
 
 uint32_t Cylinder;
 uint32_t Head;
 uint32_t Sector;
 uint32_t TrackJumpTime;
+uint32_t headPosition;
 requestNode_t* first;
 
 int main(int argc, char *argv[])
