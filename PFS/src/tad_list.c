@@ -21,7 +21,7 @@ void LIST_addNode(listNode_t **first,listNode_t **new_node)
 			if (*first == NULL) {
 				*first =  *new_node;
 			}
-			else if ((*first)->next != NULL)
+			/*else if ((*first)->next != NULL)
 			{
 
 				listNode_t *cur = (*first);
@@ -34,11 +34,12 @@ void LIST_addNode(listNode_t **first,listNode_t **new_node)
 				}
 
 				cur->next = *new_node;
-			}
+			}*/
 			else
 			{
-
-				(*first)->next = *new_node;
+				(*new_node)->next = *first;
+				*first = *new_node;
+				//(*first)->next = *new_node;
 			}
 
 }
