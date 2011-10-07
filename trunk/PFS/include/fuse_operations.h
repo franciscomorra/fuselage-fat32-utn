@@ -16,6 +16,7 @@ static int fuselage_getattr(const char *, struct stat *);
 static int fuselage_open(const char *, struct fuse_file_info *);
 
 static int fuselage_read(const char *, char *, size_t, off_t, struct fuse_file_info *);
+static int fuselage_flush(const char *, struct fuse_file_info *);
 /*
 static int fuselage_write(const char *, const char *, size_t, off_t, struct fuse_file_info *);
 static int fuselage_create(const char *, mode_t, struct fuse_file_info *);
@@ -23,7 +24,7 @@ static int fuselage_truncate(const char *, off_t);
 static int fuselage_rmdir(const char *);
 static int fuselage_mkdir(const char *, mode_t);
 static int fuselage_rename(const char *, const char *);
-static int fuselage_flush(const char *, struct fuse_file_info *);*/
+*/
 int fuselage_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t offset, struct fuse_file_info *fi);
 
 struct fuse_operations fuselage_oper = {
@@ -34,6 +35,7 @@ struct fuse_operations fuselage_oper = {
    .open	= fuselage_open,
 
    .read	= fuselage_read,
+   .flush = fuselage_flush,
    /*
    .write = fuselage_write,
    .create = fuselage_create,
@@ -41,7 +43,7 @@ struct fuse_operations fuselage_oper = {
    .rmdir = fuselage_rmdir,
    .mkdir = fuselage_mkdir,
    .rename = fuselage_rename,
-   .flush = fuselage_flush,*/
+   */
 };
 
 #endif /* FUSE_OPERATIONS_H_ */

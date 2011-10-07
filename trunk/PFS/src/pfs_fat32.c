@@ -111,6 +111,7 @@ listLine_t* fat32_readDirectory(const char* path)
 
 				//Leo de todos los clusters
 				log_debug(log_file,"PFS","fat32_readDirectory() ->  FAT_getClusterChain(0x%x,%d)",&fat,first_cluster);
+
 				listNode_t *cluster_list = FAT_getClusterChain(&fat,first_cluster);
 
 				uint32_t cluster_count = LIST_listSize(&cluster_list);
