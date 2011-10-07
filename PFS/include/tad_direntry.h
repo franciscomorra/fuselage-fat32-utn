@@ -14,6 +14,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "tad_line.h"
 
 //___STRUCT_FILE_ATTRIBUTE
 typedef struct file_attr
@@ -76,8 +77,8 @@ typedef struct directory_entry
 //DIRENTRY_getClusterNumber: Obtiene el numero de cluster a partir de los bytes de la Directory Entry de un archivo
 uint32_t DIRENTRY_getClusterNumber(dirEntry_t *dir_entry);
 
-//DIRENTRY_getFileList: Interpreta una tabla de directorio y devuelve una lista de todos los archivos/directorios que aparecen en ella
-
+//DIRENTRY_interpretDirTableData: Interpreta una tabla de directorio y devuelve una lista de todos los archivos/directorios que aparecen en ella
+listLine_t* DIRENTRY_interpretDirTableData(char* table_data);
 
 
 #endif /* DIR_ENTRY_H_ */
