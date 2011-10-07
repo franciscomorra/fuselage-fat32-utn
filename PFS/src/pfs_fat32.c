@@ -17,7 +17,7 @@
 #include "pfs_fat32.h"
 #include "tad_direntry.h"
 #include "tad_file.h"
-#include "tad_list.h"
+#include "tad_line.h"
 #include "tad_lfnentry.h"
 #include "log.h"
 
@@ -71,7 +71,7 @@ uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf)
 	return 0;
 }
 
-listNode_t* fat32_readDirectory(const char* path)
+listLine_t* fat32_readDirectory(const char* path)
 {
 	char *token,*buf;
 	bool dir_exists = false;
@@ -81,7 +81,7 @@ listNode_t* fat32_readDirectory(const char* path)
 	log_debug(log_file,"PFS","fat32_readDirectory() -> fat32_getClusterData(2,0x%x)",buf);
 	fat32_getClusterData(2,&buf);
 	log_debug(log_file,"PFS","fat32_readDirectory() -> getFileList(0x%x)",buf);
-	listNode_t* file_list = fat32_getFileList(buf);
+	listLine_t* file_list = fat32_getFileList(buf);
 
 	free(buf);
 	if (strcmp(path,"/") == 0) return file_list;
@@ -94,7 +94,7 @@ listNode_t* fat32_readDirectory(const char* path)
 	do
 	{
 		dir_exists = false;
-		while ((curr_file_node = LIST_removeNode(&file_list)) != NULL)
+		while ((curr_file_node = LIST_removeFromBegin(&file_list)) != NULL)
 		{
 			fat32file_t *curr_file = (fat32file_t*) curr_file_node->data;
 			if (strcmp(curr_file->long_file_name,token) == 0 && (curr_file->dir_entry.file_attribute.subdirectory) == true)
@@ -118,7 +118,7 @@ listNode_t* fat32_readDirectory(const char* path)
 				memset(data_of_clusters,0,cluster_count*boot_sector.sectors_perCluster*boot_sector.bytes_perSector);
 				uint32_t cluster_off = 0;
 
-				while ((curr_cluster_node = LIST_removeNode(&cluster_list)) != NULL)
+				while ((curr_cluster_node = LIST_removeFromBegin(&cluster_list)) != NULL)
 				{
 					fat32_getClusterData(*((uint32_t*) (curr_cluster_node->data)),&buf);
 					memcpy(data_of_clusters+(cluster_off*boot_sector.sectors_perCluster*boot_sector.bytes_perSector),
@@ -154,13 +154,15 @@ listNode_t* fat32_readDirectory(const char* path)
 	return file_list;
 }
 
-listNode_t* fat32_getFileList(char* cluster_data) {
+listLine_t* fat32_getFileList(char* cluster_data) {
 	lfnEntry_t *lfn_entry = (lfnEntry_t*) cluster_data; //Uso este puntero para recorrer el cluster_data de a 32 bytes cada vez que incremento en 1 este puntero
 	char* longfilename_buf = malloc(255); //Uso este buffer para ir almacenando los LFN de un archivo
 	memset(longfilename_buf, 0, 255); //Lo seteo a 0
 	char *tmp_longfilename_part, *new_longfilename; //Puntero para UN LFN de UN archivo, y puntero para el nombre largo completo de un archivo
 	size_t tmp_longfilename_part_size = 0, new_longfilename_size = 0; //Tamaño de cadena de los punteros
-	listNode_t *new_file_node,*file_list = NULL; //Punteros a nodos de una lista que sera la que se obtenga de esta funcion
+	listNode_t *new_file_node; //Punteros a nodos de una lista que sera la que se obtenga de esta funcion
+	listLine_t *file_list;
+	LIST_initialize(&file_list);
 
 	if (*cluster_data == '.')
 	{
@@ -264,7 +266,7 @@ dirEntry_t* fat32_getDirEntry(char* path)
 	//TODO: Primero buscar en cache
 
 	log_debug(log_file,"PFS","fat32_getDirEntry() -> fat32_readDirectory(%s)",location);
-	listNode_t *file_list = fat32_readDirectory(location); //Obtengo una lista de los ficheros que hay en "location"
+	listLine_t *file_list = fat32_readDirectory(location); //Obtengo una lista de los ficheros que hay en "location"
 
 	listNode_t *curr_file_node;
 	free(location); //Libero la memoria de location
@@ -272,7 +274,7 @@ dirEntry_t* fat32_getDirEntry(char* path)
 	fat32file_t *curr_file;
 	dirEntry_t *direntry_found = NULL;
 
-	while  ((curr_file_node = LIST_removeNode(&file_list)) != NULL)
+	while  ((curr_file_node = LIST_removeFromBegin(&file_list)) != NULL)
 	{
 		curr_file = (fat32file_t*) curr_file_node->data;
 
@@ -289,6 +291,7 @@ dirEntry_t* fat32_getDirEntry(char* path)
 	}
 
 	LIST_destroyList(&file_list,FAT32FILE_T);
+	free(file_list);
 
 	return direntry_found;
 }

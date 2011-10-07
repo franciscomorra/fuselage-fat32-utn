@@ -15,7 +15,7 @@
 #include "fuse_operations.h"
 #include "pfs_fat32.h"
 #include "tad_fat.h"
-#include "tad_list.h"
+#include "tad_line.h"
 #include "tad_file.h"
 #include "tad_bootsector.h"
 #include "tad_direntry.h"
@@ -40,7 +40,7 @@ extern pthread_mutex_t signal_lock;
 void *fuselage_main (void *data)
 {
 
-	log_file = log_create("PFS","pfs.log",INFO,M_CONSOLE_DISABLE);
+	log_file = log_create("PFS","pfs.log",DEBUG,M_CONSOLE_DISABLE);
 	log_debug(log_file,"PFS","Inicio PFS");
 
 	boot_sector.bytes_perSector = 512; //Habra que hacer alguna funcion especial para leer solo el boot_sector;
@@ -84,10 +84,10 @@ int cmd_signal()
 int fuselage_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t offset, struct fuse_file_info *fi)
 {
 	log_debug(log_file,"PFS","fuselage_readdir -> fat32_readDirectory(%s)",path);
-	listNode_t *file_list = fat32_readDirectory(path); //Obtengo una lista de los ficheros que hay en "path"
+	listLine_t *file_list = fat32_readDirectory(path); //Obtengo una lista de los ficheros que hay en "path"
 
 	assert(file_list != NULL); //Si falla es que fuselage_getattr no detecto que no era un directorio valido
-	listNode_t *curr_file_node = file_list;
+	listNode_t *curr_file_node = file_list->begin;
 	fat32file_t *curr_file;
 	while (curr_file_node != NULL)
 	{
@@ -98,7 +98,7 @@ int fuselage_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t o
 
 	log_debug(log_file,"PFS","fuselage_readdir -> LIST_destroyList(0x%x,FAT32FILE_T)",file_list);
 	LIST_destroyList(&file_list,FAT32FILE_T);
-
+	free(file_list);
 	return 0;
 }
 

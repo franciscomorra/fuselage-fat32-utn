@@ -14,7 +14,9 @@ extern t_log* log_file;
 listNode_t* FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 {
 	uint32_t  *cluster_number, cluster_no = init_cluster;
-	listNode_t *new_cluster_node,*cluster_list = NULL;
+	listNode_t *new_cluster_node;
+	listLine_t *cluster_list;
+	LIST_initialize(&cluster_list);
 
 	if (fat->table[cluster_no] == 0x00)
 	{
@@ -53,7 +55,9 @@ listNode_t* FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 listNode_t* FAT_getFreeClusters(fatTable_t* FAT) {
 
 	uint32_t cluster_no, *cluster_number;
-	listNode_t *new_cluster_node,*cluster_list=NULL;
+	listNode_t *new_cluster_node;
+	listLine_t *cluster_list;
+	LIST_initialize(&cluster_list);
 
 	for(cluster_no = 2;cluster_no < FAT->size;cluster_no++)
 	{

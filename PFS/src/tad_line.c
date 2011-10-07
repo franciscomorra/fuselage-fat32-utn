@@ -4,7 +4,7 @@
  *  Created on: 04/10/2011
  *      Author: utn_so
  */
-#include "tad_list.h"
+#include "tad_line.h"
 #include "tad_file.h"
 
 #include <fcntl.h>
@@ -13,14 +13,29 @@
 #include "log.h"
 
 extern t_log* log_file;
-
-void LIST_addNode(listNode_t **first,listNode_t **new_node)
+void LIST_initialize(listLine_t** line)
 {
-	assert(*new_node != NULL);
+	*line = malloc(sizeof(listLine_t));
+	(*line)->begin = NULL;
+	(*line)->end = NULL;
+	return;
+}
+void LIST_addNode(listLine_t **line,listNode_t** new_node)
+{
+	assert(*line != NULL);
 
-			if (*first == NULL) {
-				*first =  *new_node;
+			if ((*line)->begin == NULL)
+			{
+				(*line)->begin = (*line)->end = *new_node;
+
 			}
+			else
+			{
+				(*line)->end->next = *new_node;
+				(*line)->end = *new_node;
+
+			}
+
 			/*else if ((*first)->next != NULL)
 			{
 
@@ -34,34 +49,33 @@ void LIST_addNode(listNode_t **first,listNode_t **new_node)
 				}
 
 				cur->next = *new_node;
-			}*/
+			}
 			else
 			{
 				(*new_node)->next = *first;
 				*first = *new_node;
 				//(*first)->next = *new_node;
-			}
+			}*/
 
 }
 
-listNode_t* LIST_removeNode(listNode_t **first)
+listNode_t* LIST_removeFromBegin(listLine_t **line)
 {
-	listNode_t* tmp = *first;
-	if (tmp != NULL) *first = (*first)->next;
+	listNode_t* tmp = (*line)->begin;
+	if (tmp != NULL) (*line)->begin = tmp->next;
 	return tmp;
 }
 
-void LIST_destroyList(listNode_t **first,uint32_t var_type)
+void LIST_destroyList(listLine_t **line,uint32_t var_type)
 {
-	listNode_t* cur = *first;
+	listNode_t* cur = (*line)->begin;
 
-	if (*first != NULL)
+	if (cur != NULL)
 	{
 		while (cur != NULL)
 		{
 			log_debug(log_file,"PFS","LIST_destroyList() -> LIST_freeByType(0x%x)",cur);
-
-			LIST_freeByType(&cur,var_type);
+			LIST_destroyNode(&cur,var_type);
 			cur = cur->next;
 		}
 	}
@@ -74,11 +88,11 @@ void LIST_destroyNode(listNode_t **node,uint32_t var_type)
 	LIST_freeByType(node,var_type);
 }
 
-listNode_t* LIST_searchNode(listNode_t	**first,void *data,size_t dataLength)
+listNode_t* LIST_searchNode(listLine_t **line,void *data,size_t dataLength)
 {
-	if (*first != NULL)
+	if ((*line)->begin != NULL)
 	{
-		listNode_t *cur = *first;
+		listNode_t *cur = (*line)->begin;
 		while (cur != NULL)
 		{
 				if (memcmp(cur->data,data,dataLength) == 0)
@@ -121,10 +135,10 @@ void LIST_freeByType(void** pointer,uint32_t var_type)
 
 }
 
-uint32_t LIST_listSize(listNode_t **first)
+uint32_t LIST_listSize(listLine_t **line)
 {
 	uint32_t counter = 1;
-	listNode_t *cur = *first;
+	listNode_t *cur = (*line)->begin;
 	while (cur->next != NULL)
 	{
 		cur = cur->next;
