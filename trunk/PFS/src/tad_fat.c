@@ -53,7 +53,7 @@ listNode_t* FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 listNode_t* FAT_getFreeClusters(fatTable_t* FAT) {
 
 	uint32_t cluster_no, *cluster_number;
-	listNode_t *new_cluster_node,*cluster_list, *last_cluster_node =NULL;
+	listNode_t *new_cluster_node,*cluster_list=NULL;
 
 	for(cluster_no = 2;cluster_no < FAT->size;cluster_no++)
 	{
@@ -61,9 +61,11 @@ listNode_t* FAT_getFreeClusters(fatTable_t* FAT) {
 		{
 			cluster_number = malloc(sizeof(uint32_t));
 			*cluster_number = cluster_no;
-			LIST_addNode(&cluster_list,&cluster_number);
+			new_cluster_node = LIST_createNode(cluster_number);
+			LIST_addNode(&cluster_list,&new_cluster_node);
 		}
 	}
+
 
 	return cluster_list;
 }
