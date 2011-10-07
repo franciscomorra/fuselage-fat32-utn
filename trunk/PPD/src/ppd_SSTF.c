@@ -4,34 +4,40 @@
 #include <string.h>
 #include <stdint.h>
 #include "ppd_SSTF.h"
+#include "ppd_common.h"
 
 extern uint32_t Head;
 extern uint32_t Sector;
 extern uint32_t TrackJumpTime;
+extern uint32_t headPosition;
 extern requestNode_t* first;
+
 
 uint32_t SSTF_addRequest(uint32_t* sectorNum){
 
 	 requestNode_t* new = SSTF_turnToCHS(sectorNum);
+	 requestNode_t* CHSposition = SSTF_turnToCHS((uint32_t*)headPosition);
 
 	 if(first == 0){
 		 first = new;
 		 return 0;
-	 }
-	 else {
+	 } else {
 		requestNode_t* aux = first;
-
-		while (aux->next != 0){
-			if(SSTF_near(new,aux,aux->next)){
-				new->next = aux->next;
-				aux->next = new;
-				return 0;
+		if (SSTF_near(new,CHSposition,first)){
+			new->next = first;
+			first = new;
+		} else {
+			while (aux->next != 0){
+				if(SSTF_near(new,aux,aux->next)){
+					new->next = aux->next;
+					aux->next = new;
+					return 0;
+				} else
+					aux = aux->next;
 			}
-			else
-				aux = aux->next;
 		}
 		aux->next = new;
-		}
+	}
 	 return 0;
 }
 
@@ -76,3 +82,5 @@ uint32_t SSTF_sectorDist(uint32_t fstSector, uint32_t lstSector){
 
 	return 0;
 }
+
+

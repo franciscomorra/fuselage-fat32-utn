@@ -8,18 +8,7 @@
 #ifndef PPD_REQUESTLIST_H_
 #define PPD_REQUESTLIST_H_
 
-#include "nipc.h"
-
-typedef struct requestNode_t {
-	NIPC_type type;
-	uint32_t cylinder;
-	uint32_t head;
-	uint32_t sector;
-	char* payload;
-	char* sender;
-	struct requestNode_t* next;
-} __attribute__((__packed__)) requestNode_t;
-
+#include "ppd_common.h"
 
 uint32_t SSTF_addRequest(uint32_t* sectorNum);
 
