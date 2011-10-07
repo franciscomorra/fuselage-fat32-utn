@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <errno.h>
+#include <unistd.h>
 #include "config_manager.h"
 #include "ppd_SSTF.h"
 
@@ -21,13 +23,13 @@ int main(int argc, char *argv[])
 {
 	first = 0;
 
-/*	int i;
- *	uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};
- *	uint32_t* p = malloc(7*sizeof(uint32_t));
- *
- *	memcpy(p,vec,7*4);
- * 								sirve para probar la lista del algoritmo sstf
- */
+/*
+	int i;
+ 	uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};
+ 	uint32_t* p = malloc(7*sizeof(uint32_t));
+
+ 	memcpy(p,vec,7*4);
+*/
 	config_param *ppd_config;
 	CONFIG_read("config/ppd.config",&ppd_config);
 
@@ -36,10 +38,20 @@ int main(int argc, char *argv[])
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));
 	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));
 
-/*	for(i = 0; i < 7; i++)
- *		SSTF_addRequest(p+i);
- *								idem
- */
+/*	switch(fork()){
+		case 0:
+			execl("/home/utn_so/Desktop/trabajos/PPD_Console/Debug/PPD_Console",NULL);
+			break;
+		case -1:
+			perror(fork);
+			break;
+	}
+
+
+	for(i = 0; i < 7; i++)
+ 		SSTF_addRequest(p+i);
+
+*/
 
 	return 1;
 }
