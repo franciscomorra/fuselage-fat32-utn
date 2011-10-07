@@ -24,6 +24,7 @@
 bootSector_t boot_sector;
 fatTable_t fat;
 t_log *log_file;
+dirEntry_t *opened_file;
 dirEntry_t *current_file;
 
 extern 	struct args
@@ -142,12 +143,48 @@ static int fuselage_getattr(const char *path, struct stat *stbuf)
 
 static int fuselage_open(const char *path, struct fuse_file_info *fi)
 {
-	current_file =  fat32_getDirEntry(path);
-	fi->fh = (uint64_t) DIRENTRY_getClusterNumber(current_file);
+	opened_file = fat32_getDirEntry(path);
+	fi->fh = (uint64_t) DIRENTRY_getClusterNumber(opened_file);
 	return 0;
 }
 
-static int fuselage_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+static int fuselage_read(const char *path, char *file_buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
-	dirEntry_t *file =  fat32_getDirEntry(path);
+
+	//size = opened_file->file_size;
+
+
+	listNode_t* curr_clusterNode = NULL;
+
+	size_t cluster_size_b = boot_sector.sectors_perCluster*boot_sector.bytes_perSector;
+
+	listLine_t* cluster_line = FAT_getClusterChain(&fat,fi->fh);
+
+	size_t clusters = LIST_listSize(&cluster_line);
+
+	size_t size_inDisk = clusters*cluster_size_b;
+
+	file_buf =  malloc(size_inDisk);
+	char* tmp_buf =  malloc(cluster_size_b);
+
+	size_t index = 0;
+	while ((curr_clusterNode = LIST_removeFromBegin(&cluster_line)) != NULL)
+	{
+		uint32_t cluster_no = *((uint32_t*) (curr_clusterNode->data));
+		memset(tmp_buf,0,cluster_size_b);
+		fat32_getClusterData(cluster_no,&tmp_buf);
+		memcpy(file_buf+(index*cluster_size_b),tmp_buf,cluster_size_b);
+		index++;
+	}
+
+	free(tmp_buf);
+
+	return size_inDisk;
+
+
+}
+
+static int fuselage_flush(const char *path, struct fuse_file_info *fi)
+{
+
 }

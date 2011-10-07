@@ -11,8 +11,10 @@
 
 extern t_log* log_file;
 
-listNode_t* FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
+listLine_t* FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 {
+
+
 	uint32_t  *cluster_number, cluster_no = init_cluster;
 	listNode_t *new_cluster_node;
 	listLine_t *cluster_list;
@@ -31,6 +33,7 @@ listNode_t* FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 			log_debug(log_file,"PFS","FAT_getClusterChain() -> LIST_addNode(0x%x,0x%x)",cluster_list,cluster_number);
 			new_cluster_node = LIST_createNode(cluster_number);
 			LIST_addNode(&cluster_list,&new_cluster_node);
+
 			cluster_no = fat->table[cluster_no];
 		}
 
@@ -38,6 +41,7 @@ listNode_t* FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 		*cluster_number = cluster_no;
 		log_debug(log_file,"PFS","FAT_getClusterChain() -> LIST_addNode(0x%x,0x%x)",cluster_list,cluster_number);
 		new_cluster_node = LIST_createNode(cluster_number);
+
 		LIST_addNode(&cluster_list,&new_cluster_node);
 	}
 	else
@@ -46,13 +50,14 @@ listNode_t* FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 		*cluster_number = cluster_no;
 		log_debug(log_file,"PFS","FAT_getClusterChain() -> LIST_addNode(0x%x,0x%x)",cluster_list,cluster_number);
 		new_cluster_node = LIST_createNode(cluster_number);
+
 		LIST_addNode(&cluster_list,&new_cluster_node);
 	}
 
 	return cluster_list;
 }
 
-listNode_t* FAT_getFreeClusters(fatTable_t* FAT) {
+listLine_t* FAT_getFreeClusters(fatTable_t* FAT) {
 
 	uint32_t cluster_no, *cluster_number;
 	listNode_t *new_cluster_node;

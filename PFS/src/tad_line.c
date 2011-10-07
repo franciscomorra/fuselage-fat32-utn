@@ -137,12 +137,12 @@ void LIST_freeByType(void** pointer,uint32_t var_type)
 
 uint32_t LIST_listSize(listLine_t **line)
 {
-	uint32_t counter = 1;
+	uint32_t counter = 0;
 	listNode_t *cur = (*line)->begin;
-	while (cur->next != NULL)
+	while (cur != NULL)
 	{
-		cur = cur->next;
 		++counter;
+		cur = cur->next;
 	}
-	return ++counter;
+	return counter;
 }
