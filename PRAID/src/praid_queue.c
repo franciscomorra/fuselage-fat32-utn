@@ -7,11 +7,20 @@
 
 #include "praid_queue.h"
 
-//praid_READ_add()//Agregar nodo a la cola
-//praid_WRITE_add()
-//praid_READ_remove() //Eliminar nodo de la cola
-//praid_WRITE_remove()
-//praid_READ_status()//Ver si esta vacia la cola
-//praid_WRITE_status()
-//praid_READ_first()//Dame el primero
-//praid_WRITE_first()
+uint32_t praid_READ_add(nipcMsg_t msgIn)
+{return 0;}
+uint32_t praid_WRITE_add(nipcMsg_t msgIn)
+{return 0;}
+uint32_t praid_READ_remove()
+{return 0;}
+uint32_t praid_WRITE_remove()
+{return 0;}
+uint32_t praid_READ_status()
+{return 0;}
+uint32_t praid_WRITE_status()
+{return 0;}
+read_node praid_READ_first()
+{read_node read_node1;return read_node1;}
+//Dame el primero
+write_node praid_WRITE_first()
+{write_node write_node1; return write_node1;}

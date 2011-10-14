@@ -7,10 +7,33 @@
 
 #include "nipc.h"
 #include "praid_comm.h"
+#include "praid_queue.h"
+#include "praid_main.h"
 
 //Decodificacion del NIPC
 
+uint32_t pfs_receive(nipcMsg_t msgIn)
+{
 
+	switch (msgIn.type)
+	{
+
+		case HANDSHAKE:
+			//if(raid_status!=0){
+				//TODO praid_handlehandshake(msgIn);
+			//}
+		break;
+
+		case WRITE_SECTORS:
+			praid_WRITE_add(msgIn);
+		break;
+
+		case READ_SECTORS:
+			praid_READ_add(msgIn);
+		break;
+	}
+	return 0;
+}
 
 
 
