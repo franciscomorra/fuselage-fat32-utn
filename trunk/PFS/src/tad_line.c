@@ -36,27 +36,6 @@ void LIST_addNode(listLine_t **line,listNode_t** new_node)
 
 			}
 
-			/*else if ((*first)->next != NULL)
-			{
-
-				listNode_t *cur = (*first);
-
-				while (cur->next != NULL)
-				{
-
-					cur = cur->next;
-
-				}
-
-				cur->next = *new_node;
-			}
-			else
-			{
-				(*new_node)->next = *first;
-				*first = *new_node;
-				//(*first)->next = *new_node;
-			}*/
-
 }
 
 listNode_t* LIST_removeFromBegin(listLine_t **line)
@@ -79,6 +58,7 @@ void LIST_destroyList(listLine_t **line,uint32_t var_type)
 			cur = cur->next;
 		}
 	}
+	free(*line);
 }
 
 void LIST_destroyNode(listNode_t **node,uint32_t var_type)

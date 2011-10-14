@@ -58,7 +58,6 @@ listLine_t* FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 }
 
 listLine_t* FAT_getFreeClusters(fatTable_t* FAT) {
-
 	uint32_t cluster_no, *cluster_number;
 	listNode_t *new_cluster_node;
 	listLine_t *cluster_list;
