@@ -11,7 +11,6 @@
 #include <stdlib.h>
 #include "log.h"
 
-extern t_log* log_file;
 
 fat32file_t* FILE_createStruct(char* filename,dirEntry_t *dirEntry)
 {

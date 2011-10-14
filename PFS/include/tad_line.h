@@ -15,8 +15,6 @@
 #define FAT32FILE_T 2
 #define UINT32_T 3
 
-
-
 typedef struct listNode_t
 {
 	void	*data;

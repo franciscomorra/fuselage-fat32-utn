@@ -112,7 +112,7 @@ listLine_t* fat32_readDirectory(const char* path)
 				//Leo de todos los clusters
 				log_debug(log_file,"PFS","fat32_readDirectory() ->  FAT_getClusterChain(0x%x,%d)",&fat,first_cluster);
 
-				listNode_t *cluster_list = FAT_getClusterChain(&fat,first_cluster);
+				listLine_t *cluster_list = FAT_getClusterChain(&fat,first_cluster);
 
 				uint32_t cluster_count = LIST_listSize(&cluster_list);
 				char* data_of_clusters = malloc(cluster_count*boot_sector.sectors_perCluster*boot_sector.bytes_perSector);
@@ -199,7 +199,7 @@ dirEntry_t* fat32_getDirEntry(char* path)
 	}
 
 	LIST_destroyList(&file_list,FAT32FILE_T); //Destruyo la cola
-	free(file_list); //Libero el puntero a la estructura de cola
+	//free(file_list); //Libero el puntero a la estructura de cola
 
 	return direntry_found; //Retorno el puntero a la direntry del archivo buscado
 }
