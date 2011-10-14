@@ -13,10 +13,24 @@
 void *praid_listener (void *data)
 {
 
-	//Arrancar servidor
+	/*
+	 * CUANDO ME LLEGA UNA CONEXION NUEVA
+		pthread_t listener_thread;
+		pthread_create(&listener_thread, NULL, praid_listener, NULL);
+		//Le podria llegar a pasar el descriptor de socket por param
+		ppd_thread_amount++;
+	*/
 
-	//Handle new PPD
+	/*
+	 * CUANDO VIENE UN PEDIDO DE PFS
+	 *
+	 *
+	 * pfs_receive(nipcMsg_t msgIn); //Manda a la cola correspondiente
+	 */
+
+
+
 	//Handle PFS
 
-
+return NULL;
 }
