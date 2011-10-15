@@ -5,9 +5,11 @@
 #include "ppd_common.h"
 #include "ppd_comm.h"
 #include "ppd_taker.h"
+#include "ppd_io.h"
 
 extern uint32_t Sector;
 extern requestNode_t* first;
+extern file_descriptor;
 uint32_t headPosition;
 nipcMsg_t msg;
 
@@ -26,9 +28,8 @@ uint32_t TAKER_getRequest(requestNode_t* first,nipcMsg_t msg){
 
 	switch (first->type)
 	{
-	case READ:{
-
-	}
+	case READ:
+		read_sector(file_descriptor,msg.payload, msg.payload+4);
 		break;
 
 	case WRITE:
