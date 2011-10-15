@@ -10,6 +10,7 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include "config_manager.h"
 #include "ppd_SSTF.h"
 #include "ppd_common.h"
@@ -20,6 +21,7 @@ uint32_t Sector;
 uint32_t TrackJumpTime;
 uint32_t headPosition;
 requestNode_t* first;
+uint32_t file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR);
 
 int main(int argc, char *argv[])
 {
@@ -39,6 +41,9 @@ int main(int argc, char *argv[])
 	Head =  atoi(CONFIG_getValue(ppd_config,"Head"));
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));
 	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));
+
+
+
 
 /*	switch(fork()){
 		case 0:
