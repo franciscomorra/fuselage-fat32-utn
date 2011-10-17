@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "config_manager.h"
+#include "ppd_queue.h"
 #include "ppd_SSTF.h"
 #include "ppd_common.h"
 
@@ -20,12 +21,20 @@ uint32_t Head;
 uint32_t Sector;
 uint32_t TrackJumpTime;
 uint32_t headPosition;
+uint32_t bytes_perSector;
 requestNode_t* first;
-uint32_t file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR);
+uint32_t file_descriptor;
+queue_t queue;
 
 int main(int argc, char *argv[])
 {
 	first = 0;
+	file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR);
+	bytes_perSector = 512;
+	queue = malloc(sizeof(queue_t));
+	queue->head,queue->tail = 0;
+	sem_init(&queue->sem,0,0);  // el segundo valor indica si el sem es compartido por  threads,
+								//el tercero es el valor que quiero que tome
 
 /*
 	int i;

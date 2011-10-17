@@ -8,11 +8,13 @@
 #include <math.h>
 #include <sys/mman.h>
 
-uint32_t page_size,sectors_perPage,bytes_perSector;
+extern uint32_t bytes_perSector;
+uint32_t  page_size,sectors_perPage;
 
 int32_t read_sector(uint32_t file_descriptor,uint32_t sector, char* buf)
 {
-	bytes_perSector = 512; //bytes_perSector tendria que ser variable global al PPD ya que es información importante
+
+	bytes_perSector = 512;
 	page_size = 4096;
 	sectors_perPage = 8;
 	uint32_t page = floor(sector / sectors_perPage);
@@ -48,7 +50,6 @@ int32_t read_sector(uint32_t file_descriptor,uint32_t sector, char* buf)
 
 int32_t write_sector(uint32_t file_descriptor,uint32_t sector, char *buf)
 {
-	bytes_perSector = 512; //bytes_perSector tendria que ser variable global al PPD ya que es información importante
 	page_size = getpagesize();
 	uint32_t page = floor(sector / sectors_perPage);
 
@@ -71,3 +72,5 @@ int32_t write_sector(uint32_t file_descriptor,uint32_t sector, char *buf)
 
 	return 0;
 }
+
+

@@ -16,20 +16,11 @@ nipcMsg_t ppd_receive(nipcMsg_t msgIn )
 {
 	/* Se obtienen los distintos campos del mensaje IPC*/
 
-	nipcMsg_t msgOut;
 	uint32_t type = 0;
-	switch (msgIn.type)
+	if (msgIn.type == HANDSHAKE)
 	{
-
-		case HANDSHAKE:
-		break;
-
-		case WRITE:
-		break;
-
-		case READ:
+	} else {
 			SSTF_addRequest((uint32_t*)msgIn.payload); //casteamos el puntero para leer el numero de sector
-		break;
 	}
-	return msgOut;
+	return 0;
 }
