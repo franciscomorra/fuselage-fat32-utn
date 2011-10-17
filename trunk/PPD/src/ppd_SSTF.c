@@ -12,6 +12,12 @@ extern uint32_t TrackJumpTime;
 extern uint32_t headPosition;
 extern requestNode_t* first;
 
+uint32_t SSTF_main(){
+	while(1){
+
+	}
+	return 0;
+}
 
 uint32_t SSTF_addRequest(uint32_t* sectorNum){
 
