@@ -13,9 +13,9 @@
 
 //TODO VER PORQUE EL GCC -PTHREAD NO FUNCIONA
 int main(int argc,char **argv){
-/*
+
 	pthread_t praid_thread;
 	pthread_create(&praid_thread, NULL, praid_main, NULL);
-*/
+
 return 0;
 }
