@@ -16,7 +16,7 @@ extern queue_t* queue;
 
 uint32_t SSTF_addRequest(requestNode_t* new){
 
-	 requestNode_t* CHSposition = COMMON_turnToCHS((uint32_t*)headPosition);
+	 requestNode_t* CHSposition = COMMON_turnToCHS(headPosition);
 
 	 if(first == 0){
 		 first = new;

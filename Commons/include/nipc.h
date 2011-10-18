@@ -10,13 +10,13 @@ typedef enum {
 
 typedef struct NIPC_msg {
 	NIPC_type type;
-	char len[2]; //la memoria es un gran array y aca reservo 2 posiciones
+	char len[2];
 	char *payload;
 } __attribute__((__packed__)) nipcMsg_t;
 
 typedef struct {
 	nipcMsg_t msg;
-	struct nipc_node* next;
+	struct NIPC_node* next;
 } NIPC_node;
 
 nipcMsg_t NIPC_createMsg(NIPC_type type,uint32_t len, char* payload);
