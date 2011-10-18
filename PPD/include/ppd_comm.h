@@ -15,7 +15,7 @@
 #define READ 2
 #define WRITE 1
 
-int32_t ppd_send(nipcMsg_t msg);
-nipcMsg_t ppd_receive(nipcMsg_t msgIn);
+uint32_t ppd_send(nipcMsg_t msg);
+uint32_t ppd_receive(nipcMsg_t msgIn);
 
 #endif /* PPD_COMM_H_ */

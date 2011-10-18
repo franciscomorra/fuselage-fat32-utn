@@ -11,10 +11,13 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <semaphore.h>
+#include <pthread.h>
 #include "config_manager.h"
 #include "ppd_queue.h"
 #include "ppd_SSTF.h"
 #include "ppd_common.h"
+
 
 uint32_t Cylinder;
 uint32_t Head;
@@ -24,7 +27,7 @@ uint32_t headPosition;
 uint32_t bytes_perSector;
 requestNode_t* first;
 uint32_t file_descriptor;
-queue_t queue;
+queue_t* queue;
 
 int main(int argc, char *argv[])
 {
@@ -32,9 +35,10 @@ int main(int argc, char *argv[])
 	file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR);
 	bytes_perSector = 512;
 	queue = malloc(sizeof(queue_t));
-	queue->head,queue->tail = 0;
-	sem_init(&queue->sem,0,0);  // el segundo valor indica si el sem es compartido por  threads,
-								//el tercero es el valor que quiero que tome
+	queue->head = 0;
+	queue->tail = 0;
+	sem_init(&queue->sem,0,0);
+	pthread_t SSTFtid;
 
 /*
 	int i;
@@ -51,7 +55,8 @@ int main(int argc, char *argv[])
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));
 	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));
 
-
+	if(pthread_create(&SSTFtid,NULL,(void*)&SSTF_main,NULL) != 0)
+		printf("error creacion de thread SSTF");
 
 
 /*	switch(fork()){
