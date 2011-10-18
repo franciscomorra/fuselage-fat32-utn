@@ -29,10 +29,10 @@ void *praid_main (void *data)
 {
 //TODO Leer Archivo de configuracion (COPY PASTE CARULLO) Y VER SI CONSOLE ENABLE O DISABLE
 
-	/*
+
 		pthread_t listener_thread;
 		pthread_create(&listener_thread, NULL, praid_listener, NULL);
-	*/
+
 return NULL;
 }
 

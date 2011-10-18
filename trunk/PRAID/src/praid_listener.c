@@ -13,12 +13,14 @@
 void *praid_listener (void *data)
 {
 
-	/*
-	 * CUANDO ME LLEGA UNA CONEXION NUEVA
+
+	// CUANDO ME LLEGA UNA CONEXION NUEVA
+
 		pthread_t listener_thread;
 		pthread_create(&listener_thread, NULL, praid_listener, NULL);
+
 		//Le podria llegar a pasar el descriptor de socket por param
-		ppd_thread_amount++;
+		//ppd_thread_amount++;
 	*/
 
 	/*
