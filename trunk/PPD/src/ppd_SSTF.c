@@ -5,24 +5,27 @@
 #include <stdint.h>
 #include "ppd_SSTF.h"
 #include "ppd_common.h"
+#include "ppd_queue.h"
 
-extern uint32_t Head;
-extern uint32_t Sector;
 extern uint32_t TrackJumpTime;
 extern uint32_t headPosition;
 extern requestNode_t* first;
+extern queue_t* queue;
 
 uint32_t SSTF_main(){
+	printf("aca sstf");
 	while(1){
+		requestNode_t* new;
 
+		new = QUEUE_take(queue);
+		SSTF_addRequest(new);
 	}
 	return 0;
 }
 
-uint32_t SSTF_addRequest(uint32_t* sectorNum){
+uint32_t SSTF_addRequest(requestNode_t* new){
 
-	 requestNode_t* new = SSTF_turnToCHS(sectorNum);
-	 requestNode_t* CHSposition = SSTF_turnToCHS((uint32_t*)headPosition);
+	 requestNode_t* CHSposition = COMMON_turnToCHS((uint32_t*)headPosition);
 
 	 if(first == 0){
 		 first = new;
@@ -47,16 +50,6 @@ uint32_t SSTF_addRequest(uint32_t* sectorNum){
 	 return 0;
 }
 
-requestNode_t* SSTF_turnToCHS(uint32_t* sectorNum){
-
-	requestNode_t* new = malloc(sizeof(requestNode_t));
-
-	new->cylinder = (*sectorNum) / (Sector * Head);
-	new->head = (*sectorNum % (Sector * Head)) / Sector;
-	new->sector = (*sectorNum % (Sector * Head)) % Sector;
-
-	return new;
-}
 
 uint32_t SSTF_near(requestNode_t* new, requestNode_t* aux,requestNode_t* auxSig){
 

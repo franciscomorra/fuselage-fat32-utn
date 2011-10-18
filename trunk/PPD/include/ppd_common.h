@@ -10,6 +10,9 @@
 
 #include "nipc.h"
 
+extern uint32_t Head;
+extern uint32_t Sector;
+
 typedef struct requestNode_t {
 	NIPC_type type;
 	uint32_t cylinder;
@@ -20,6 +23,6 @@ typedef struct requestNode_t {
 	struct requestNode_t* next;
 } __attribute__((__packed__)) requestNode_t;
 
-
+requestNode_t* COMMON_turnToCHS(uint32_t* sectorNum);
 
 #endif /* PPD_COMMON_H_ */

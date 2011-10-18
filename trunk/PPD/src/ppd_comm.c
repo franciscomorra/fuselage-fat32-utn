@@ -5,14 +5,17 @@
 #include "nipc.h"
 #include "ppd_SSTF.h"
 #include "ppd_comm.h"
+#include "ppd_queue.h"
 
-int32_t ppd_send(nipcMsg_t msg)
+extern queue_t* queue;
+
+uint32_t ppd_send(nipcMsg_t msg)
 {
 
 	return 1;
 }
 
-nipcMsg_t ppd_receive(nipcMsg_t msgIn )
+uint32_t ppd_receive(nipcMsg_t msgIn )
 {
 	/* Se obtienen los distintos campos del mensaje IPC*/
 
@@ -20,7 +23,7 @@ nipcMsg_t ppd_receive(nipcMsg_t msgIn )
 	if (msgIn.type == HANDSHAKE)
 	{
 	} else {
-			SSTF_addRequest((uint32_t*)msgIn.payload); //casteamos el puntero para leer el numero de sector
+			QUEUE_add(msgIn,queue);
 	}
 	return 0;
 }

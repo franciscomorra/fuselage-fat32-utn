@@ -46,7 +46,7 @@ uint32_t TAKER_getRequest(requestNode_t* first,nipcMsg_t msg){
 		}
 	case WRITE:{
 		write_sector(file_descriptor, sectorNum, first->payload);
-		msg = NIPC_createMsg(first->type,4,&sectorNum);
+		msg = NIPC_createMsg(first->type,4,(char*)sectorNum);
 		break;
 	 	}
 	}
