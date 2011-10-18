@@ -12,16 +12,7 @@ extern uint32_t headPosition;
 extern requestNode_t* first;
 extern queue_t* queue;
 
-uint32_t SSTF_main(){
-	printf("aca sstf");
-	while(1){
-		requestNode_t* new;
 
-		new = QUEUE_take(queue);
-		SSTF_addRequest(new);
-	}
-	return 0;
-}
 
 uint32_t SSTF_addRequest(requestNode_t* new){
 

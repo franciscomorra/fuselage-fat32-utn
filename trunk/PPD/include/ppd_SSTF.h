@@ -16,6 +16,6 @@ uint32_t SSTF_near(requestNode_t* A,requestNode_t* B,requestNode_t* C);
 
 uint32_t SSTF_sectorDist(uint32_t fstSector, uint32_t lstSector);
 
-uint32_t SSTF_main();
+uint32_t SSTF_main(void);
 
 #endif /* PPD_REQUESTLIST_H_ */

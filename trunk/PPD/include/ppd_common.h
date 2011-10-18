@@ -18,6 +18,7 @@ typedef struct requestNode_t {
 	uint32_t cylinder;
 	uint32_t head;
 	uint32_t sector;
+	char len[2];
 	char* payload;
 	char* sender;
 	struct requestNode_t* next;

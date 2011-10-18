@@ -13,11 +13,12 @@
 #include <fcntl.h>
 #include <semaphore.h>
 #include <pthread.h>
+#include "nipc.h"
 #include "config_manager.h"
 #include "ppd_queue.h"
 #include "ppd_SSTF.h"
 #include "ppd_common.h"
-
+#include "ppd_comm.h"
 
 uint32_t Cylinder;
 uint32_t Head;
@@ -40,13 +41,13 @@ int main(int argc, char *argv[])
 	sem_init(&queue->sem,0,0);
 	pthread_t SSTFtid;
 
-/*
+
 	int i;
  	uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};
  	uint32_t* p = malloc(7*sizeof(uint32_t));
 
  	memcpy(p,vec,7*4);
-*/
+
 	config_param *ppd_config;
 	CONFIG_read("config/ppd.config",&ppd_config);
 
@@ -54,10 +55,10 @@ int main(int argc, char *argv[])
 	Head =  atoi(CONFIG_getValue(ppd_config,"Head"));
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));
 	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));
-
-	if(pthread_create(&SSTFtid,NULL,(void*)&SSTF_main,NULL) != 0)
-		printf("error creacion de thread SSTF");
-
+/*
+	if(pthread_create(&SSTFtid,NULL,(void*)&SSTF_main,NULL))
+		perror("error creacion de thread SSTF");
+*/
 
 /*	switch(fork()){
 		case 0:
@@ -68,13 +69,34 @@ int main(int argc, char *argv[])
 			break;
 	}
 
-
-	for(i = 0; i < 7; i++)
- 		SSTF_addRequest(p+i);
-
 */
+
+	for(i = 0; i < 7; i++){
+		nipcMsg_t msgIn = NIPC_createMsg(READ_SECTORS,4,p+i);
+ 		ppd_receive(msgIn);
+	}
+	for(i = 0; i < 7; i++){
+		requestNode_t* new;
+
+		new = QUEUE_take(queue);
+		SSTF_addRequest(new);
+	}
 
 	return 1;
 }
 
+uint32_t SSTF_main(void){
+	//me tira error de kernel al crear el thread si defino esta funcion dentro del PPD_SSTF.c
+	//lo defini en el ppd_SSTF.h
+	printf("aca sstf");
 
+	while(1){
+		requestNode_t* new;
+
+		new = QUEUE_take(queue);
+		SSTF_addRequest(new);
+	}
+
+
+	return 0;
+}

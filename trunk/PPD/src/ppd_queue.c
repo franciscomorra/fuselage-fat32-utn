@@ -8,7 +8,7 @@
 #include "ppd_queue.h"
 
 uint32_t QUEUE_add(nipcMsg_t msg, queue_t* queue){
-	NIPC_node* new = malloc(sizeof(NIPC_node));
+	NIPC_node* new = malloc(sizeof(NIPC_node)); //convierte el nipcMsg_t a un NIPC_node
 	new->msg = msg;
 	new->next = 0;
 
@@ -24,15 +24,16 @@ uint32_t QUEUE_add(nipcMsg_t msg, queue_t* queue){
 
 requestNode_t* QUEUE_take(queue_t* queue){
 
-	sem_wait(&queue->sem);
+	sem_wait(&queue->sem); //se utiliza para que el programa entre en una espera activa si es que no hay elementos en la queue
 	NIPC_node* aux = queue->head;
 
-	requestNode_t* new = COMMON_turnToCHS(queue->head->msg.payload);
-	memcpy(&(new->type),&queue->head->msg.type,sizeof(NIPC_type));
-	memcpy(new->payload,(queue->head->msg.payload)+4,(queue->head->msg.len)-4);
+	requestNode_t* new = COMMON_turnToCHS(aux->msg.payload); //aca se crea el malloc del requestNode_t new
+	new->type = aux->msg.type; //convertimos el contenido del NIPC_node a requestNode_t
+	new->len = aux->msg.len;
+	memcpy(new->payload,aux->msg.payload+4,aux->msg.len-4);
 	//TODO sender cuando usemos sockets
 
-	queue->head = queue->head->next;
+	queue->head = aux->next;
 
 	if(queue->head == 0)
 		queue->tail = 0;
