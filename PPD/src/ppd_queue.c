@@ -30,7 +30,7 @@ requestNode_t* QUEUE_take(queue_t* queue){
 
 	memcpy(&sectorNum,aux->msg.payload,4);
 	requestNode_t* new = COMMON_turnToCHS(sectorNum); //aca se crea el malloc del requestNode_t new
-	new->type = aux->msg.type; //convertimos el contenido del NIPC_node a requestNode_t
+	new->type = aux->msg.type;						  //convertimos el contenido del NIPC_node a requestNode_t
 	memcpy(&new->len,aux->msg.len-4,2);
 	new->payload = malloc(new->len);
 	memcpy(new->payload,(aux->msg.payload+4),new->len);

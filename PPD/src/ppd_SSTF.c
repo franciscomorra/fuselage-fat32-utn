@@ -10,8 +10,6 @@
 extern uint32_t TrackJumpTime;
 extern uint32_t headPosition;
 extern requestNode_t* first;
-extern queue_t* queue;
-
 
 
 uint32_t SSTF_addRequest(requestNode_t* new){
@@ -35,8 +33,9 @@ uint32_t SSTF_addRequest(requestNode_t* new){
 				} else
 					aux = aux->next;
 			}
+			aux->next = new;
 		}
-		aux->next = new;
+
 	}
 	 return 0;
 }
