@@ -18,12 +18,12 @@ typedef struct requestNode_t {
 	uint32_t cylinder;
 	uint32_t head;
 	uint32_t sector;
-	char len[2];
+	uint32_t len;
 	char* payload;
 	char* sender;
 	struct requestNode_t* next;
 } __attribute__((__packed__)) requestNode_t;
 
-requestNode_t* COMMON_turnToCHS(uint32_t* sectorNum);
+requestNode_t* COMMON_turnToCHS(uint32_t sectorNum);
 
 #endif /* PPD_COMMON_H_ */

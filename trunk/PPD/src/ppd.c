@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
 	Head =  atoi(CONFIG_getValue(ppd_config,"Head"));
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));
 	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));
+	headPosition = atoi(CONFIG_getValue(ppd_config,"HeadPosition"));
 /*
 	if(pthread_create(&SSTFtid,NULL,(void*)&SSTF_main,NULL))
 		perror("error creacion de thread SSTF");
@@ -74,6 +75,7 @@ int main(int argc, char *argv[])
 	for(i = 0; i < 7; i++){
 		nipcMsg_t msgIn = NIPC_createMsg(READ_SECTORS,4,p+i);
  		ppd_receive(msgIn);
+
 	}
 	for(i = 0; i < 7; i++){
 		requestNode_t* new;
@@ -81,6 +83,8 @@ int main(int argc, char *argv[])
 		new = QUEUE_take(queue);
 		SSTF_addRequest(new);
 	}
+
+
 
 	return 1;
 }
