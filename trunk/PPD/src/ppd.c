@@ -56,10 +56,10 @@ int main(int argc, char *argv[])
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));
 	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));
 	headPosition = atoi(CONFIG_getValue(ppd_config,"HeadPosition"));
-/*
+
 	if(pthread_create(&SSTFtid,NULL,(void*)&SSTF_main,NULL))
 		perror("error creacion de thread SSTF");
-*/
+
 
 /*	switch(fork()){
 		case 0:
@@ -77,14 +77,13 @@ int main(int argc, char *argv[])
  		ppd_receive(msgIn);
 
 	}
-	for(i = 0; i < 7; i++){
+/*	for(i = 0; i < 7; i++){
 		requestNode_t* new;
 
 		new = QUEUE_take(queue);
 		SSTF_addRequest(new);
 	}
-
-
+*/
 
 	return 1;
 }
@@ -92,15 +91,11 @@ int main(int argc, char *argv[])
 uint32_t SSTF_main(void){
 	//me tira error de kernel al crear el thread si defino esta funcion dentro del PPD_SSTF.c
 	//lo defini en el ppd_SSTF.h
-	printf("aca sstf");
-
 	while(1){
 		requestNode_t* new;
 
 		new = QUEUE_take(queue);
 		SSTF_addRequest(new);
 	}
-
-
 	return 0;
 }
