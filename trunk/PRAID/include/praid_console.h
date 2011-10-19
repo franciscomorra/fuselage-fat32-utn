@@ -13,6 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-uint32_t print_Console (char* message);
+uint32_t print_Console (char *message);
 
 #endif /* PRAID_CONSOLE_H_ */
