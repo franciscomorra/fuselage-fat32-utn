@@ -13,7 +13,7 @@
 void *praid_listener (void *data)
 {
 
-
+/*
 	// CUANDO ME LLEGA UNA CONEXION NUEVA
 
 		pthread_t listener_thread;
