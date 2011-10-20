@@ -21,6 +21,15 @@
 
 extern bootSector_t boot_sector;
 
+char* PFS_sectorOperation(NIPC_type op_type,uint32_t sector)
+{
+		nipcMsg_t msg;
+		msg = NIPC_createMsg(op_type,sizeof(uint32_t),(char*) &sector);
+		char *buf = PFS_request(msg);
+		NIPC_cleanMsg(&msg);
+		return buf;
+}
+
 char* PFS_requestSectorsOperation(NIPC_type request_type,uint32_t *sectors,size_t sectors_count)
 {
 	uint32_t index;
