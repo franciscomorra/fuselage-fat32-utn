@@ -18,7 +18,7 @@ uint32_t SSTF_addRequest(requestNode_t* new){
 	 requestNode_t* CHSposition = COMMON_turnToCHS(headPosition);
 
 	 if(first == 0){
-		 sem_wait(&SSTFmutex);
+		 sem_wait(&SSTFmutex); //semaforos que uso para que cuando accesa a first no pueda ser interrumpido por el TAKER
 		 first = new;
 		 sem_post(&SSTFmutex);
 		 return 0;
@@ -67,9 +67,6 @@ uint32_t SSTF_near(requestNode_t* new, requestNode_t* aux,requestNode_t* auxSig)
 }
 
 uint32_t SSTF_sectorDist(uint32_t fstSector, uint32_t lstSector){
-
-	//devuelve la cantidad de sectores que tiene que recorrer para llegar de fst a lst.
-
 	if (lstSector < fstSector)
 		return (Sector - (fstSector - lstSector));
 	else

@@ -1,4 +1,11 @@
-
+*Esquema Basico:
+	El PPD se divide en 4 threads los cuales se encargan de : 
+		- Main: Recibir los pedidos y meterlos en una cola (QUEUE) 
+		- SSTF: Sacar los pedidos de la cola (QUEUE) y ponerlos segurn el algoritmo en la cola principal (first)
+		- TAKER: Sacar los pedidos de la lista (first), atenderlos y enviar la respuesta por sockets
+		- ConsoleHandler: Esta conectada a la consola y se ocupa de atender sus pedidos
+	La consola del PPD esta en un proyecto aparte ya que esta debe ser ejecutada en un proceso nuevo mediante el uso de fork 
+		
 *Problema con el SSTF: si tenemos la lista vacia y la cola llena, cuando un thread quiera poner nodos en la lista sacandolos de la cola se va a encontrar 
 que siempre estara vacia ya que el otro thread, al mismo tiempo que uno pone nodos, los va sacando.
 -Posible Solucion: hacer un if al sstf, si la lista esta vacia que busque en la cola cual es el nodo que mas le conviene quitar de la cola segun el headPosition.
