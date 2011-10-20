@@ -1,9 +1,4 @@
-/*
- * console.c
- *
- *  Created on: Oct 6, 2011
- *      Author: utn_so
- */
+
 
 #include <string.h>
 #include "ppdConsole_input.h"
