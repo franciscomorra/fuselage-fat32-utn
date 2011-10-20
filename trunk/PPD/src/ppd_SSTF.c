@@ -10,6 +10,7 @@
 extern uint32_t TrackJumpTime;
 extern uint32_t headPosition;
 extern requestNode_t* first;
+extern sem_t SSTFmutex;
 
 
 uint32_t SSTF_addRequest(requestNode_t* new){
@@ -17,14 +18,19 @@ uint32_t SSTF_addRequest(requestNode_t* new){
 	 requestNode_t* CHSposition = COMMON_turnToCHS(headPosition);
 
 	 if(first == 0){
+		 sem_wait(&SSTFmutex);
 		 first = new;
+		 sem_post(&SSTFmutex);
 		 return 0;
 	 } else {
+		sem_wait(&SSTFmutex);
 		requestNode_t* aux = first;
 		if (SSTF_near(new,CHSposition,first)){
 			new->next = first;
 			first = new;
+			sem_post(&SSTFmutex);
 		} else {
+			sem_post(&SSTFmutex);
 			while (aux->next != 0){
 				if(SSTF_near(new,aux,aux->next)){
 					new->next = aux->next;

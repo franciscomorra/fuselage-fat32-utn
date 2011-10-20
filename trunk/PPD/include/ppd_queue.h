@@ -23,4 +23,6 @@ uint32_t QUEUE_add(nipcMsg_t msg, queue_t* buffer);
 
 requestNode_t* QUEUE_take(queue_t* buffer);
 
+uint32_t QUEUE_getHead(queue_t* queue);
+
 #endif /* PPD_QUEUE_H_ */
