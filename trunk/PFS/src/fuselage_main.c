@@ -98,7 +98,7 @@ int fuselage_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t o
 	{
 		curr_file = (fat32file_t*) curr_file_node->data;
 		filler(buf, curr_file->long_file_name, NULL, 0);
-		QUEUE_destroyNode(&curr_file_node,FAT32FILE_T);
+		QUEUE_destroyNode(curr_file_node,FAT32FILE_T);
 		curr_file_node = curr_file_node->next;
 	}
 

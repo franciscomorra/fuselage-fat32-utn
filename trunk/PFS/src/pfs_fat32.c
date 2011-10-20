@@ -107,7 +107,7 @@ queue_t fat32_readDirectory(const char* path)
 				uint32_t first_cluster = DIRENTRY_getClusterNumber(&(curr_file->dir_entry));
 
 				log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyNode(0x%x->data(0x%x),FAT32FILE_T)",curr_file_node,curr_file_node->data);
-				QUEUE_destroyNode(&curr_file_node,0);
+				QUEUE_destroyNode(curr_file_node,0);
 
 				//Leo de todos los clusters
 				log_debug(log_file,"PFS","fat32_readDirectory() ->  FAT_getClusterChain(0x%x,%d)",&fat,first_cluster);
@@ -128,7 +128,7 @@ queue_t fat32_readDirectory(const char* path)
 					free(buf);
 
 					log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyNode(0x%x->data(0x%x),FAT32FILE_T)",curr_cluster_node,curr_cluster_node->data);
-					QUEUE_destroyNode(&curr_cluster_node,FAT32FILE_T);
+					QUEUE_destroyNode(curr_cluster_node,FAT32FILE_T);
 				}
 
 				log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyList(0x%x,0)",cluster_list);
@@ -195,7 +195,7 @@ dirEntry_t* fat32_getDirEntry(char* path)
 		}
 
 		log_debug(log_file,"PFS","fat32_getDirEntry() -> LIST_destroyNode(0x%x->data(0x%x)),FAT32FILE_T)",curr_file_node,curr_file_node->data);
-		QUEUE_destroyNode(&curr_file_node,FAT32FILE_T); 											//Destruyo el nodo que tome de la cola
+		QUEUE_destroyNode(curr_file_node,FAT32FILE_T); 											//Destruyo el nodo que tome de la cola
 
 		if (direntry_found != NULL) break; 														//Si encontro algo, salgo del ciclo while
 	}
