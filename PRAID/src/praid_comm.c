@@ -8,7 +8,12 @@
 #include "nipc.h"
 #include "praid_comm.h"
 #include "praid_queue.h"
-#include "praid_main.h"
+
+extern uint32_t raid_status; //0 INACTIVE - 1 ACTIVE
+//TODO Sockets y manejo de los mismos
+
+
+
 
 //Decodificacion del NIPC
 
