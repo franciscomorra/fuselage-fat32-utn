@@ -19,6 +19,7 @@
 #include "ppd_SSTF.h"
 #include "ppd_common.h"
 #include "ppd_comm.h"
+#include "ppd_taker.h"
 
 uint32_t Cylinder;
 uint32_t Head;
@@ -29,6 +30,7 @@ uint32_t bytes_perSector;
 requestNode_t* first;
 uint32_t file_descriptor;
 queue_t* queue;
+sem_t SSTFmutex;
 
 int main(int argc, char *argv[])
 {
@@ -38,9 +40,11 @@ int main(int argc, char *argv[])
 	queue = malloc(sizeof(queue_t));
 	queue->head = 0;
 	queue->tail = 0;
-	sem_init(&queue->sem,0,0);
+	pthread_t TAKERtid;
 	pthread_t SSTFtid;
 
+	sem_init(&queue->sem,0,0);
+	sem_init(&SSTFmutex,0,1);
 
 	int i;
  	uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};
@@ -69,21 +73,18 @@ int main(int argc, char *argv[])
 			perror(fork);
 			break;
 	}
-
 */
+
 
 	for(i = 0; i < 7; i++){
 		nipcMsg_t msgIn = NIPC_createMsg(READ_SECTORS,4,p+i);
  		ppd_receive(msgIn);
-
 	}
-/*	for(i = 0; i < 7; i++){
-		requestNode_t* new;
+	sleep(1);
+	if(pthread_create(&TAKERtid,NULL,(void*)&TAKER_main,NULL))
+			perror("error creacion de thread ");
 
-		new = QUEUE_take(queue);
-		SSTF_addRequest(new);
-	}
-*/
+	while(1);
 
 	return 1;
 }
@@ -96,6 +97,28 @@ uint32_t SSTF_main(void){
 
 		new = QUEUE_take(queue);
 		SSTF_addRequest(new);
+	}
+	return 0;
+}
+
+uint32_t TAKER_main() {
+	//lo mismo que el SSTF_main tuve que definirlo aca por un tema de threads
+	while(1){
+		if(first != 0){
+			sem_wait(&SSTFmutex);
+			requestNode_t* aux = first;
+
+			//ppd_send(TAKER_getRequest(first));
+			nipcMsg_t nodo;					//temporal
+			uint32_t a;						//temporal
+			nodo = TAKER_getRequest(first); //temporal
+			memcpy(&a,nodo.payload,4);		//temporal
+			printf("%d\n",a);				//temporal
+
+			first = first->next;
+			free(aux);
+			sem_post(&SSTFmutex);
+		}
 	}
 	return 0;
 }
