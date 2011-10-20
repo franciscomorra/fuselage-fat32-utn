@@ -59,7 +59,7 @@ int cmd_signal()
 
 	if (strcmp(cmd_received,"fsinfo") == 0)
 	{
-			queue_t* cluster_list = FAT_getFreeClusters(&fat);
+			queue_t cluster_list = FAT_getFreeClusters(&fat);
 			queueNode_t* cur = NULL;
 			uint32_t count_free = 0;
 
@@ -72,7 +72,7 @@ int cmd_signal()
 			}
 
 			uint32_t count_notfree = fat.size - count_free;
-			QUEUE_destroy(&cluster_list,UINT32_T);
+			//QUEUE_destroy(&cluster_list,UINT32_T);
 
 			printf("\nClusters ocupados: %d\n",count_notfree);
 			printf("Clusters libres: %d\n",count_free);
@@ -89,10 +89,10 @@ int cmd_signal()
 int fuselage_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t offset, struct fuse_file_info *fi)
 {
 	log_debug(log_file,"PFS","fuselage_readdir -> fat32_readDirectory(%s)",path);
-	queue_t *file_list = fat32_readDirectory(path); //Obtengo una lista de los ficheros que hay en "path"
+	queue_t file_list = fat32_readDirectory(path); //Obtengo una lista de los ficheros que hay en "path"
 
-	assert(file_list != NULL); //Si falla es que fuselage_getattr no detecto que no era un directorio valido
-	queueNode_t *curr_file_node = file_list->begin;
+	assert(&file_list != NULL); //Si falla es que fuselage_getattr no detecto que no era un directorio valido
+	queueNode_t *curr_file_node = file_list.begin;
 	fat32file_t *curr_file;
 	while ((curr_file_node = QUEUE_removeFromBegin(&file_list)) != NULL)
 	{
@@ -103,7 +103,7 @@ int fuselage_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t o
 	}
 
 	log_debug(log_file,"PFS","fuselage_readdir -> LIST_destroyList(0x%x,FAT32FILE_T)",file_list);
-	QUEUE_destroy(&file_list,FAT32FILE_T);
+	//QUEUE_destroy(&file_list,FAT32FILE_T);
 	//free(file_list);
 	return 0;
 }
@@ -159,7 +159,7 @@ static int fuselage_read(const char *path, char *file_buf, size_t sizeToRead, of
 
 	size_t cluster_size_b = boot_sector.sectors_perCluster*boot_sector.bytes_perSector; 				//Calculo el tamaño en bytes de un cluster
 
-	queue_t* cluster_line = FAT_getClusterChain(&fat,fi->fh); 										//Obtengo la cadena de clusters asociada al archivo que se leera
+	queue_t cluster_line = FAT_getClusterChain(&fat,fi->fh); 										//Obtengo la cadena de clusters asociada al archivo que se leera
 
 	uint32_t begin_cluster = offset / cluster_size_b; 													//Calculo en que cluster cae el offset pedido
 	uint32_t end_cluster = (offset+sizeToRead) / cluster_size_b; 										//Calculo en que cluster cae el byte final a leer
@@ -189,7 +189,7 @@ static int fuselage_read(const char *path, char *file_buf, size_t sizeToRead, of
 		cluster_off++;
 	}
 
-	QUEUE_destroy(&cluster_line,UINT32_T); 																	//Destruyo la lista de clusters del archivo
+	//QUEUE_destroy(&cluster_line,UINT32_T); 																	//Destruyo la lista de clusters del archivo
 	memcpy(file_buf,clustersData_buf+(offset-(begin_cluster*cluster_size_b)),sizeToRead); 				//Copio al buffer final del archivo los bytes pedidos
 	free(clustersData_buf); 																			//Libero el buffer que contiene los datos de todos los clusters
 	free(tmp_buf);																						//Libero el buffer que contiene los datos del cluster actual
