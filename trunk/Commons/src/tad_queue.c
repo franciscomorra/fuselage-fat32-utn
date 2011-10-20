@@ -5,7 +5,7 @@
  *      Author: utn_so
  */
 #include "tad_queue.h"
-
+//#include "tad_file.h"
 
 #include <fcntl.h>
 #include <stdlib.h>
@@ -13,41 +13,41 @@
 #include "log.h"
 
 extern t_log* log_file;
-void QUEUE_initialize(queue_t** line)
+void QUEUE_initialize(queue_t* line)
 {
-	*line = malloc(sizeof(queue_t));
-	(*line)->begin = NULL;
-	(*line)->end = NULL;
+	memset(line,0,sizeof(queue_t));
+	//line = malloc(sizeof(queue_t));
+	//(line)->begin = NULL;
+	//(line)->end = NULL;
 	return;
 }
-void QUEUE_addNode(queue_t **line,queueNode_t** new_node)
+void QUEUE_appendNode(queue_t *line,queueNode_t* new_node)
 {
-	assert(*line != NULL);
+	assert(line != NULL);
 
-			if ((*line)->begin == NULL)
-			{
-				(*line)->begin = (*line)->end = *new_node;
+	if (line->begin == NULL)
+	{
+		line->begin = line->end = new_node;
 
-			}
-			else
-			{
-				(*line)->end->next = *new_node;
-				(*line)->end = *new_node;
-
-			}
-
+	}
+	else
+	{
+		line->end->next = new_node;
+		line->end = new_node;
+	}
 }
 
-queueNode_t* QUEUE_removeFromBegin(queue_t **line)
+queueNode_t* QUEUE_takeNode(queue_t *line)
 {
-	queueNode_t* tmp = (*line)->begin;
-	if (tmp != NULL) (*line)->begin = tmp->next;
+	queueNode_t* tmp = line->begin;
+	if (tmp != NULL) line->begin = tmp->next;
+	if (line->begin == NULL) line->end = line->begin;
 	return tmp;
 }
 
-void QUEUE_destroy(queue_t **line,uint32_t var_type)
+void QUEUE_destroyQueue(queue_t *line,uint32_t var_type)
 {
-	queueNode_t* cur = (*line)->begin;
+	queueNode_t* cur = (line)->begin;
 
 	if (cur != NULL)
 	{
@@ -58,21 +58,21 @@ void QUEUE_destroy(queue_t **line,uint32_t var_type)
 			cur = cur->next;
 		}
 	}
-	free(*line);
+	free(line);
 }
 
-void QUEUE_destroyNode(queueNode_t **node,uint32_t var_type)
+void QUEUE_destroyNode(queueNode_t *node,uint32_t var_type)
 {
-	assert(*node != NULL);
-	log_debug(log_file,"PFS","LIST_destroyNode() -> LIST_freeByType(0x%x)",*node);
+	assert(node != NULL);
+	log_debug(log_file,"PFS","LIST_destroyNode() -> LIST_freeByType(0x%x)",node);
 	QUEUE_freeByType((void*)node,var_type);
 }
 
-queueNode_t* QUEUE_searchNode(queue_t **line,void *data,size_t dataLength)
+queueNode_t* QUEUE_searchNode(queue_t *line,void *data,size_t dataLength)
 {
-	if ((*line)->begin != NULL)
+	if ((line)->begin != NULL)
 	{
-		queueNode_t *cur = (*line)->begin;
+		queueNode_t *cur = (line)->begin;
 		while (cur != NULL)
 		{
 				if (memcmp(cur->data,data,dataLength) == 0)
@@ -96,27 +96,32 @@ queueNode_t* QUEUE_createNode(void* data)
 	return new_node;
 }
 
-void QUEUE_freeByType(void** pointer,uint32_t var_type)
+void QUEUE_freeByType(void* pointer,uint32_t var_type)
 {
+	queueNode_t *toDestroy = (queueNode_t*) pointer;
 
 	switch(var_type)
 	{
 		case FAT32FILE_T:;
-
+			/*fat32file_t *casted_pointer = (fat32file_t*) *pointer;
+			free(casted_pointer->long_file_name);
+			free(casted_pointer);*/
 		break;
 
 		default:
-			free(*pointer);
+
 		break;
 	}
 
+	free(toDestroy->data);
+	free(pointer);
 
 }
 
-uint32_t QUEUE_length(queue_t **line)
+uint32_t QUEUE_length(queue_t *line)
 {
 	uint32_t counter = 0;
-	queueNode_t *cur = (*line)->begin;
+	queueNode_t *cur = (line)->begin;
 	while (cur != NULL)
 	{
 		++counter;
