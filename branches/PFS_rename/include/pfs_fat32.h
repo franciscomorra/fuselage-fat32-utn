@@ -18,6 +18,7 @@
 #include "tad_fat.h"
 #include "tad_file.h"
 #include "tad_bootsector.h"
+#include "tad_cluster.h"
 #include "tad_queue.h"
 #include "tad_direntry.h"
 
@@ -29,7 +30,7 @@ uint32_t fat32_readFAT(fatTable_t *fat);
 uint32_t fat32_readBootSector(bootSector_t *bs);
 
 //fat32_getClusterData: Llena el buffer 'buf' con los bytes que se leeran del cluster 'cluster_no'
-uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf);
+char* fat32_getClusterRawData(cluster_t);
 
 //fat32_readDirectory: Devuelve una lista con todos los ficheros dentro del path pasado
 queue_t fat32_readDirectory(const char* path);
@@ -38,5 +39,11 @@ queue_t fat32_readDirectory(const char* path);
 dirEntry_t* fat32_getDirEntry(char* path);
 
 fat32file_t fat32_getFile(const char* path);
+
+queue_t fat32_getClusterChainData(uint32_t first_cluster);
+
+char* fat32_getClusterChainRawData(queue_t cluster_list);
+
+cluster_t fat32_getClusterData(uint32_t);
 
 #endif /* PFS_FAT32_H_ */

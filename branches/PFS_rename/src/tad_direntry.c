@@ -34,6 +34,8 @@ uint32_t DIRENTRY_getClusterNumber(dirEntry_t *entry)
 
 queue_t DIRENTRY_interpretDirTableData(char* table_data,size_t sizeofData,uint32_t init_cluster)
 {
+
+
 	uint32_t indexOfEntry = 2;
 	size_t numberOfEntries = 0;
 
@@ -41,9 +43,9 @@ queue_t DIRENTRY_interpretDirTableData(char* table_data,size_t sizeofData,uint32
 	size_t entries_perCluster = bytes_perCluster / sizeof(dirEntry_t);
 
 	lfnEntry_t *lfn_entry = (lfnEntry_t*) table_data; //Uso este puntero para recorrer el cluster_data de a 32 bytes cada vez que incremento en 1 este puntero
-	char* longfilename_buf = malloc(255); //Uso este buffer para ir almacenando los LFN de un archivo
+	char longfilename_buf[255]; //Uso este buffer para ir almacenando los LFN de un archivo
 	memset(longfilename_buf, 0, 255); //Lo seteo a 0
-	char *tmp_longfilename_part, *new_longfilename; //Puntero para UN LFN de UN archivo, y puntero para el nombre largo completo de un archivo
+	char *tmp_longfilename_part[13], *new_longfilename; //Puntero para UN LFN de UN archivo, y puntero para el nombre largo completo de un archivo
 	size_t tmp_longfilename_part_size = 0, new_longfilename_size = 0; //Tamaño de cadena de los punteros
 	queueNode_t *new_file_node; //Punteros a nodos de una lista que sera la que se obtenga de esta funcion
 	queue_t file_list; //Creo un puntero a la cola
@@ -79,7 +81,7 @@ queue_t DIRENTRY_interpretDirTableData(char* table_data,size_t sizeofData,uint32
 			numberOfEntries += 2;
 			indexOfEntry++;
 			//CODIGO QUE PROCESA EL LONGFILENAME
-			tmp_longfilename_part_size = LFNENTRY_getLongFileName(*lfn_entry,&tmp_longfilename_part); 	//Obtengo la ultima parte (Viene a ser la primera del nombre , estan dispuestas al reves)
+			tmp_longfilename_part_size = LFNENTRY_getLongFileName(*lfn_entry,tmp_longfilename_part); 	//Obtengo la ultima parte (Viene a ser la primera del nombre , estan dispuestas al reves)
 			new_longfilename_size += tmp_longfilename_part_size; 										//Aumento el tamaño del nombre para obtener el tamaño final
 
 			shiftbytes_right(longfilename_buf, 255, tmp_longfilename_part_size);						/* Corro lo que esta almacenado en el buffer
@@ -88,14 +90,14 @@ queue_t DIRENTRY_interpretDirTableData(char* table_data,size_t sizeofData,uint32
 																										 * */
 
 			memcpy(longfilename_buf, tmp_longfilename_part,	tmp_longfilename_part_size);				/* Copio la siguiente parte del nombre en el buffer donde
-																										 * quedara el nombre completo
+																	0xb71a3100									 * quedara el nombre completo
 																										 */
 
 			new_longfilename = malloc(new_longfilename_size + 1); 													/* Obtengo memoria para el nuevo nombre de archivo */
 			memset(new_longfilename, 0, new_longfilename_size + 1); 												// Seteo a 0
 			memcpy(new_longfilename, longfilename_buf, new_longfilename_size);										/*Copio el nombre completo que esta en el buffer a la memoria almacenada antes */
 			memset(longfilename_buf, 0, 255); 																		/* Seteo el buffer donde se van almacenando las partes a 0 para empezar con el siguiente archivo */
-			free(tmp_longfilename_part); 																			//Libero memoria
+			//free(tmp_longfilename_part); 																			//Libero memoria
 			/* ACA TERMINA CON LA ULTIMA LFN DEL ARCHIVO Y EL NOMBRE QUEDA ALMACENADO EN new_longfilename */
 
 			//CODIGO QUE PROCESA LA DIRENTRY
@@ -122,7 +124,7 @@ queue_t DIRENTRY_interpretDirTableData(char* table_data,size_t sizeofData,uint32
 		}
 		else if (lfn_entry->sequence_no.number != 1 && lfn_entry->sequence_no.deleted == false)		 //Si no es la ultima LFN del archivo
 		{
-			tmp_longfilename_part_size = LFNENTRY_getLongFileName(*lfn_entry, &tmp_longfilename_part); 	//Obtengo la cadena parte del nombre del LFN
+			tmp_longfilename_part_size = LFNENTRY_getLongFileName(*lfn_entry, tmp_longfilename_part); 	//Obtengo la cadena parte del nombre del LFN
 			new_longfilename_size += tmp_longfilename_part_size; 										//Aumento el tamaño del nombre del archivo que estoy leyendo
 			shiftbytes_right(longfilename_buf, 255, tmp_longfilename_part_size);						/* Corro lo que esta almacenado en el buffer
 																										 * la cantidad de posiciones necesarias hacia la derecha para que entre
@@ -133,7 +135,7 @@ queue_t DIRENTRY_interpretDirTableData(char* table_data,size_t sizeofData,uint32
 																										 * voy uniendo las partes
 																										 */
 
-			free(tmp_longfilename_part); 		//Libero la memoria usada
+			//free(tmp_longfilename_part); 		//Libero la memoria usada
 			lfn_entry++; 						//Paso a la siguiente entrada LFN
 			numberOfEntries++;
 		}
@@ -146,7 +148,7 @@ queue_t DIRENTRY_interpretDirTableData(char* table_data,size_t sizeofData,uint32
 
 	}
 
-	free(longfilename_buf); //Libero el buffer temporal
+	//free(longfilename_buf); //Libero el buffer temporal
 
 	return file_list; //Retorno un puntero a la estructura de la cola
 }

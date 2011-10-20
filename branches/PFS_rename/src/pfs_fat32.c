@@ -13,6 +13,9 @@
 #include <sys/mman.h>
 #include <assert.h>
 
+#include "tad_sector.h"
+#include "tad_cluster.h"
+
 #include "pfs_comm.h"
 #include "pfs_fat32.h"
 #include "tad_direntry.h"
@@ -61,33 +64,117 @@ uint32_t fat32_readBootSector(bootSector_t *bs)
 
 }
 
-uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf)
+char* fat32_getClusterRawData(cluster_t cluster)
 {
-	uint32_t *sectors = (uint32_t*) cluster_to_sectors(cluster_no);
-	*buf = PFS_requestSectorsOperation(READ_SECTORS,sectors,8);
-	/*log_debug(log_file,"PFS","Leyendo Cluster %d (Sectores: %d %d %d %d %d %d %d %d)",cluster_no,
-	sectors[0],sectors[1],sectors[2],sectors[3],sectors[4],sectors[5],sectors[6],sectors[7]);*/
-	free(sectors);
-	return 0;
+	uint32_t index = 0;
+	char* buf = malloc(cluster.size*boot_sector.bytes_perSector);
+
+	queueNode_t *cur_sector_node = (cluster.sectors).begin;
+	while (cur_sector_node != NULL)
+	{
+		sector_t *cur_sector = (sector_t*) cur_sector_node->data;
+		memcpy(buf+(index*boot_sector.bytes_perSector),cur_sector->data,cur_sector->size);
+		cur_sector_node = cur_sector_node->next;
+		index++;
+
+	}
+	return buf;
 }
+
+char* fat32_getClusterChainRawData(queue_t cluster_list)
+{
+	size_t bytes_perCluster = boot_sector.bytes_perSector*boot_sector.sectors_perCluster;
+	char* buf = malloc(QUEUE_length(&cluster_list)*bytes_perCluster);
+	char* tmp_buf;
+
+	uint32_t cluster_index = 0;
+	queueNode_t *cur_cluster_node = cluster_list.begin;
+	while (cur_cluster_node != NULL)
+	{
+		cluster_t *cur_cluster = (cluster_t*) cur_cluster_node->data;
+		tmp_buf = fat32_getClusterRawData(*cur_cluster);
+		memcpy(buf+(cluster_index*bytes_perCluster),tmp_buf,bytes_perCluster);
+		free(tmp_buf);
+		cur_cluster_node = cur_cluster_node->next;
+		cluster_index++;
+	}
+
+	return buf;
+}
+
+cluster_t fat32_getClusterData(uint32_t cluster_number)
+{
+	cluster_t new_cluster;
+	queue_t clusterNumber_list = FAT_getClusterChain(&fat,cluster_number);
+	size_t numberOfClusters = QUEUE_length(&clusterNumber_list);
+
+	queueNode_t *cur_node;
+
+	while  ((cur_node = QUEUE_takeNode(&clusterNumber_list)) != NULL)
+	{
+
+		queue_t sector_list;
+		QUEUE_initialize(&sector_list);
+		uint32_t *sectors = (uint32_t*) cluster_to_sectors(*((uint32_t*) cur_node->data));
+		uint32_t index_sector;
+
+
+		for (index_sector = 0;index_sector < boot_sector.sectors_perCluster;index_sector++)
+		{
+			sector_t *new_sector = malloc(sizeof(sector_t));
+			new_sector->data = PFS_sectorOperation(READ_SECTORS,*(sectors+index_sector));
+			new_sector->number = *(sectors+index_sector);
+			new_sector->size = boot_sector.bytes_perSector;
+			new_sector->modified = false;
+			queueNode_t *new_sector_node = QUEUE_createNode(new_sector);
+			QUEUE_appendNode(&sector_list,new_sector_node);
+		}
+
+
+		new_cluster.number = *((uint32_t*) cur_node->data);
+		new_cluster.sectors = sector_list;
+		new_cluster.size = boot_sector.sectors_perCluster;
+	}
+
+
+	return new_cluster;
+}
+
+queue_t fat32_getClusterChainData(uint32_t first_cluster)
+{
+	queue_t clusterNumber_queue = FAT_getClusterChain(&fat,first_cluster);
+	queue_t cluster_list;
+	QUEUE_initialize(&cluster_list);
+	queueNode_t *cur_clusterNumber_node;
+	while ((cur_clusterNumber_node = QUEUE_takeNode(&clusterNumber_queue)) != NULL)
+	{
+		cluster_t *new_cluster = malloc(sizeof(cluster_t));
+		*new_cluster = fat32_getClusterData(*((uint32_t*) cur_clusterNumber_node->data));
+		queueNode_t *new_cluster_node = QUEUE_createNode(new_cluster);
+		QUEUE_appendNode(&cluster_list,new_cluster_node);
+	}
+	return cluster_list;
+}
+
 
 queue_t fat32_readDirectory(const char* path)
 {
+
+	size_t bytes_perCluster = boot_sector.sectors_perCluster*boot_sector.bytes_perSector;
 	char *token,*buf;
 	bool dir_exists = false;
 	size_t len = strlen(path);
 	char string[len];
 	strcpy(string,path);
-	log_debug(log_file,"PFS","fat32_readDirectory() -> fat32_getClusterData(2,0x%x)",buf);
-	fat32_getClusterData(2,&buf);
-	log_debug(log_file,"PFS","fat32_readDirectory() -> getFileList(0x%x)",buf);
-	queue_t file_list = DIRENTRY_interpretDirTableData(buf,(boot_sector.sectors_perCluster*boot_sector.bytes_perSector),2);
 
+	queue_t root_cluster_list = fat32_getClusterChainData(2);
 
-
+	buf = fat32_getClusterChainRawData(root_cluster_list);
+	log_debug(log_file,"PFS","fat32_readDirectory() -> DIRENTRY_interpretDirTableData(0x%x)",buf);
+	queue_t file_list = DIRENTRY_interpretDirTableData(buf,bytes_perCluster,2);
 	free(buf);
-	if (strcmp(path,"/") == 0) return file_list;
 
+	if (strcmp(path,"/") == 0) return file_list;
 
 	token = strtok(string,"/");
 
@@ -115,32 +202,36 @@ queue_t fat32_readDirectory(const char* path)
 				//Leo de todos los clusters
 				log_debug(log_file,"PFS","fat32_readDirectory() ->  FAT_getClusterChain(0x%x,%d)",&fat,first_cluster);
 
-				queue_t cluster_list = FAT_getClusterChain(&fat,first_cluster);
+				queue_t cluster_list = fat32_getClusterChainData(first_cluster);
+				char* data_of_clusters = fat32_getClusterChainRawData(cluster_list);
+				uint32_t data_of_clusters_size = QUEUE_length(&cluster_list)*bytes_perCluster;
 
+				file_list = DIRENTRY_interpretDirTableData(data_of_clusters,data_of_clusters_size,first_cluster);
+				/*
 				uint32_t cluster_count = QUEUE_length(&cluster_list);
-				char* data_of_clusters = malloc(cluster_count*boot_sector.sectors_perCluster*boot_sector.bytes_perSector);
-				memset(data_of_clusters,0,cluster_count*boot_sector.sectors_perCluster*boot_sector.bytes_perSector);
+				char* data_of_clusters = malloc(cluster_count*bytes_perCluster);
+				memset(data_of_clusters,0,cluster_count*bytes_perCluster);
 				uint32_t cluster_off = 0;
 				uint32_t data_of_clusters_size = 0;
 				while ((curr_cluster_node = QUEUE_takeNode(&cluster_list)) != NULL)
 				{
 					fat32_getClusterData(*((uint32_t*) (curr_cluster_node->data)),&buf);
-					memcpy(data_of_clusters+(cluster_off*boot_sector.sectors_perCluster*boot_sector.bytes_perSector),
+					memcpy(data_of_clusters+(cluster_off*bytes_perCluster),
 							buf,
 							boot_sector.sectors_perCluster*boot_sector.bytes_perSector);
-					data_of_clusters_size += boot_sector.sectors_perCluster*boot_sector.bytes_perSector;
+					data_of_clusters_size += bytes_perCluster;
 					free(buf);
 
 					log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyNode(0x%x->data(0x%x),FAT32FILE_T)",curr_cluster_node,curr_cluster_node->data);
 					QUEUE_destroyNode(curr_cluster_node,FAT32FILE_T);
-				}
+				}*/
 
 				log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyList(0x%x,0)",cluster_list);
 				//QUEUE_destroy(&cluster_list,0);
 
 				 //Obtengo la lista de archivos
 				log_debug(log_file,"PFS","fat32_readDirectory() -> DIRENTRY_interpretDirTableData(0x%x)",data_of_clusters);
-				file_list = DIRENTRY_interpretDirTableData(data_of_clusters,data_of_clusters_size,first_cluster);
+
 				free(data_of_clusters);
 				break;
 			}

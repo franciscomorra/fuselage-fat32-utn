@@ -32,6 +32,6 @@ typedef struct  LFN_ENTRY
 
 } __attribute__((__packed__)) lfnEntry_t;
 
-size_t LFNENTRY_getLongFileName(lfnEntry_t lfn,char** ret_longfilename);
+size_t LFNENTRY_getLongFileName(lfnEntry_t lfn,char* ret_longfilename);
 
 #endif /* TAD_LFNENTRY_H_ */

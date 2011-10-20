@@ -19,6 +19,7 @@
 #include "tad_file.h"
 #include "tad_bootsector.h"
 #include "tad_direntry.h"
+#include "tad_dirtable.h"
 #include "log.h"
 #include <signal.h>
 bootSector_t boot_sector;
@@ -49,6 +50,8 @@ void *fuselage_main (void *data)
 	fat32_readBootSector(&boot_sector);
 	fat32_readFAT(&fat);
 
+	//queue_t list = fat32_readDirectory("/");
+	//uint32_t santi = 2;
 	signal(SIGUSR2,cmd_signal);
 	return fuse_main(args.argc,args.argv, &fuselage_oper,NULL);
 }
@@ -161,7 +164,9 @@ static int fuselage_read(const char *path, char *file_buf, size_t sizeToRead, of
 
 	size_t cluster_size_b = boot_sector.sectors_perCluster*boot_sector.bytes_perSector; 				//Calculo el tamaño en bytes de un cluster
 
-	queue_t cluster_line = FAT_getClusterChain(&fat,fi->fh); 										//Obtengo la cadena de clusters asociada al archivo que se leera
+	// = FAT_getClusterChain(&fat,fi->fh);
+	queue_t cluster_line = fat32_getClusterChainData(fi->fh);//Obtengo la cadena de clusters asociada al archivo que se leera
+	//char* file_content = fat32_getClusterChainRawData(cluster_line)M
 
 	uint32_t begin_cluster = offset / cluster_size_b; 													//Calculo en que cluster cae el offset pedido
 	uint32_t end_cluster = (offset+sizeToRead) / cluster_size_b; 										//Calculo en que cluster cae el byte final a leer
@@ -169,7 +174,7 @@ static int fuselage_read(const char *path, char *file_buf, size_t sizeToRead, of
 	memset(file_buf,0,sizeToRead); 																		//Reservo la cantidad de bytes que se van a leer
 
 	char* clustersData_buf = malloc((end_cluster - begin_cluster) * cluster_size_b); 					//Creo buffer temporal para almacenar todos los clusters del archivo
-	char* tmp_buf =  malloc(cluster_size_b); 															//Creo un buffer temporal para almacenar un cluster
+	//char* tmp_buf =  malloc(cluster_size_b); 															//Creo un buffer temporal para almacenar un cluster
 
 	size_t cluster_off = 0; 																			//Inicializo el offset de clusters a 0
 	size_t clustersData_off = 0; 																		//Inicializo el offset dentro de los datos de todos los clusters a 0
@@ -178,10 +183,13 @@ static int fuselage_read(const char *path, char *file_buf, size_t sizeToRead, of
 	{
 		if (cluster_off == begin_cluster) 																//Si estoy en el cluster donde empieza el offset
 		{
-			uint32_t cluster_no = *((uint32_t*) (curr_clusterNode->data));								//Guardo el numero de cluster
-			memset(tmp_buf,0,cluster_size_b); 															//Seteo a 0 la memoria donde se guardaran los datos dele cluster en el que estoy
-			fat32_getClusterData(cluster_no,&tmp_buf); 													//Obtengo en el buffer de cluster temporal actual los datos del cluster en el que estoy
-			memcpy(clustersData_buf+(clustersData_off*cluster_size_b),tmp_buf,cluster_size_b); 			//Copio al buffer de todos los clusters estos datos
+			cluster_t *cur_cluster = (cluster_t*) curr_clusterNode->data;
+			//uint32_t cluster_no = *((uint32_t*) (curr_clusterNode->data));								//Guardo el numero de cluster
+			//memset(tmp_buf,0,cluster_size_b); 															//Seteo a 0 la memoria donde se guardaran los datos dele cluster en el que estoy
+			//fat32_getClusterData(cluster_no,&tmp_buf); 													//Obtengo en el buffer de cluster temporal actual los datos del cluster en el que estoy
+			char *tmp_buf = fat32_getClusterRawData(*cur_cluster);
+			memcpy(clustersData_buf+(clustersData_off*cluster_size_b),tmp_buf,cluster_size_b);
+			free(tmp_buf);//Copio al buffer de todos los clusters estos datos
 			clustersData_off++; 																		//Aumento el offset de clusters en 1
 		}
 		else if (cluster_off == end_cluster) 															//Si estoy en el ultimo cluster necesitado dejo de tomar nodos
@@ -194,7 +202,7 @@ static int fuselage_read(const char *path, char *file_buf, size_t sizeToRead, of
 	//QUEUE_destroy(&cluster_line,UINT32_T); 																	//Destruyo la lista de clusters del archivo
 	memcpy(file_buf,clustersData_buf+(offset-(begin_cluster*cluster_size_b)),sizeToRead); 				//Copio al buffer final del archivo los bytes pedidos
 	free(clustersData_buf); 																			//Libero el buffer que contiene los datos de todos los clusters
-	free(tmp_buf);																						//Libero el buffer que contiene los datos del cluster actual
+	//free(tmp_buf);																						//Libero el buffer que contiene los datos del cluster actual
 
 	return sizeToRead;
 }
