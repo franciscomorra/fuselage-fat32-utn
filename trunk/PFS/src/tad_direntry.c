@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "tad_lfnentry.h"
-#include "tad_line.h"
+#include "tad_queue.h"
 #include "tad_file.h"
 #include "tad_direntry.h"
 #include "utils.h"
@@ -28,29 +28,29 @@ uint32_t DIRENTRY_getClusterNumber(dirEntry_t *entry)
 
 
 
-listLine_t* DIRENTRY_interpretDirTableData(char* table_data)
+queue_t* DIRENTRY_interpretDirTableData(char* table_data)
 {
 	lfnEntry_t *lfn_entry = (lfnEntry_t*) table_data; //Uso este puntero para recorrer el cluster_data de a 32 bytes cada vez que incremento en 1 este puntero
 	char* longfilename_buf = malloc(255); //Uso este buffer para ir almacenando los LFN de un archivo
 	memset(longfilename_buf, 0, 255); //Lo seteo a 0
 	char *tmp_longfilename_part, *new_longfilename; //Puntero para UN LFN de UN archivo, y puntero para el nombre largo completo de un archivo
 	size_t tmp_longfilename_part_size = 0, new_longfilename_size = 0; //Tamaño de cadena de los punteros
-	listNode_t *new_file_node; //Punteros a nodos de una lista que sera la que se obtenga de esta funcion
-	listLine_t *file_list; //Creo un puntero a la cola
-	LIST_initialize(&file_list); //Inicializo la cola
+	queueNode_t *new_file_node; //Punteros a nodos de una lista que sera la que se obtenga de esta funcion
+	queue_t *file_list; //Creo un puntero a la cola
+	QUEUE_initialize(&file_list); //Inicializo la cola
 
 	if (*table_data == '.') //Si el primer char es '.' entonces no es el directorio raiz y debo agregar las dirEntry_t '.' y '..'
 	{
 		dirEntry_t *point = (dirEntry_t*) lfn_entry; //Casteo el puntero a dirEntry_t para interpretar los bytes como una dirEntry_t
 		fat32file_t *pointFile = FILE_createStruct(".",point); //Creo una struct fat32file_t que contendra el longfilename y la dirEntry_t
-		new_file_node = LIST_createNode(pointFile); //Creo el nodo
-		LIST_addNode(&file_list,&new_file_node); //Lo agrego a la cola
+		new_file_node = QUEUE_createNode(pointFile); //Creo el nodo
+		QUEUE_addNode(&file_list,&new_file_node); //Lo agrego a la cola
 		lfn_entry++; //Incremento el puntero en 32 bytes = sizeof(lfnEntry_t)
 
 		dirEntry_t *pointpoint = (dirEntry_t*) (lfn_entry);
 		fat32file_t *pointpointFile = FILE_createStruct("..",pointpoint); //IDEM ANTERIOR
-		new_file_node = LIST_createNode(pointpointFile);
-		LIST_addNode(&file_list,&new_file_node);
+		new_file_node = QUEUE_createNode(pointpointFile);
+		QUEUE_addNode(&file_list,&new_file_node);
 		++lfn_entry;
 	}
 
@@ -85,8 +85,8 @@ listLine_t* DIRENTRY_interpretDirTableData(char* table_data)
 			dirEntry_t *direntry = (dirEntry_t*) ++lfn_entry; //Casteo
 
 			fat32file_t *new_file = FILE_createStruct(new_longfilename,direntry); //Creo la estructura fat32file_t para el nuevo archivo
-			listNode_t *new_file_node = LIST_createNode(new_file); //Creo el nodo
-			LIST_addNode(&file_list,&new_file_node); //Lo agrego a la cola
+			queueNode_t *new_file_node = QUEUE_createNode(new_file); //Creo el nodo
+			QUEUE_addNode(&file_list,&new_file_node); //Lo agrego a la cola
 			/* ACA TERMINA DE LEER LA DIRENTRY DEL ARCHIVO Y CREA EL fat32file_t con el new_longfilename y la dirEntry_t */
 
 			lfn_entry++; // Apunto al primer LFN del siguiente archivo
