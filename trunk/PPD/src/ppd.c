@@ -46,11 +46,10 @@ int main(int argc, char *argv[])
 	sem_init(&queue->sem,0,0);
 	sem_init(&SSTFmutex,0,1);
 
-	int i;
- 	uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};
- 	uint32_t* p = malloc(7*sizeof(uint32_t));
-
- 	memcpy(p,vec,7*4);
+	int i;													// temporal
+ 	uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};	// temporal
+ 	uint32_t* p = malloc(7*sizeof(uint32_t));				// temporal
+ 	memcpy(p,vec,7*4);										// temporal
 
 	config_param *ppd_config;
 	CONFIG_read("config/ppd.config",&ppd_config);
@@ -63,8 +62,6 @@ int main(int argc, char *argv[])
 
 	if(pthread_create(&SSTFtid,NULL,(void*)&SSTF_main,NULL))
 		perror("error creacion de thread SSTF");
-
-
 /*	switch(fork()){
 		case 0:
 			execl("/home/utn_so/Desktop/trabajos/PPD_Console/Debug/PPD_Console",NULL);
@@ -74,13 +71,10 @@ int main(int argc, char *argv[])
 			break;
 	}
 */
-
-
-	for(i = 0; i < 7; i++){
-		nipcMsg_t msgIn = NIPC_createMsg(READ_SECTORS,4,p+i);
- 		ppd_receive(msgIn);
+	for(i = 0; i < 7; i++){												 // temporal
+		nipcMsg_t msgIn = NIPC_createMsg(READ_SECTORS,4,p+i);			 // temporal
+ 		ppd_receive(msgIn);												 // temporal
 	}
-	sleep(1);
 	if(pthread_create(&TAKERtid,NULL,(void*)&TAKER_main,NULL))
 			perror("error creacion de thread ");
 

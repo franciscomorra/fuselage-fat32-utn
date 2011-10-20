@@ -15,7 +15,10 @@
 #define READ 2
 #define WRITE 1
 
+//envia mensajes por sockets
 uint32_t ppd_send(nipcMsg_t msg);
+
+//recive mensajes y se fija de que tipo son
 uint32_t ppd_receive(nipcMsg_t msgIn);
 
 #endif /* PPD_COMM_H_ */
