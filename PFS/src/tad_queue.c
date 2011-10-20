@@ -4,7 +4,7 @@
  *  Created on: 04/10/2011
  *      Author: utn_so
  */
-#include "tad_line.h"
+#include "tad_queue.h"
 #include "tad_file.h"
 
 #include <fcntl.h>
@@ -13,14 +13,14 @@
 #include "log.h"
 
 extern t_log* log_file;
-void LIST_initialize(listLine_t** line)
+void QUEUE_initialize(queue_t** line)
 {
-	*line = malloc(sizeof(listLine_t));
+	*line = malloc(sizeof(queue_t));
 	(*line)->begin = NULL;
 	(*line)->end = NULL;
 	return;
 }
-void LIST_addNode(listLine_t **line,listNode_t** new_node)
+void QUEUE_addNode(queue_t **line,queueNode_t** new_node)
 {
 	assert(*line != NULL);
 
@@ -38,41 +38,41 @@ void LIST_addNode(listLine_t **line,listNode_t** new_node)
 
 }
 
-listNode_t* LIST_removeFromBegin(listLine_t **line)
+queueNode_t* QUEUE_removeFromBegin(queue_t **line)
 {
-	listNode_t* tmp = (*line)->begin;
+	queueNode_t* tmp = (*line)->begin;
 	if (tmp != NULL) (*line)->begin = tmp->next;
 	return tmp;
 }
 
-void LIST_destroyList(listLine_t **line,uint32_t var_type)
+void QUEUE_destroy(queue_t **line,uint32_t var_type)
 {
-	listNode_t* cur = (*line)->begin;
+	queueNode_t* cur = (*line)->begin;
 
 	if (cur != NULL)
 	{
 		while (cur != NULL)
 		{
 			log_debug(log_file,"PFS","LIST_destroyList() -> LIST_freeByType(0x%x)",cur);
-			LIST_destroyNode(&cur,var_type);
+			QUEUE_destroyNode(&cur,var_type);
 			cur = cur->next;
 		}
 	}
 	free(*line);
 }
 
-void LIST_destroyNode(listNode_t **node,uint32_t var_type)
+void QUEUE_destroyNode(queueNode_t **node,uint32_t var_type)
 {
 	assert(*node != NULL);
 	log_debug(log_file,"PFS","LIST_destroyNode() -> LIST_freeByType(0x%x)",node);
-	LIST_freeByType(node,var_type);
+	QUEUE_freeByType((void*)node,var_type);
 }
 
-listNode_t* LIST_searchNode(listLine_t **line,void *data,size_t dataLength)
+queueNode_t* QUEUE_searchNode(queue_t **line,void *data,size_t dataLength)
 {
 	if ((*line)->begin != NULL)
 	{
-		listNode_t *cur = (*line)->begin;
+		queueNode_t *cur = (*line)->begin;
 		while (cur != NULL)
 		{
 				if (memcmp(cur->data,data,dataLength) == 0)
@@ -86,17 +86,17 @@ listNode_t* LIST_searchNode(listLine_t **line,void *data,size_t dataLength)
 	return NULL;
 }
 
-listNode_t* LIST_createNode(void* data)
+queueNode_t* QUEUE_createNode(void* data)
 {
 	assert(data!=NULL);
-	listNode_t *new_node = malloc(sizeof(listNode_t));
+	queueNode_t *new_node = malloc(sizeof(queueNode_t));
 	new_node->data=data;
 	new_node->next = NULL;
 
 	return new_node;
 }
 
-void LIST_freeByType(void** pointer,uint32_t var_type)
+void QUEUE_freeByType(void** pointer,uint32_t var_type)
 {
 
 	switch(var_type)
@@ -115,10 +115,10 @@ void LIST_freeByType(void** pointer,uint32_t var_type)
 
 }
 
-uint32_t LIST_listSize(listLine_t **line)
+uint32_t QUEUE_length(queue_t **line)
 {
 	uint32_t counter = 0;
-	listNode_t *cur = (*line)->begin;
+	queueNode_t *cur = (*line)->begin;
 	while (cur != NULL)
 	{
 		++counter;
