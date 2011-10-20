@@ -1,0 +1,7 @@
+#Wed Sep 28 17:53:24 ART 2011
+eclipse.preferences.version=1
+environment/project/cdt.managedbuild.config.gnu.exe.debug.522660270/LD_LIBRARY_PATH/delimiter=\:
+environment/project/cdt.managedbuild.config.gnu.exe.debug.522660270/LD_LIBRARY_PATH/operation=append
+environment/project/cdt.managedbuild.config.gnu.exe.debug.522660270/LD_LIBRARY_PATH/value=${workspace_loc}/Commons/Debug
+environment/project/cdt.managedbuild.config.gnu.exe.debug.522660270/append=true
+environment/project/cdt.managedbuild.config.gnu.exe.debug.522660270/appendContributed=true
