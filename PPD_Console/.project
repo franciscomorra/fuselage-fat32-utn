@@ -3,6 +3,7 @@
 	<name>PPD_Console</name>
 	<comment></comment>
 	<projects>
+		<project>Commons</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
