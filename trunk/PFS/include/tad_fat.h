@@ -21,10 +21,10 @@ typedef struct {
 //___STRUCT_FAT_TABLE
 
 //FAT_getClusterChain: Obtiene la cadena de clusters que le sigue al cluster pasado
-queue_t* FAT_getClusterChain(fatTable_t *fat,uint32_t first_cluster);
+queue_t FAT_getClusterChain(fatTable_t *fat,uint32_t first_cluster);
 
 //FAT_getFreeClusters: Obtiene una lista de clusters libres
-queue_t* FAT_getFreeClusters(fatTable_t* FAT);
+queue_t FAT_getFreeClusters(fatTable_t* FAT);
 
 
 #endif /* TAD_FAT_H_ */

@@ -71,7 +71,7 @@ uint32_t fat32_getClusterData(uint32_t cluster_no,char** buf)
 	return 0;
 }
 
-queue_t* fat32_readDirectory(const char* path)
+queue_t fat32_readDirectory(const char* path)
 {
 	char *token,*buf;
 	bool dir_exists = false;
@@ -81,7 +81,7 @@ queue_t* fat32_readDirectory(const char* path)
 	log_debug(log_file,"PFS","fat32_readDirectory() -> fat32_getClusterData(2,0x%x)",buf);
 	fat32_getClusterData(2,&buf);
 	log_debug(log_file,"PFS","fat32_readDirectory() -> getFileList(0x%x)",buf);
-	queue_t* file_list = DIRENTRY_interpretDirTableData(buf);
+	queue_t file_list = DIRENTRY_interpretDirTableData(buf);
 
 	free(buf);
 	if (strcmp(path,"/") == 0) return file_list;
@@ -101,7 +101,7 @@ queue_t* fat32_readDirectory(const char* path)
 			{
 				dir_exists=true;
 				log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyList(0x%x,FAT32FILE_T)",file_list);
-				QUEUE_destroy(&file_list,FAT32FILE_T);
+				//QUEUE_destroy(&file_list,FAT32FILE_T);
 
 				log_debug(log_file,"PFS","fat32_readDirectory() -> DIRENTRY_getClusterNumber(%s)",curr_file->dir_entry.dos_name);
 				uint32_t first_cluster = DIRENTRY_getClusterNumber(&(curr_file->dir_entry));
@@ -112,7 +112,7 @@ queue_t* fat32_readDirectory(const char* path)
 				//Leo de todos los clusters
 				log_debug(log_file,"PFS","fat32_readDirectory() ->  FAT_getClusterChain(0x%x,%d)",&fat,first_cluster);
 
-				queue_t *cluster_list = FAT_getClusterChain(&fat,first_cluster);
+				queue_t cluster_list = FAT_getClusterChain(&fat,first_cluster);
 
 				uint32_t cluster_count = QUEUE_length(&cluster_list);
 				char* data_of_clusters = malloc(cluster_count*boot_sector.sectors_perCluster*boot_sector.bytes_perSector);
@@ -132,10 +132,10 @@ queue_t* fat32_readDirectory(const char* path)
 				}
 
 				log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyList(0x%x,0)",cluster_list);
-				QUEUE_destroy(&cluster_list,0);
+				//QUEUE_destroy(&cluster_list,0);
 
 				 //Obtengo la lista de archivos
-				log_debug(log_file,"PFS","fat32_readDirectory() -> fat32_getFileList(0x%x)",data_of_clusters);
+				log_debug(log_file,"PFS","fat32_readDirectory() -> DIRENTRY_interpretDirTableData(0x%x)",data_of_clusters);
 				file_list = DIRENTRY_interpretDirTableData(data_of_clusters);
 				free(data_of_clusters);
 				break;
@@ -145,8 +145,8 @@ queue_t* fat32_readDirectory(const char* path)
 		if (dir_exists == false)
 		{
 			log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyList(0x%x),FAT32FILE_T)",file_list);
-			QUEUE_destroy(&file_list,FAT32FILE_T);
-			return NULL;
+			//QUEUE_destroy(&file_list,FAT32FILE_T);
+			return file_list;
 		}
 
 	}
@@ -174,7 +174,7 @@ dirEntry_t* fat32_getDirEntry(char* path)
 																								//TODO: Primero buscar en cache
 
 	log_debug(log_file,"PFS","fat32_getDirEntry() -> fat32_readDirectory(%s)",location);
-	queue_t *file_list = fat32_readDirectory(location); 										//Obtengo una lista de los ficheros que hay en "location"
+	queue_t file_list = fat32_readDirectory(location); 										//Obtengo una lista de los ficheros que hay en "location"
 
 	queueNode_t *curr_file_node; 																//Creo un puntero que apuntara al file_node en proceso
 	free(location); 																			//Libero la memoria de location
@@ -200,7 +200,7 @@ dirEntry_t* fat32_getDirEntry(char* path)
 		if (direntry_found != NULL) break; 														//Si encontro algo, salgo del ciclo while
 	}
 
-	QUEUE_destroy(&file_list,FAT32FILE_T); 													//Destruyo la cola
+	//QUEUE_destroy(&file_list,FAT32FILE_T); 													//Destruyo la cola
 
 	return direntry_found;																		//Retorno el puntero a la direntry del archivo buscado
 }
