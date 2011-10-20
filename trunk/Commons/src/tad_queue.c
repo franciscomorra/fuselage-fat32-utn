@@ -5,7 +5,7 @@
  *      Author: utn_so
  */
 #include "tad_queue.h"
-#include "tad_file.h"
+
 
 #include <fcntl.h>
 #include <stdlib.h>
@@ -102,9 +102,7 @@ void QUEUE_freeByType(void** pointer,uint32_t var_type)
 	switch(var_type)
 	{
 		case FAT32FILE_T:;
-			fat32file_t *casted_pointer = (fat32file_t*) *pointer;
-			free(casted_pointer->long_file_name);
-			free(casted_pointer);
+
 		break;
 
 		default:
