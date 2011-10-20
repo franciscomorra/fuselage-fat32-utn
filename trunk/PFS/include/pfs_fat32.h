@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "tad_fat.h"
+#include "tad_file.h"
 #include "tad_bootsector.h"
 #include "tad_queue.h"
 #include "tad_direntry.h"
@@ -35,4 +36,7 @@ queue_t fat32_readDirectory(const char* path);
 
 //fat32_getDirEntry: Obtiene la dirEntry_t del archivo/carpeta apuntado por path
 dirEntry_t* fat32_getDirEntry(char* path);
+
+fat32file_t fat32_getFile(const char* path);
+
 #endif /* PFS_FAT32_H_ */

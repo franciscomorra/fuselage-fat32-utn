@@ -32,7 +32,7 @@ queue_t FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 			*cluster_number = cluster_no;
 			log_debug(log_file,"PFS","FAT_getClusterChain() -> LIST_addNode(0x%x,0x%x)",cluster_list,cluster_number);
 			new_cluster_node = QUEUE_createNode(cluster_number);
-			QUEUE_addNode(&cluster_list,new_cluster_node);
+			QUEUE_appendNode(&cluster_list,new_cluster_node);
 
 			cluster_no = fat->table[cluster_no];
 		}
@@ -42,7 +42,7 @@ queue_t FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 		log_debug(log_file,"PFS","FAT_getClusterChain() -> LIST_addNode(0x%x,0x%x)",cluster_list,cluster_number);
 		new_cluster_node = QUEUE_createNode(cluster_number);
 
-		QUEUE_addNode(&cluster_list,new_cluster_node);
+		QUEUE_appendNode(&cluster_list,new_cluster_node);
 	}
 	else
 	{
@@ -51,7 +51,7 @@ queue_t FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 		log_debug(log_file,"PFS","FAT_getClusterChain() -> LIST_addNode(0x%x,0x%x)",cluster_list,cluster_number);
 		new_cluster_node = QUEUE_createNode(cluster_number);
 
-		QUEUE_addNode(&cluster_list,new_cluster_node);
+		QUEUE_appendNode(&cluster_list,new_cluster_node);
 	}
 
 	return cluster_list;
@@ -70,7 +70,7 @@ queue_t FAT_getFreeClusters(fatTable_t* FAT) {
 			cluster_number = malloc(sizeof(uint32_t));
 			*cluster_number = cluster_no;
 			new_cluster_node = QUEUE_createNode(cluster_number);
-			QUEUE_addNode(&cluster_list,new_cluster_node);
+			QUEUE_appendNode(&cluster_list,new_cluster_node);
 		}
 	}
 

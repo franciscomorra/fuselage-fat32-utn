@@ -63,11 +63,11 @@ int cmd_signal()
 			queueNode_t* cur = NULL;
 			uint32_t count_free = 0;
 
-			while ((cur = QUEUE_removeFromBegin(&cluster_list)) != NULL)
+			while ((cur = QUEUE_takeNode(&cluster_list)) != NULL)
 			{
 				++count_free;
 				log_debug(log_file,"PFS","%d %x",count_free, cur);
-				QUEUE_destroyNode(&cur,UINT32_T);
+				QUEUE_destroyNode(cur,UINT32_T);
 				cur = cur->next;
 			}
 
@@ -94,10 +94,12 @@ int fuselage_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t o
 	assert(&file_list != NULL); //Si falla es que fuselage_getattr no detecto que no era un directorio valido
 	queueNode_t *curr_file_node = file_list.begin;
 	fat32file_t *curr_file;
-	while ((curr_file_node = QUEUE_removeFromBegin(&file_list)) != NULL)
+	while ((curr_file_node = QUEUE_takeNode(&file_list)) != NULL)
 	{
 		curr_file = (fat32file_t*) curr_file_node->data;
 		filler(buf, curr_file->long_file_name, NULL, 0);
+
+		free(curr_file->long_file_name);
 		QUEUE_destroyNode(curr_file_node,FAT32FILE_T);
 		curr_file_node = curr_file_node->next;
 	}
@@ -172,7 +174,7 @@ static int fuselage_read(const char *path, char *file_buf, size_t sizeToRead, of
 	size_t cluster_off = 0; 																			//Inicializo el offset de clusters a 0
 	size_t clustersData_off = 0; 																		//Inicializo el offset dentro de los datos de todos los clusters a 0
 
-	while ((curr_clusterNode = QUEUE_removeFromBegin(&cluster_line)) != NULL) 							//Mientras tomo los nodos que representan todos los clusters del archivo
+	while ((curr_clusterNode = QUEUE_takeNode(&cluster_line)) != NULL) 							//Mientras tomo los nodos que representan todos los clusters del archivo
 	{
 		if (cluster_off == begin_cluster) 																//Si estoy en el cluster donde empieza el offset
 		{
@@ -202,4 +204,12 @@ static int fuselage_flush(const char *path, struct fuse_file_info *fi)
 	//NO SE AUN
 
 	return 0;
+}
+
+static int fuselage_rename(const char *cur_name, const char *new_name)
+{
+	fat32file_t file_oldName = fat32_getFile(cur_name);
+	//uint32_t first_cluster = DIRENTRY_getClusterNumber(file_oldName.dir_entry);
+
+
 }

@@ -81,7 +81,9 @@ queue_t fat32_readDirectory(const char* path)
 	log_debug(log_file,"PFS","fat32_readDirectory() -> fat32_getClusterData(2,0x%x)",buf);
 	fat32_getClusterData(2,&buf);
 	log_debug(log_file,"PFS","fat32_readDirectory() -> getFileList(0x%x)",buf);
-	queue_t file_list = DIRENTRY_interpretDirTableData(buf);
+	queue_t file_list = DIRENTRY_interpretDirTableData(buf,(boot_sector.sectors_perCluster*boot_sector.bytes_perSector),2);
+
+
 
 	free(buf);
 	if (strcmp(path,"/") == 0) return file_list;
@@ -94,7 +96,7 @@ queue_t fat32_readDirectory(const char* path)
 	do
 	{
 		dir_exists = false;
-		while ((curr_file_node = QUEUE_removeFromBegin(&file_list)) != NULL)
+		while ((curr_file_node = QUEUE_takeNode(&file_list)) != NULL)
 		{
 			fat32file_t *curr_file = (fat32file_t*) curr_file_node->data;
 			if (strcmp(curr_file->long_file_name,token) == 0 && (curr_file->dir_entry.file_attribute.subdirectory) == true)
@@ -107,6 +109,7 @@ queue_t fat32_readDirectory(const char* path)
 				uint32_t first_cluster = DIRENTRY_getClusterNumber(&(curr_file->dir_entry));
 
 				log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyNode(0x%x->data(0x%x),FAT32FILE_T)",curr_file_node,curr_file_node->data);
+				free(curr_file->long_file_name);
 				QUEUE_destroyNode(curr_file_node,0);
 
 				//Leo de todos los clusters
@@ -118,13 +121,14 @@ queue_t fat32_readDirectory(const char* path)
 				char* data_of_clusters = malloc(cluster_count*boot_sector.sectors_perCluster*boot_sector.bytes_perSector);
 				memset(data_of_clusters,0,cluster_count*boot_sector.sectors_perCluster*boot_sector.bytes_perSector);
 				uint32_t cluster_off = 0;
-
-				while ((curr_cluster_node = QUEUE_removeFromBegin(&cluster_list)) != NULL)
+				uint32_t data_of_clusters_size = 0;
+				while ((curr_cluster_node = QUEUE_takeNode(&cluster_list)) != NULL)
 				{
 					fat32_getClusterData(*((uint32_t*) (curr_cluster_node->data)),&buf);
 					memcpy(data_of_clusters+(cluster_off*boot_sector.sectors_perCluster*boot_sector.bytes_perSector),
 							buf,
 							boot_sector.sectors_perCluster*boot_sector.bytes_perSector);
+					data_of_clusters_size += boot_sector.sectors_perCluster*boot_sector.bytes_perSector;
 					free(buf);
 
 					log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyNode(0x%x->data(0x%x),FAT32FILE_T)",curr_cluster_node,curr_cluster_node->data);
@@ -136,7 +140,7 @@ queue_t fat32_readDirectory(const char* path)
 
 				 //Obtengo la lista de archivos
 				log_debug(log_file,"PFS","fat32_readDirectory() -> DIRENTRY_interpretDirTableData(0x%x)",data_of_clusters);
-				file_list = DIRENTRY_interpretDirTableData(data_of_clusters);
+				file_list = DIRENTRY_interpretDirTableData(data_of_clusters,data_of_clusters_size,first_cluster);
 				free(data_of_clusters);
 				break;
 			}
@@ -184,7 +188,7 @@ dirEntry_t* fat32_getDirEntry(char* path)
 																								 sigue en NULL es que no existe el archivo/carpeta */
 
 
-	while  ((curr_file_node = QUEUE_removeFromBegin(&file_list)) != NULL)						//Mientras voy tomando los nodos de la cola
+	while  ((curr_file_node = QUEUE_takeNode(&file_list)) != NULL)						//Mientras voy tomando los nodos de la cola
 	{
 		curr_file = (fat32file_t*) curr_file_node->data; 										//Casteo el puntero 'data' del nodo tomado a el puntero file en proceso
 
@@ -195,6 +199,8 @@ dirEntry_t* fat32_getDirEntry(char* path)
 		}
 
 		log_debug(log_file,"PFS","fat32_getDirEntry() -> LIST_destroyNode(0x%x->data(0x%x)),FAT32FILE_T)",curr_file_node,curr_file_node->data);
+
+		free(curr_file->long_file_name);
 		QUEUE_destroyNode(curr_file_node,FAT32FILE_T); 											//Destruyo el nodo que tome de la cola
 
 		if (direntry_found != NULL) break; 														//Si encontro algo, salgo del ciclo while
@@ -203,4 +209,38 @@ dirEntry_t* fat32_getDirEntry(char* path)
 	//QUEUE_destroy(&file_list,FAT32FILE_T); 													//Destruyo la cola
 
 	return direntry_found;																		//Retorno el puntero a la direntry del archivo buscado
+}
+
+fat32file_t fat32_getFile(const char* path)
+{
+	size_t len = strlen(path); 																	//Obtengo el largo del path
+	char string[len]; 																			//Creo un array para la cadena
+	strcpy(string,path); 																		//Copio la cadena al array
+	char *tmp = strtok(string,"/"); 															//Obtengo el primer token de la cadena (separando por "/")
+	char *filename = tmp; 																		//Guardo el primer token en 'filename'
+	while ((tmp = strtok(NULL,"/")) != NULL) 													//Mientras la funcion devuelva un token != NULL guardo ese token en filename
+	{
+		filename = tmp ; 																		//Al final contendra el filename del archivo que se busca
+	}
+
+	size_t location_size = strlen(path) - strlen(filename);										//Calculo el largo del path al archivo (sin incluir el filename del archivo)
+	char* location = malloc(location_size+1); 													//Reservo la cantidad necesaria calculada +1 por el caracter '\0'
+	memset(location,0,location_size+1); 														//Seteo a 0 la cadena location
+	memcpy(location,path,location_size);
+
+	queue_t file_list = fat32_readDirectory(location);
+	queueNode_t* cur_node;
+	fat32file_t* cur_file;
+	fat32file_t ret_file;
+	while ((cur_node = QUEUE_takeNode(&file_list)) != NULL)
+	{
+		cur_file = (fat32file_t*) cur_node->data;
+		if (strcmp(cur_file->long_file_name,filename) == 0)
+		{
+			ret_file = *cur_file;
+		}
+		QUEUE_destroyNode(cur_node,0);
+	}
+
+	return ret_file;
 }

@@ -17,13 +17,14 @@ static int fuselage_open(const char *, struct fuse_file_info *);
 
 static int fuselage_read(const char *, char *, size_t, off_t, struct fuse_file_info *);
 static int fuselage_flush(const char *, struct fuse_file_info *);
+static int fuselage_rename(const char *, const char *);
 /*
 static int fuselage_write(const char *, const char *, size_t, off_t, struct fuse_file_info *);
 static int fuselage_create(const char *, mode_t, struct fuse_file_info *);
 static int fuselage_truncate(const char *, off_t);
 static int fuselage_rmdir(const char *);
 static int fuselage_mkdir(const char *, mode_t);
-static int fuselage_rename(const char *, const char *);
+
 */
 int fuselage_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t offset, struct fuse_file_info *fi);
 
@@ -36,13 +37,14 @@ struct fuse_operations fuselage_oper = {
 
    .read	= fuselage_read,
    .flush = fuselage_flush,
+   .rename = fuselage_rename,
    /*
    .write = fuselage_write,
    .create = fuselage_create,
    .truncate = fuselage_truncate,
    .rmdir = fuselage_rmdir,
    .mkdir = fuselage_mkdir,
-   .rename = fuselage_rename,
+
    */
 };
 
