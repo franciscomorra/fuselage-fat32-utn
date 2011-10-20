@@ -9,12 +9,20 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-
+#include <pthread.h>
 #include "praid_console.h"
+
+
+extern uint32_t raid_console;
+extern pthread_mutex_t mutex_console;
 
 uint32_t print_Console (char *message){
 
-	printf("%s \n",message);
+	if(raid_console == 0){
+		pthread_mutex_lock(&mutex_console);
+		printf("%s \n",message);
+		pthread_mutex_unlock(&mutex_console);
+	}
+
 	return 0;
 }

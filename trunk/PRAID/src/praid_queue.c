@@ -4,7 +4,7 @@
  *  Created on: 09/10/2011
  *      Author: utn_so
  */
-
+#include <pthread.h>
 #include "praid_queue.h"
 
 uint32_t praid_READ_add(nipcMsg_t msgIn)
