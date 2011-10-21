@@ -2,25 +2,20 @@
 
 #include "ppdConsole_input.h"
 
-void CONSOLE_getCommand(char* input,char* command,uint32_t* parameters,uint32_t* paramLen){
+void CONSOLE_getCommand(char* input,char* command,queue_t* parameters,uint32_t* paramLen)
+{
 
-	char s2[4] = " \n";
-	char *ptr;
-	uint32_t i = 0;
-	size_t len;
+	char delimiters[4] = " \n";
+	char *curr_parameter;
+	uint32_t paramLenAux = 0;
+	strcpy(command,strtok(input,delimiters));
 
-
-
-	len = strcspn(input,s2);
-	memcpy(command,strtok( input, s2 ),len);			// Primera llamada guarda el nombre de comando
-
-
-	while( (ptr = strtok( NULL, s2 )) != NULL )  {		// Posteriores llamadas guardan los parametros
-		*(parameters + i) = atoi (ptr);					// Guarda en el array los patametros
-		i++;
+	while	((curr_parameter = strtok(NULL,delimiters)) != NULL ) {
+		QUEUE_appendNode(parameters,QUEUE_createNode(curr_parameter));
+		//*(parameters + i) = 0;					// Guarda en el array los patametros
+		paramLenAux++;
 	}
-
-	memcpy(paramLen,&i,sizeof(uint32_t));
+	memcpy(paramLen,&paramLenAux,4);
 
 }
 

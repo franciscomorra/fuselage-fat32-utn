@@ -13,8 +13,8 @@
 
 uint32_t console_info();
 
-uint32_t console_clean(uint32_t* parameters);
+uint32_t console_clean(queue_t parameters);
 
-uint32_t console_trace(uint32_t* traceSectors,uint32_t len);
+uint32_t console_trace(queue_t,uint32_t);
 
 #endif /* PPDCONSOLE_COMMAND_H_ */
