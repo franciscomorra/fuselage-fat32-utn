@@ -12,7 +12,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
-uint32_t print_Console (char *message);
+uint32_t print_Console (char *);
 
 #endif /* PRAID_CONSOLE_H_ */

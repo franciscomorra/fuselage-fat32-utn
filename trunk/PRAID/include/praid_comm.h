@@ -10,9 +10,11 @@
 
 
 #include "nipc.h"
-#include "praid_comm.h"
 #include "praid_queue.h"
 
-uint32_t pfs_receive(nipcMsg_t msgIn);
+uint32_t receive_pfs(nipcMsg_t);
+
+
+
 
 #endif /* PRAID_COMM_H_ */
