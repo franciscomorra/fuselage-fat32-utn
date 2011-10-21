@@ -42,7 +42,14 @@ uint32_t console_trace(uint32_t* traceSectors,uint32_t len){
 	nipcMsg_t msg;
 	char* payload = malloc(4);
 
-	msg = NIPC_createMsg(PPDCONSOLE_TRACE,4,payload);
+	for(i=0;i<len;i++){
+		memcpy(payload,traceSectors + i,sizeof(uint32_t));
+		msg = NIPC_createMsg(PPDCONSOLE_TRACE,sizeof(uint32_t),payload);
+		//Aca hay q enviar el mensaje al ppd
+
+		//Tengo que hacer el free del payload no???
+	}
+
 
 	return 1;
 }
