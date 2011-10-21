@@ -25,6 +25,6 @@ typedef struct requestNode_t {
 } __attribute__((__packed__)) requestNode_t;
 
 // cambia de sectorNum a CHS para luego ser metido en la lista grande
-requestNode_t* COMMON_turnToCHS(uint32_t sectorNum);
+void COMMON_turnToCHS(uint32_t,requestNode_t*);
 
 #endif /* PPD_COMMON_H_ */

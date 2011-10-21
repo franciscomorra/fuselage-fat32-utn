@@ -12,7 +12,8 @@ extern uint32_t TrackJumpTime;
 extern uint32_t headPosition;
 
 void SSTF_getHead(queue_t* queue){
-	requestNode_t* CHSposition = COMMON_turnToCHS(headPosition);
+	requestNode_t* CHSposition = malloc(sizeof(requestNode_t));
+ 	COMMON_turnToCHS(headPosition,CHSposition);
 	queueNode_t* aux = queue->begin;
 	queueNode_t* prevAux = queue->begin;
 

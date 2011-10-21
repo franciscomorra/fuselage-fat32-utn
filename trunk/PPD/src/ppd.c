@@ -20,6 +20,7 @@
 #include "ppd_common.h"
 #include "ppd_comm.h"
 #include "ppd_taker.h"
+#include "ppd_cHandler.h"
 
 
 uint32_t Cylinder;
@@ -28,19 +29,19 @@ uint32_t Sector;
 uint32_t TrackJumpTime;
 uint32_t headPosition;
 uint32_t bytes_perSector;
-requestNode_t* first;
+//requestNode_t* first;
 uint32_t file_descriptor;
 queue_t* queue;
 sem_t queueElemSem;
 sem_t mainMutex;
 
-int main(int argc, char *argv[])
+void main(int argc, char *argv[])
 {
-	first = 0;
+	//first = 0;
 	file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR);
 	bytes_perSector = 512;
 	queue = malloc(sizeof(queue_t));
-	pthread_t TAKERtid;
+	pthread_t TAKERtid,cHandlerTid;
 
 	sem_init(&queueElemSem,0,0);
 	sem_init(&mainMutex,0,1);
@@ -60,10 +61,12 @@ int main(int argc, char *argv[])
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));
 	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));
 	headPosition = atoi(CONFIG_getValue(ppd_config,"HeadPosition"));
-
-/*	switch(fork()){
+/*
+	switch(fork()){
 		case 0:
 			execl("/home/utn_so/Desktop/trabajos/PPD_Console/Debug/PPD_Console",NULL);
+			if(pthread_create(&cHandlerTid,NULL,(void*)&CHANDLER_main,NULL))
+						perror("error creacion de thread ");
 			break;
 		case -1:
 			perror(fork);
@@ -77,10 +80,8 @@ int main(int argc, char *argv[])
 	}
 	if(pthread_create(&TAKERtid,NULL,(void*)&TAKER_main,NULL))
 			perror("error creacion de thread ");
-
 	while(1);
 
-	return 1;
 }
 
 void TAKER_main() {
@@ -103,3 +104,9 @@ void TAKER_main() {
 		sem_post(&mainMutex);
 	}
 }
+
+void CHANDLER_main(void) {
+	while(1)
+		CHANDLER_manager();
+}
+

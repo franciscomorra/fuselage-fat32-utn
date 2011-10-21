@@ -19,35 +19,44 @@ uint32_t ppd_send(nipcMsg_t msg)
 	return 1;
 }
 
-uint32_t ppd_receive(nipcMsg_t msgIn )
-{
+uint32_t ppd_receive(nipcMsg_t msgIn) {
+
 	/* Se obtienen los distintos campos del mensaje IPC*/
 
-	uint32_t type = 0;
-	if (msgIn.type == HANDSHAKE)
-	{
+	switch (msgIn.type) {
+		case HANDSHAKE:
+				//TODO Handshake
+			break;
 
-	} else {
-		uint32_t a;
-		memcpy(&a,msgIn.payload,4);
-		requestNode_t* request = COMMON_turnToCHS(a);
-		queueNode_t* queueNode;
+		case PPDCONSOLE_INFO:
+			//CHANDLER_info();
+			break;
 
-		request->type = msgIn.type;
+		default: {
+			if ((msgIn.type == WRITE_SECTORS) || (msgIn.type == READ_SECTORS)) {
+				uint32_t a;
+				queueNode_t* queueNode;
 
-		memcpy(&a,msgIn.len,2);
-		request->len = a-4;
+				memcpy(&a, msgIn.payload, 4);
+				requestNode_t* request = malloc(sizeof(requestNode_t));
+				COMMON_turnToCHS(a,request);
+				request->type = msgIn.type;
 
-		request->payload = malloc(request->len);
-		memcpy(request->payload,msgIn.payload + 4,request->len);
-		//TODO sender
+				memcpy(&a, msgIn.len, 2);
+				request->len = a - 4;
 
-		queueNode = QUEUE_createNode(request);
-		sem_wait(&mainMutex);
-		QUEUE_appendNode(queue,queueNode);
-		sem_post(&mainMutex);
-		//agregar tambien el mutex de la consola
-		sem_post(&queueElemSem);
+				request->payload = malloc(request->len);
+				memcpy(request->payload, msgIn.payload + 4, request->len);
+				//TODO sender
+
+				queueNode = QUEUE_createNode(request);
+				sem_wait(&mainMutex);
+				QUEUE_appendNode(queue, queueNode);
+				sem_post(&mainMutex);
+				//agregar tambien el mutex de la consola
+				sem_post(&queueElemSem);
+			}
+		}
+			return 0;
 	}
-	return 0;
 }
