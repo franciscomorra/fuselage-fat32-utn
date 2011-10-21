@@ -12,6 +12,7 @@
 #include "pfs_comm.h"
 #include "stdbool.h"
 
+
 extern fatTable_t fat;
 extern bootSector_t boot_sector;
 
