@@ -17,22 +17,32 @@ uint32_t console_info() {
 	return 1;
 }
 
-uint32_t console_clean(uint32_t firstSector, uint32_t lastSector){
+uint32_t console_clean(uint32_t* parameters){
 	uint32_t i;
+	nipcMsg_t msg;
 	char* payload = malloc(516);
 
+	uint32_t firstSector = *parameters;
+	uint32_t lastSector = *(parameters + 1);
 
 	for(i=firstSector;i<=lastSector;i++){
-		memcpy(payload,(uint32_t*)i,sizeof(uint32_t));
+		memcpy(payload,&i,sizeof(uint32_t));
 		memset(payload + sizeof(uint32_t),0,512);
-		NIPC_createMsg(WRITE_SECTORS,516,payload);
+		msg = NIPC_createMsg(WRITE_SECTORS,516,payload);
 		//Aca hay q enviar el mensaje al ppd
+
+		//Tengo que hacer el free del payload no???
 	}
 
 	return 1;
 }
 
-uint32_t console_trace(uint32_t* traceSectors){
+uint32_t console_trace(uint32_t* traceSectors,uint32_t len){
+	uint32_t i;
+	nipcMsg_t msg;
+	char* payload = malloc(4);
+
+	msg = NIPC_createMsg(PPDCONSOLE_TRACE,4,payload);
 
 	return 1;
 }

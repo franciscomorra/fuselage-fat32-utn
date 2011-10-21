@@ -13,8 +13,8 @@
 
 uint32_t console_info();
 
-uint32_t console_clear(uint32_t firstCluster, uint32_t lastCluster);
+uint32_t console_clean(uint32_t* parameters);
 
-uint32_t console_trace(uint32_t* traceSectors);
+uint32_t console_trace(uint32_t* traceSectors,uint32_t len);
 
 #endif /* PPDCONSOLE_COMMAND_H_ */
