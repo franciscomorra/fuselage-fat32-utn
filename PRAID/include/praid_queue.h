@@ -8,8 +8,8 @@
 #ifndef PRAID_QUEUE_H_
 #define PRAID_QUEUE_H_
 
+#include <pthread.h>
 #include "praid_comm.h"
-
 
 typedef struct {
 	nipcMsg_t msg;
@@ -22,6 +22,10 @@ typedef struct {
 	//TODO definir que se pone cuando es de PFS o PPD en sync.
 	struct read_node* next;
 } read_node;
+
+//A SER DEPRECADO, USAR COMMONS
+
+
 
 uint32_t praid_READ_add(nipcMsg_t msgIn);
 uint32_t praid_WRITE_add(nipcMsg_t msgIn);
