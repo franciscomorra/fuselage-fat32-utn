@@ -9,42 +9,45 @@
 
 uint32_t main () {
 	char* input = malloc(CANTMAX);										//aloco memoria para el ingreso del teclado
-	char* command = malloc(6*sizeof(char));								//aloco memoria para guardar el nombre del comando
-	uint32_t* traceSectors = (uint32_t*)malloc(5*sizeof(uint32_t)) ;	//aloco memoria para el vector de sectores del trace
-	uint32_t fstSector;
-	uint32_t lstSector;
+	char* command = malloc(6*sizeof(char));					//aloco memoria para guardar el nombre del comando
+	uint32_t* parameters = malloc(5*sizeof(uint32_t));			//aloco memoria para guardar los parametros
+	uint32_t len;
 
-
+	printf("Ingrese un Comando\n");
 	if (fgets(input,CANTMAX,stdin) == 0 )
-		printf("error fgets");
-	getCommand(input,command);								//funcion que obtiene el comando
-	printf("%s",command);
+		printf("error fgets\n");
 
-	while((strcmp(command,"exit"))!=0){
+	CONSOLE_getCommand(input,command,parameters,&len);
 
-		if (!(strcmp(command,"info")))
-			console_info();									//funcion que hace el info
+	while((strcmp(command,"exit")) != 0){
 
-		if (!(strcmp(command,"clean")))
-			getCleanSectors(input,&fstSector,&lstSector);	//obtiene los parametros del clean y los guarda en las variables
-			console_clean(fstSector,lstSector);				//funcion que hace el clean
+		if ((strcmp(command,"info")) == 0)
+			console_info();										//funcion que hace el info
 
-		if (!(strcmp(command,"trace")))
-			getTraceSectors(input,traceSectors);			//obtiene los parametros del trace y los guarda en un array
-			console_trace(traceSectors);					//funcion que hace el trace
+		if ((strcmp(command,"clean")) == 0){
+			if(len == 2)
+				console_clean(parameters);						//funcion que hace el clean
+			else
+				printf("Cantidad erronea de parametros para el comando clean\n");
+		}
+
+		if ((strcmp(command,"trace")) == 0)
+			console_trace(parameters,len);						//funcion que hace el trace
 
 
+		//TODO Si no reconoce el comando entonces lo informa.
+
+		printf("Ingrese un Comando\n");
 		if (fgets(input,CANTMAX,stdin) == 0 )				//se ingresa el proximo comando
-			printf("error fgets");
-		getCommand(input,command);
-		printf("%s",command);
+			printf("error fgets\n");
 
+		CONSOLE_getCommand(input,command,parameters,&len);
 
 	}
 
 	free(input);
 	free(command);
-	free(traceSectors);
+	free(parameters);
 	//hacer frees necesarios
 
 	return 0;
