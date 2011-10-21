@@ -19,7 +19,7 @@
 #include "tad_file.h"
 #include "tad_bootsector.h"
 #include "tad_direntry.h"
-#include "tad_dirtable.h"
+
 #include "log.h"
 #include <signal.h>
 bootSector_t boot_sector;
