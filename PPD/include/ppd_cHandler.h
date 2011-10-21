@@ -10,4 +10,8 @@
 
 void CHANDLER_main();
 
+void CHANDLER_info();
+
+void CHANDLER_manager();
+
 #endif /* CHANDLER_H_ */

@@ -2,9 +2,13 @@
 #include <string.h>
 #include "ppdConsole_input.h"
 #include "ppdConsole_Command.h"
-
+#include "ppdConsole_connect.h"
 
 #define CANTMAX (7*5)+6+5									//TEMPORAL (va la cantidad maxima de letras q tiene lo ingresado por teclado)
+#define SOCK_PATH "CONSOLE_socket"
+
+uint32_t sockCHandler;
+
 
 void main () {
 	char* input = malloc(CANTMAX);							//aloco memoria para el ingreso del teclado
@@ -12,6 +16,12 @@ void main () {
 	queue_t parameters;
 	QUEUE_initialize(&parameters);							//aloco memoria para guardar los parametros
 	uint32_t len;
+
+    struct sockaddr_un remote;
+    remote.sun_family = AF_UNIX;
+    strcpy(remote.sun_path, SOCK_PATH);
+
+    CONNECT_toProcess(remote);
 
 	printf("Ingrese un Comando\n");
 	if (fgets(input,CANTMAX,stdin) == 0 )
@@ -43,7 +53,6 @@ void main () {
 		if (fgets(input,CANTMAX,stdin) == 0 )				//se ingresa el proximo comando
 			printf("error fgets\n");
 
-		//memset(parameters,0,20);
 		CONSOLE_getCommand(input,command,&parameters,&len);
 	}
 
