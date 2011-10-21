@@ -36,7 +36,15 @@ uint32_t main () {
 
 
 		//TODO Si no reconoce el comando entonces lo informa.
-
+/*
+		free(input);
+		free(command);
+		free(parameters);
+											// LA PUTA QUE LO PARIOOO
+		input = malloc(CANTMAX);
+		command = malloc(6*sizeof(char));
+		parameters = malloc(5*sizeof(uint32_t));
+*/
 		printf("Ingrese un Comando\n");
 		if (fgets(input,CANTMAX,stdin) == 0 )				//se ingresa el proximo comando
 			printf("error fgets\n");
