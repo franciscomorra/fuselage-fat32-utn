@@ -21,6 +21,7 @@
 #include "ppd_comm.h"
 #include "ppd_taker.h"
 
+
 uint32_t Cylinder;
 uint32_t Head;
 uint32_t Sector;
@@ -30,7 +31,8 @@ uint32_t bytes_perSector;
 requestNode_t* first;
 uint32_t file_descriptor;
 queue_t* queue;
-sem_t SSTFmutex;
+sem_t queueElemSem;
+sem_t mainMutex;
 
 int main(int argc, char *argv[])
 {
@@ -38,13 +40,12 @@ int main(int argc, char *argv[])
 	file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR);
 	bytes_perSector = 512;
 	queue = malloc(sizeof(queue_t));
-	queue->head = 0;
-	queue->tail = 0;
 	pthread_t TAKERtid;
-	pthread_t SSTFtid;
 
-	sem_init(&queue->sem,0,0);
-	sem_init(&SSTFmutex,0,1);
+	sem_init(&queueElemSem,0,0);
+	sem_init(&mainMutex,0,1);
+
+
 
 	int i;													// temporal
  	uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};	// temporal
@@ -60,8 +61,6 @@ int main(int argc, char *argv[])
 	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));
 	headPosition = atoi(CONFIG_getValue(ppd_config,"HeadPosition"));
 
-	if(pthread_create(&SSTFtid,NULL,(void*)&SSTF_main,NULL))
-		perror("error creacion de thread SSTF");
 /*	switch(fork()){
 		case 0:
 			execl("/home/utn_so/Desktop/trabajos/PPD_Console/Debug/PPD_Console",NULL);
@@ -71,6 +70,7 @@ int main(int argc, char *argv[])
 			break;
 	}
 */
+
 	for(i = 0; i < 7; i++){												 // temporal
 		nipcMsg_t msgIn = NIPC_createMsg(READ_SECTORS,4,p+i);			 // temporal
  		ppd_receive(msgIn);												 // temporal
@@ -83,36 +83,23 @@ int main(int argc, char *argv[])
 	return 1;
 }
 
-uint32_t SSTF_main(void){
-	//me tira error de kernel al crear el thread si defino esta funcion dentro del PPD_SSTF.c
-	//lo defini en el ppd_SSTF.h
-	while(1){
-		requestNode_t* new;
-
-		new = QUEUE_take(queue);
-		SSTF_addRequest(new);
-	}
-	return 0;
-}
-
-uint32_t TAKER_main() {
+void TAKER_main() {
 	//lo mismo que el SSTF_main tuve que definirlo aca por un tema de threads
 	while(1){
-		if(first != 0){
-			sem_wait(&SSTFmutex);
-			requestNode_t* aux = first;
+		sem_wait(&queueElemSem);
+		sem_wait(&mainMutex);
 
-			//ppd_send(TAKER_getRequest(first));
-			nipcMsg_t nodo;					//temporal
-			uint32_t a;						//temporal
-			nodo = TAKER_getRequest(first); //temporal
-			memcpy(&a,nodo.payload,4);		//temporal
-			printf("%d\n",a);				//temporal
+		requestNode_t* request = SSTF_takeRequest(queue);
 
-			first = first->next;
-			free(aux);
-			sem_post(&SSTFmutex);
-		}
+		//ppd_send(TAKER_handleRequest(request));
+
+		nipcMsg_t nodo;									//temporal
+		nodo = TAKER_handleRequest(request);			//temporal
+		uint32_t a;										//temporal
+		memcpy(&a,nodo.payload,4);						//temporal
+		printf("%d\n",a);								//temporal
+
+		free(request);
+		sem_post(&mainMutex);
 	}
-	return 0;
 }

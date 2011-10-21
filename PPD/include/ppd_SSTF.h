@@ -9,6 +9,13 @@
 #define PPD_REQUESTLIST_H_
 
 #include "ppd_common.h"
+#include "tad_queue.h"
+
+// va colocando en la cabeza de la cola el nodo cuyo CHS este mas cerca del headPosition
+void SSTF_getHead(queue_t*);
+
+//saca el primer nodo de la cola y lo transforma de tipo queueNode a requestNode
+requestNode_t* SSTF_takeRequest(queue_t*);
 
 //agrega un nuevo requestNode_t a la lista segun el algoritmo SSTF
 uint32_t SSTF_addRequest(requestNode_t* new);

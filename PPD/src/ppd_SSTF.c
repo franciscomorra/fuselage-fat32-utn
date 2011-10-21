@@ -5,14 +5,35 @@
 #include <stdint.h>
 #include "ppd_SSTF.h"
 #include "ppd_common.h"
-#include "ppd_queue.h"
+//#include "ppd_queue.h"
+#include "tad_queue.h"
 
 extern uint32_t TrackJumpTime;
 extern uint32_t headPosition;
-extern requestNode_t* first;
-extern sem_t SSTFmutex;
+
+void SSTF_getHead(queue_t* queue){
+	requestNode_t* CHSposition = COMMON_turnToCHS(headPosition);
+	queueNode_t* aux = queue->begin;
+	queueNode_t* prevAux = queue->begin;
+
+	 while(aux != 0){
+		 if(SSTF_near(aux->data,CHSposition,queue->begin->data)){
+			 prevAux->next = aux->next;
+			 aux->next = queue->begin;
+			 queue->begin = aux;
+		 }
+		 prevAux = aux;
+		 aux=aux->next;
+	 }
+}
 
 
+requestNode_t* SSTF_takeRequest(queue_t* queue){
+	SSTF_getHead(queue);
+	queueNode_t* node = (QUEUE_takeNode(queue));
+	return node->data;
+}
+/*
 uint32_t SSTF_addRequest(requestNode_t* new){
 
 	 requestNode_t* CHSposition = COMMON_turnToCHS(headPosition);
@@ -45,7 +66,7 @@ uint32_t SSTF_addRequest(requestNode_t* new){
 	}
 	 return 0;
 }
-
+*/
 
 uint32_t SSTF_near(requestNode_t* new, requestNode_t* aux,requestNode_t* auxSig){
 
@@ -59,8 +80,8 @@ uint32_t SSTF_near(requestNode_t* new, requestNode_t* aux,requestNode_t* auxSig)
 		return 1;
 	else
 		if (distTrackNA == distTrackAS){
-			if(SSTF_sectorDist(((aux->sector)+1)+(distTrackNA*TrackJumpTime),new->sector)
-			<= SSTF_sectorDist(((aux->sector)+1)+(distTrackNA*TrackJumpTime),auxSig->sector))
+			if(SSTF_sectorDist(((aux->sector))+(distTrackNA*TrackJumpTime),new->sector)
+			< SSTF_sectorDist(((aux->sector))+(distTrackNA*TrackJumpTime),auxSig->sector))
 				return 1;
 	}
 	return 0;

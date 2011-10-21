@@ -9,10 +9,10 @@
 #define PPD_TAKER_H_
 
 // definida en el ppd_main por un tema de threads
-uint32_t TAKER_main();
+void TAKER_main();
 
-// saca el request que este asociado al first de la lista y lo envia por sockets
-nipcMsg_t TAKER_getRequest(requestNode_t* first);
+// atiende al pedido que el algoritmo saca de la cola y lo manda por sockets
+nipcMsg_t TAKER_handleRequest(requestNode_t*);
 
 // cambia de CHS a numero de sector para poder enviarlo en el payload del nipcMsg_t
 uint32_t TAKER_turnToSectorNum(requestNode_t* CHSnode);
