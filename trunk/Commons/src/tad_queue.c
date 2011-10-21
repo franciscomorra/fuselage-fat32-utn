@@ -12,7 +12,7 @@
 #include <assert.h>
 #include "log.h"
 
-extern t_log* log_file;
+//extern t_log* log_file;
 void QUEUE_initialize(queue_t* line)
 {
 	memset(line,0,sizeof(queue_t));
@@ -53,7 +53,6 @@ void QUEUE_destroyQueue(queue_t *line,uint32_t var_type)
 	{
 		while (cur != NULL)
 		{
-			log_debug(log_file,"PFS","LIST_destroyList() -> LIST_freeByType(0x%x)",cur);
 			QUEUE_destroyNode(&cur,var_type);
 			cur = cur->next;
 		}
@@ -64,7 +63,6 @@ void QUEUE_destroyQueue(queue_t *line,uint32_t var_type)
 void QUEUE_destroyNode(queueNode_t *node,uint32_t var_type)
 {
 	assert(node != NULL);
-	log_debug(log_file,"PFS","LIST_destroyNode() -> LIST_freeByType(0x%x)",node);
 	QUEUE_freeByType((void*)node,var_type);
 }
 
