@@ -7,12 +7,14 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include "ppd_comm.h"
 #include "nipc.h"
 #include "ppd_common.h"
+#include "ppd_cHandler.h"
 
 extern uint32_t headPosition;
 
-#define SOCK_PATH "echo_socket"
+#define SOCK_PATH "CONSOLE_socket"
 #define LEN_MAX 512+sizeof(uint32_t)
 
 void CHANDLER_manager(){
@@ -75,7 +77,7 @@ void CHANDLER_manager(){
 
 
 void CHANDLER_info(){
-	requestNode_t CHSPosition = malloc(sizeof(requestNode_t));
+	requestNode_t* CHSPosition = malloc(sizeof(requestNode_t));
 	COMMON_turnToCHS(headPosition,CHSPosition);
 	printf("La posicion actual del cabezal es: (%d,%d,%d).\n",CHSPosition->cylinder,CHSPosition->head,CHSPosition->sector);
 	free(CHSPosition);

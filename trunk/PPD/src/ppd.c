@@ -61,18 +61,19 @@ void main(int argc, char *argv[])
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));
 	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));
 	headPosition = atoi(CONFIG_getValue(ppd_config,"HeadPosition"));
-/*
+
+	if(pthread_create(&cHandlerTid,NULL,(void*)&CHANDLER_main,NULL))
+								perror("error creacion de thread ");
+
 	switch(fork()){
 		case 0:
 			execl("/home/utn_so/Desktop/trabajos/PPD_Console/Debug/PPD_Console",NULL);
-			if(pthread_create(&cHandlerTid,NULL,(void*)&CHANDLER_main,NULL))
-						perror("error creacion de thread ");
 			break;
 		case -1:
 			perror(fork);
 			break;
 	}
-*/
+
 
 	for(i = 0; i < 7; i++){												 // temporal
 		nipcMsg_t msgIn = NIPC_createMsg(READ_SECTORS,4,p+i);			 // temporal
@@ -96,9 +97,9 @@ void TAKER_main() {
 
 		nipcMsg_t nodo;									//temporal
 		nodo = TAKER_handleRequest(request);			//temporal
-		uint32_t a;										//temporal
-		memcpy(&a,nodo.payload,4);						//temporal
-		printf("%d\n",a);								//temporal
+	//	uint32_t a;
+	//	memcpy(&a,nodo.payload,4);						//temporal
+	//	printf("%d\n",a);								//temporal
 
 		free(request);
 		sem_post(&mainMutex);

@@ -2,18 +2,23 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include "tad_queue.h"
 #include "ppdConsole_Command.h"
 #include "nipc.h"
 
+uint32_t sockCHandler;
 
 uint32_t console_info() {
-	nipcMsg_t request;
+	nipcMsg_t msg;
 
-	request = NIPC_createMsg(PPDCONSOLE_INFO,0,0);
-	//Aca hay q enviar el mensaje "request" al ppd y el
-	//thread encargado de la consola del ppd va a imprimir el HeadPosition
-
+	msg = NIPC_createMsg(PPDCONSOLE_INFO,0,0);
+    if (send(sockCHandler, &msg, sizeof(nipcMsg_t), 0) == -1) {
+        perror("send");
+        exit(1);
+    }
 
 	return 1;
 }
