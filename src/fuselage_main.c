@@ -50,6 +50,7 @@ void *fuselage_main (void *data)
 	fat32_readBootSector(&boot_sector);
 	fat32_readFAT(&fat);
 
+
 	//queue_t list = fat32_readDirectory("/");
 	//uint32_t santi = 2;
 	signal(SIGUSR2,cmd_signal);
