@@ -37,4 +37,5 @@ void QUEUE_destroyQueue(queue_t*,uint32_t);
 void QUEUE_destroyNode(queueNode_t *,uint32_t );
 void QUEUE_freeByType(void*,uint32_t);
 uint32_t QUEUE_length(queue_t *);
+void QUEUE_cleanQueue(queue_t*,uint32_t);
 #endif /* TAD_LIST_H_ */

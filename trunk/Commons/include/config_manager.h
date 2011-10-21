@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 
-typedef struct param
+typedef struct config_param
 {
 	char key[50];
 	char value[50];

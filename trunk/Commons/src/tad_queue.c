@@ -127,3 +127,19 @@ uint32_t QUEUE_length(queue_t *line)
 	}
 	return counter;
 }
+
+
+void QUEUE_cleanQueue(queue_t *line,uint32_t var_type)
+{
+	queueNode_t* cur = (line)->begin;
+
+	if (line->begin != NULL)
+	{
+		while (line->begin != NULL)
+		{
+			cur = QUEUE_takeNode(line);
+			// free(cur->data) me tira segmentation fault ayuda !!;
+			free(cur);
+		}
+	}
+}
