@@ -21,7 +21,7 @@
 #include "praid_console.h"
 #include "praid_listener.h"
 #include "praid_queue.h"
-
+#include "tad_queue.h"
 
 uint32_t raid_console = 0; //0 ENABLE - 1 DISABLE
 uint32_t raid_status = 0; //0 INACTIVE - 1 ACTIVE
@@ -35,7 +35,6 @@ pthread_mutex_t mutex_console;
 pthread_mutex_t mutex_READ;
 pthread_mutex_t mutex_WRITE;
 
-//TODO VER PORQUE EL GCC -PTHREAD NO FUNCIONA
 int main(int argc,char **argv){
 
 /*
@@ -54,6 +53,12 @@ int main(int argc,char **argv){
 
 	//TODO Crear Cola Read y Write
 
+	queue_t colaREAD;
+	QUEUE_initialize(&colaREAD);
+	queue_t colaWrite;
+	QUEUE_initialize(&colaWrite);
+
+
 	pthread_t listener_thread;
 	pthread_create(&listener_thread, NULL, praid_listener, NULL);
 	pthread_join(listener_thread, NULL);
@@ -63,6 +68,8 @@ int main(int argc,char **argv){
 	pthread_mutex_destroy(&mutex_console);
 	pthread_mutex_destroy(&mutex_READ);
 	pthread_mutex_destroy(&mutex_WRITE);
+
+
 
 return 0;
 }

@@ -5,12 +5,12 @@
  *      Author: utn_so
  */
 #include <pthread.h>
-
-#include "praid_comm.h"
-#include "ppd_main.h"
-#include "praid_queue.h"
 #include "praid_listener.h"
+#include "praid_comm.h"
+#include "praid_ppd_handler.h"
 #include "praid_console.h"
+#include "praid_queue.h"
+
 
 extern uint32_t raid_status; //0 INACTIVE - 1 ACTIVE
 extern uint32_t ppd_thread_amount; // CONTADOR DE THREADS DE PPD
@@ -24,14 +24,16 @@ extern pthread_mutex_t mutex_WRITE;
 
 void *praid_listener (void *data)
 {
+
 	pthread_t ppd_thread;
-	pthread_create(&ppd_thread, NULL, ppd_main, NULL);
-while(1){
-	print_Console("Arrancando Thread Listener");
-}
-
-
-//TODO Inicializar las colas
+	pthread_create(&ppd_thread, NULL, ppd_handler_thread, NULL);
+	pthread_create(&ppd_thread, NULL, ppd_handler_thread, NULL);
+	pthread_create(&ppd_thread, NULL, ppd_handler_thread, NULL);
+	pthread_create(&ppd_thread, NULL, ppd_handler_thread, NULL);
+	//Threads PPD de prueba
+	while(1){
+		print_Console("Arrancando Thread Listener");
+	}
 
 /*
  *
@@ -46,7 +48,7 @@ while(1){
  *
  * Llega conexion de PFS
  * if(raid_status = 1){
- * 		pfs_receive()
+ * 		receive_pfs()
  * }else{
  * 		error()
  * }
