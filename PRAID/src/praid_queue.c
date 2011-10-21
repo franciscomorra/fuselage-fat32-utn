@@ -6,6 +6,9 @@
  */
 #include <pthread.h>
 #include "praid_queue.h"
+#include "praid_comm.h"
+
+//A SER DEPRECADO, USAR COMMONS
 
 uint32_t praid_READ_add(nipcMsg_t msgIn)
 {return 0;}

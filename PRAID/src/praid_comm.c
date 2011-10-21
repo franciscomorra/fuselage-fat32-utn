@@ -13,20 +13,20 @@ extern uint32_t raid_status; //0 INACTIVE - 1 ACTIVE
 //TODO Sockets y manejo de los mismos
 
 
-
-
 //Decodificacion del NIPC
 
-uint32_t pfs_receive(nipcMsg_t msgIn)
+uint32_t receive_pfs(nipcMsg_t msgIn)
 {
+	/*
 
 	switch (msgIn.type)
 	{
 
 		case HANDSHAKE:
-			//if(raid_status!=0){
+			if(raid_status!=0){
 				//TODO praid_handlehandshake(msgIn);
-			//}
+			}
+
 		break;
 
 		case WRITE_SECTORS:
@@ -36,8 +36,10 @@ uint32_t pfs_receive(nipcMsg_t msgIn)
 		case READ_SECTORS:
 			praid_READ_add(msgIn);
 		break;
-	}
+	}*/
 	return 0;
+
+
 }
 
 
