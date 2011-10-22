@@ -26,10 +26,11 @@
 uint32_t raid_console = 0; //0 ENABLE - 1 DISABLE
 uint32_t raid_status = 0; //0 INACTIVE - 1 ACTIVE
 uint32_t ppd_thread_amount = 0; // CONTADOR DE THREADS DE PPD
-read_node read_first;
-read_node read_last;
-write_node write_first;
-write_node write_last;
+
+
+queue_t colaREAD;
+queue_t colaWrite;
+
 
 pthread_mutex_t mutex_console;
 pthread_mutex_t mutex_READ;
@@ -37,15 +38,9 @@ pthread_mutex_t mutex_WRITE;
 
 int main(int argc,char **argv){
 
-
-	//TODO Leer Archivo de configuracion Y VER SI CONSOLE ENABLE O DISABLE
-		config_param *praid_config;
-		CONFIG_read("config/praid.config",&praid_config);
-		raid_console  = atoi(CONFIG_getValue(praid_config,"Console"));
-	//Error de make. Creo que es el linkeo de Commons, que no encuentra el .c
-
-	printf("%d",raid_console);
-
+	config_param *praid_config;
+	CONFIG_read("config/praid.config",&praid_config);
+	raid_console  = atoi(CONFIG_getValue(praid_config,"Console"));
 
 	pthread_mutex_init(&mutex_console, NULL);
 	pthread_mutex_init(&mutex_READ, NULL);
@@ -53,14 +48,10 @@ int main(int argc,char **argv){
 
 	print_Console("Bienvenido Proceso RAID");
 
-	//TODO Crear Cola Read y Write
-/*
-	queue_t colaREAD;
 	QUEUE_initialize(&colaREAD);
-	queue_t colaWrite;
 	QUEUE_initialize(&colaWrite);
 
-*/
+
 	pthread_t listener_thread;
 	pthread_create(&listener_thread, NULL, praid_listener, NULL);
 	pthread_join(listener_thread, NULL);
