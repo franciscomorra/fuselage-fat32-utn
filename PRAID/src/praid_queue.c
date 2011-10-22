@@ -8,8 +8,19 @@
 #include "praid_queue.h"
 #include "praid_comm.h"
 
+
+
+
+
+
+
+
+
+
+
 //A SER DEPRECADO, USAR COMMONS
 
+/*
 uint32_t praid_READ_add(nipcMsg_t msgIn)
 {return 0;}
 uint32_t praid_WRITE_add(nipcMsg_t msgIn)
@@ -27,3 +38,4 @@ read_node praid_READ_first()
 //Dame el primero
 write_node praid_WRITE_first()
 {write_node write_node1; return write_node1;}
+*/

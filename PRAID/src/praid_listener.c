@@ -10,21 +10,21 @@
 #include "praid_ppd_handler.h"
 #include "praid_console.h"
 #include "praid_queue.h"
-
+#include "tad_queue.h"
 
 extern uint32_t raid_status; //0 INACTIVE - 1 ACTIVE
 extern uint32_t ppd_thread_amount; // CONTADOR DE THREADS DE PPD
-extern read_node read_first;
-extern read_node read_last;
-extern write_node write_first;
-extern write_node write_last;
+
+extern queue_t colaREAD;
+extern queue_t colaWrite;
+
 
 extern pthread_mutex_t mutex_READ;
 extern pthread_mutex_t mutex_WRITE;
 
 void *praid_listener (void *data)
 {
-
+/*
 	pthread_t ppd_thread;
 	pthread_create(&ppd_thread, NULL, ppd_handler_thread, NULL);
 	pthread_create(&ppd_thread, NULL, ppd_handler_thread, NULL);
@@ -34,6 +34,7 @@ void *praid_listener (void *data)
 	while(1){
 		print_Console("Arrancando Thread Listener");
 	}
+*/
 
 /*
  *
