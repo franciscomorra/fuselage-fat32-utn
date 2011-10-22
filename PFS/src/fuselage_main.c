@@ -58,9 +58,10 @@ void *fuselage_main (void *data)
 
 int cmd_signal()
 {
-	pthread_mutex_lock(&signal_lock);
+	//MUTEX, ARREGLAR!!!!!
+	char* token = (char*) strtok(cmd_received," ");
 
-	if (strcmp(cmd_received,"fsinfo") == 0)
+	if (strcmp(token,"fsinfo") == 0)
 	{
 			queue_t cluster_list = FAT_getFreeClusters(&fat);
 			queueNode_t* cur = NULL;
@@ -83,6 +84,37 @@ int cmd_signal()
 			printf("Tamaño cluster: %d bytes\n",(boot_sector.bytes_perSector*boot_sector.sectors_perCluster));
 			printf("Tamaño FAT: %d Kb\n\n",(sizeof(uint32_t)*fat.size/1024));
 			fflush(stdout);
+			free(cmd_received);
+	}
+	else if (strcmp(token,"finfo") == 0)
+	{
+		token = strtok(NULL," ");
+
+		dirEntry_t *file = fat32_getDirEntry(token);
+		if (file != NULL)
+		{
+			printf("#Clusters:\n");
+			queue_t cluster_list = fat32_getClusterChainData(DIRENTRY_getClusterNumber(file));
+			uint32_t cluster_index;
+			queueNode_t* cur_node;
+			for (cluster_index = 0;cluster_index < 20;cluster_index++)
+			{
+				if ((cur_node = QUEUE_takeNode(&cluster_list)) != NULL)
+				{
+					cluster_t *cur_cluster = (cluster_t*) cur_node->data;
+					printf("%d, ",cur_cluster->number);
+				}
+				else
+				{
+					printf("\n");
+					break;
+				}
+			}
+		}
+		else
+			printf("No existe el archivo\n");
+
+
 	}
 	//TODO: finfo [path a un archivo] obtener los 20 primeros clusters
 	pthread_mutex_unlock(&signal_lock);

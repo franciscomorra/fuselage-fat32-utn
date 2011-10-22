@@ -44,8 +44,8 @@
 							</tool>
 							<tool command="gcc" id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.1099101837" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug">
 								<option id="gnu.c.link.option.libs.1677246523" name="Libraries (-l)" superClass="gnu.c.link.option.libs" valueType="libs">
-									<listOptionValue builtIn="false" value="Commons"/>
 									<listOptionValue builtIn="false" value="icui18n"/>
+									<listOptionValue builtIn="false" value="Commons"/>
 									<listOptionValue builtIn="false" value="fuse"/>
 									<listOptionValue builtIn="false" value="m"/>
 								</option>
