@@ -10,7 +10,8 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <signal.h>
-
+#include <stdint.h>
+#include "tad_queue.h"
 	struct args
 	{
 		int argc;
@@ -42,28 +43,53 @@ int main(int argc, char *argv[])
 	//fuselage_main(0);
 	pthread_create(&fuselage_thread,NULL,fuselage_main,NULL);
 
-	char cmd[300];
+	char cmd[1024];
+	memset(cmd,0,1024);
+	char new_char;
+	uint32_t char_index = 0;
+	queueNode_t *tmp_node;
 
 	while(1)
 	{
-
 		printf("cmd-fuselage>");
 		fflush(stdout);
-		scanf("%s",cmd);
+		char_index = 0;
 
-		if (strcmp(cmd,"exit") == 0)
+		while ((new_char = getchar()) != '\n')
+		{
+			memcpy(cmd+char_index,&new_char,1);
+			memset(&new_char,0,1);
+			char_index++;
+		}
+
+		char* token = strtok(cmd," ");
+
+		if (strcmp(token,"exit") == 0)
 		{
 			raise(SIGINT);
 		}
-		else if (strcmp(cmd,"fsinfo") == 0)
+		else if (strcmp(token,"fsinfo") == 0)
 		{
 			cmd_received = malloc(sizeof(cmd));
 			strcpy(cmd_received,cmd);
-			pthread_kill(fuselage_thread,SIGUSR2);
-			sleep(1);
 			pthread_mutex_lock(&signal_lock);
-			free(cmd_received);
+			pthread_kill(fuselage_thread,SIGUSR2);
+			pthread_mutex_lock(&signal_lock);
 			pthread_mutex_unlock(&signal_lock);
+		}
+		else if (strcmp(token,"finfo") == 0)
+		{
+			if ((token = strtok(NULL," ")) != NULL)
+			{
+				cmd_received = malloc(strlen("finfo ") + strlen(token));
+				strcpy(cmd_received,"finfo ");
+				strcat(cmd_received,token);
+
+				pthread_mutex_lock(&signal_lock);
+				pthread_kill(fuselage_thread,SIGUSR2);
+				pthread_mutex_lock(&signal_lock);
+				pthread_mutex_unlock(&signal_lock);
+			}
 		}
 
 

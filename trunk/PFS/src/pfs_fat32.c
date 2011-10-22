@@ -18,6 +18,7 @@
 
 #include "pfs_comm.h"
 #include "pfs_fat32.h"
+#include "utils.h"
 #include "tad_direntry.h"
 #include "tad_file.h"
 #include "tad_queue.h"
@@ -69,7 +70,7 @@ char* fat32_getClusterRawData(cluster_t cluster)
 	uint32_t index = 0;
 	char* buf = malloc(cluster.size*boot_sector.bytes_perSector);
 
-	queueNode_t *cur_sector_node = (cluster.sectors).begin;
+	queueNode_t *cur_sector_node = ((queue_t) cluster.sectors).begin;
 	while (cur_sector_node != NULL)
 	{
 		sector_t *cur_sector = (sector_t*) cur_sector_node->data;
@@ -154,6 +155,7 @@ queue_t fat32_getClusterChainData(uint32_t first_cluster)
 		QUEUE_appendNode(&cluster_list,new_cluster_node);
 	}
 	return cluster_list;
+
 }
 
 
@@ -162,16 +164,20 @@ queue_t fat32_readDirectory(const char* path)
 
 	size_t bytes_perCluster = boot_sector.sectors_perCluster*boot_sector.bytes_perSector;
 	char *token,*buf;
+
 	bool dir_exists = false;
+
 	size_t len = strlen(path);
 	char string[len];
 	strcpy(string,path);
+
 
 	queue_t root_cluster_list = fat32_getClusterChainData(2);
 
 	buf = fat32_getClusterChainRawData(root_cluster_list);
 	log_debug(log_file,"PFS","fat32_readDirectory() -> DIRENTRY_interpretDirTableData(0x%x)",buf);
 	queue_t file_list = DIRENTRY_interpretDirTableData(buf,bytes_perCluster,2);
+
 	free(buf);
 
 	if (strcmp(path,"/") == 0) return file_list;
@@ -188,6 +194,7 @@ queue_t fat32_readDirectory(const char* path)
 			fat32file_t *curr_file = (fat32file_t*) curr_file_node->data;
 			if (strcmp(curr_file->long_file_name,token) == 0 && (curr_file->dir_entry.file_attribute.subdirectory) == true)
 			{
+
 				dir_exists=true;
 				log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyList(0x%x,FAT32FILE_T)",file_list);
 				//QUEUE_destroy(&file_list,FAT32FILE_T);
@@ -245,9 +252,11 @@ queue_t fat32_readDirectory(const char* path)
 		}
 
 	}
+
 	while((token = strtok( NULL, "/" )) != NULL && dir_exists == true);
 
 	return file_list;
+
 }
 
 dirEntry_t* fat32_getDirEntry(char* path)
@@ -334,4 +343,9 @@ fat32file_t fat32_getFile(const char* path)
 	}
 
 	return ret_file;
+}
+
+void fat32_destroyClusterQueue(queue_t *queue)
+{
+
 }
