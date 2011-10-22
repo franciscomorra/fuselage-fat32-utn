@@ -14,14 +14,12 @@
 typedef struct {
 	nipcMsg_t msg;
 	uint32_t threads_left;
-	struct write_node* next;
-} write_node;
+} write_node_content;
 
 typedef struct {
 	nipcMsg_t msg;
 	//TODO definir que se pone cuando es de PFS o PPD en sync.
-	struct read_node* next;
-} read_node;
+} read_node_content;
 
 //A SER DEPRECADO, USAR COMMONS
 
@@ -33,7 +31,7 @@ uint32_t praid_READ_remove();
 uint32_t praid_WRITE_remove();
 uint32_t praid_READ_status();
 uint32_t praid_WRITE_status();
-read_node praid_READ_first();
-write_node praid_WRITE_first();
+write_node_content praid_READ_first();
+read_node_content praid_WRITE_first();
 
 #endif /* PRAID_QUEUE_H_ */
