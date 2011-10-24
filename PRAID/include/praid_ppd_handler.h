@@ -15,7 +15,5 @@
 #include "praid_queue.h"
 
 void *ppd_handler_thread(void *);
-uint32_t handle_WRITE_request();
-uint32_t handle_READ_request();
 
 #endif /* PPD_MAIN_H_ */
