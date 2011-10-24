@@ -14,7 +14,4 @@
 
 uint32_t receive_pfs(nipcMsg_t);
 
-
-
-
 #endif /* PRAID_COMM_H_ */

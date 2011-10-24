@@ -13,15 +13,15 @@
 #include "praid_console.h"
 
 
-extern uint32_t raid_console;
-extern pthread_mutex_t mutex_console;
+extern uint32_t RAID_CONSOLE;
+extern pthread_mutex_t mutex_CONSOLE;
 
 uint32_t print_Console (char *message){
 
-	if(raid_console == 0){
-		pthread_mutex_lock(&mutex_console);
+	if(RAID_CONSOLE == 1){
+		pthread_mutex_lock(&mutex_CONSOLE);
 		printf("%s \n",message);
-		pthread_mutex_unlock(&mutex_console);
+		pthread_mutex_unlock(&mutex_CONSOLE);
 	}
 
 	return 0;

@@ -12,7 +12,7 @@
 #include "praid_queue.h"
 #include "tad_queue.h"
 
-extern uint32_t raid_status; //0 INACTIVE - 1 ACTIVE
+extern uint32_t RAID_STATUS; //0 INACTIVE - 1 ACTIVE
 extern uint32_t ppd_thread_amount; // CONTADOR DE THREADS DE PPD
 
 extern queue_t colaREAD;

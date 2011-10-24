@@ -10,28 +10,27 @@
 
 #include <pthread.h>
 #include "praid_comm.h"
+#include "nipc.h"
+//TODO Definir LISTA DE DISCOS Y SUBLISTAS
+typedef struct {
+	/*
+	ppd_list_node_content* info;
+	struct ppd_list_node* next;
+	*/
+} ppd_list_node;
+
+typedef struct {
+	uint32_t tid;
+	uint32_t ppdStatus;
+	//sublist_node sublist;
+	//SOCKET PPD
+} ppd_list_node_content;
 
 typedef struct {
 	nipcMsg_t msg;
-	uint32_t threads_left;
-} write_node_content;
+	//SOCKET PFS
+	uint32_t synch;//0=False - 1=True
+} ppd_sublist_node_content;
 
-typedef struct {
-	nipcMsg_t msg;
-	//TODO definir que se pone cuando es de PFS o PPD en sync.
-} read_node_content;
-
-//A SER DEPRECADO, USAR COMMONS
-
-
-
-uint32_t praid_READ_add(nipcMsg_t msgIn);
-uint32_t praid_WRITE_add(nipcMsg_t msgIn);
-uint32_t praid_READ_remove();
-uint32_t praid_WRITE_remove();
-uint32_t praid_READ_status();
-uint32_t praid_WRITE_status();
-write_node_content praid_READ_first();
-read_node_content praid_WRITE_first();
 
 #endif /* PRAID_QUEUE_H_ */

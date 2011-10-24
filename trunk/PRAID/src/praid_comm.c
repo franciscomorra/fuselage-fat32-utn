@@ -9,37 +9,45 @@
 #include "praid_comm.h"
 #include "praid_queue.h"
 
-extern uint32_t raid_status; //0 INACTIVE - 1 ACTIVE
-//TODO Sockets y manejo de los mismos
+extern uint32_t RAID_STATUS; //0 INACTIVE - 1 ACTIVE
+extern ppd_list_node PRAID_LIST;
+extern pthread_mutex_t mutex_LIST;
 
+/*
+Manejar pedido de nuevo PPD
+Manejar pedido de PFS
+Enviar Mensaje a Socket (a PPD o a PFS)
+*/
 
 //Decodificacion del NIPC
 
 uint32_t receive_pfs(nipcMsg_t msgIn)
 {
-	/*
-
-	switch (msgIn.type)
-	{
-
-		case HANDSHAKE:
-			if(raid_status!=0){
-				//TODO praid_handlehandshake(msgIn);
-			}
-
-		break;
-
-		case WRITE_SECTORS:
-			praid_WRITE_add(msgIn);
-		break;
-
-		case READ_SECTORS:
-			praid_READ_add(msgIn);
-		break;
-	}*/
+/*
+	Handshake:
+		if(RAID_STATUS!=1){
+			//Responde hanshake
+		}else{
+			//Error, no hay PPD asociado
+		}
+	Pedido de READ:
+		pthread_mutex_lock(&mutex_LIST);
+			Toma el primer nodo de la PRAID_LIST (variable global auxREAD)
+			A ese primer nodo le toma la SUBLISTA (Cola)
+			Crea un nuevo nodo SUBLISTA
+			Lo agrega al final.
+			Si el nodo PRAID_LIST que tomo tiene Estado SINCRONIZANDO
+				?????
+		pthread_mutex_unlock(&mutex_LIST);
+	Pedido de WRITE:
+		pthread_mutex_lock(&mutex_LIST);
+			Recorre toda la PRAID_LIST(variable local auxWrite)
+			Por cada nodo de la PRAID_LIST
+				Crea nodo SUBLISTA
+				Lo agrega al final de la cola SUBLISTA
+		pthread_mutex_unlock(&mutex_LIST);
+*/
 	return 0;
-
-
 }
 
 

@@ -5,85 +5,118 @@
  *      Author: utn_so
  */
 #include <pthread.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
 #include "praid_ppd_handler.h"
 #include "praid_console.h"
 #include "praid_comm.h"
-#include "tad_queue.h"
 #include "praid_queue.h"
 
 
-extern uint32_t raid_status; //0 INACTIVE - 1 ACTIVE
-extern uint32_t ppd_thread_amount; // CONTADOR DE THREADS DE PPD
-
-extern queue_t colaREAD;
-extern queue_t colaWrite;
-
-extern pthread_mutex_t mutex_READ;
-extern pthread_mutex_t mutex_WRITE;
+extern uint32_t RAID_STATUS; //0 INACTIVE - 1 ACTIVE - 2 WAIT_FIRST_PPD_REPLY
+extern uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
+extern ppd_list_node PRAID_LIST;
+extern pthread_mutex_t mutex_LIST;
+extern pthread_mutex_t mutex_RAID_STATUS;
 
 void *ppd_handler_thread (void *data)
 {
-	uint32_t ppd_status = 0; //0-Nuevo 1-Sincronizado 2-Esperando Write 3-Esperando Read
+	pthread_mutex_lock(&mutex_LIST);
+/*
+	Crea nodo PRAID_LIST
+	ppd_list_node* new = malloc(sizeof(ppd_list_node));
+	new->info.tid = (uint32_t)pthread_self();
+	new->info.ppdStatus = 1;//SINCRONIZANDO
+	SUBLISTA: Vacia
+	Socket PPD: SOCKET de PPD nuevo, pasado por valor desde el main (es el void *data)
 
-	// TODO Sincronizarlo (Crear thread de sincronizacion), que cuando sincronize que cambie el estado
+	new->next = PRAID_LIST;
+	PRAID_LIST = new;
+*/
+	pthread_mutex_unlock(&mutex_LIST);
 
-	while(ppd_status != 0){
-		ppd_status = handle_WRITE_request();
+	while (1){
+		if(RAID_STATUS != 1){ //Si es el primer PPD que se conecta, pide informacion del disco (DISK_SECTORS_AMOUNT)
+			pthread_mutex_lock(&mutex_RAID_STATUS);
+			RAID_STATUS = 2; //RAID ESPERANDO DISK_SECTORS_AMOUNT
+			pthread_mutex_unlock(&mutex_RAID_STATUS);
+		/*
+			//TODO Enviar Pedido de informacion de Disco (DISK_SECTORS_AMOUNT)
+			//Esperar respuesta
+			//Decodificar respuesta
+			//Setear DISK_SECTORS_AMOUNT
+		*/
+			pthread_mutex_lock(&mutex_RAID_STATUS);
+			RAID_STATUS = 0; //RAID ACTIVADO
+			pthread_mutex_unlock(&mutex_RAID_STATUS);
+
+			print_Console("RAID Activado");//CONSOLE STATUS ACTIVE
+
+		}else{ //RAID tiene al menos un disco, estado ACTIVE
+			uint32_t i;
+			print_Console("Nuevo PPD");//CONSOLE NEW PPD
+			pthread_mutex_lock(&mutex_LIST);
+			/*
+				Crea nodo y lo agrega en la SUBLISTA del primer nodo de PRAID_LIST
+					R/W: R
+					NIPC: Primer Sector
+					Socket: Socket del PPD
+					Flag Pedido Synch: 1 //0-False 1-True
+			*/
+			pthread_mutex_unlock(&mutex_LIST);
+
+
+		}
+		print_Console("Iniciando Sincronizacion");//CONSOLE INICIO_SYNCHRONIZE
+
+		while(1){
+			pthread_mutex_lock(&mutex_LIST);
+
+		/*
+		Busca tu propio nodo en PRAID_LIST
+		Si hay al menos un nodo en la SUBLISTA
+		Lo quita de la SUBLISTA
+		Lee el nodo de la SUBLISTA
+		Si NIPC type = READ_SECTORS //Pedido de Lectura
+			Si Synch = 0 //Pedido normal de PFS
+				Envialo a PPD
+				CONSOLE READ
+				Espera a que vuelva
+				Cuando vuelve, mandaselo al PFS directamente
+			Si Synch = 1//Pedido de Synch de lectura (Insertado por un proceso nuevo de PPD)
+				Envialo a PPD
+				Espera a que vuelva
+				Cuando vuelve
+				Agregaselo a la SUBLISTA del que este SINCRONIZANDO
+					R/W: W
+					NIPC: Sector que leyo
+					Socket: Socket del PPD
+					Flag Pedido Synch: 1 //0-False 1-True
+		Si NIPC type = WRITE_SECTORS //Pedido de Escritura
+			Si Synch = 0//Pedido normal de PFS
+				Envialo a PPD
+				CONSOLE WRITE
+				Espera a que vuelva
+				Cuando vuelve, mandaselo al PFS directamente
+			Si Synch = 1//Pedido a Synch (Solo lo deberia acceder el PPD nuevo)
+				Envialo a PPD
+				Espera a que vuelva
+				Cuando vuelve:
+					Si no es el ultimo (menor a DISK_SECTORS_AMOUNT)
+						Crea nodo SUBLISTA de pedido READ y lo pone en la SUBLISTA de alguno de la PRAID_LIST
+							R/W: R
+							NIPC: Sector que escribio incrementado en 1
+							Socket: Socket del PPD
+							Flag Pedido Synch: 1 //0-False 1-True
+					Si era el ultimo
+						Cambia estado de PPD a ACTIVO
+			*/
+			pthread_mutex_unlock(&mutex_LIST);
+
+		}
+
 	}
-
 return NULL;
 }
 
-uint32_t handle_WRITE_request()
-{
-/*
-	pthread_mutex_lock(&mutex_WRITE);
-
-	queueNode_t* writeRequestNode = colaWrite->begin;//Tomar el nodo y leerlo
-	if (writeRequestNode != NULL){
-		write_node_content writeRequest;
-	//	write_node_content writeRequest = writeRequestNode->data;
-
-		if (writeRequest.threads_left == ppd_thread_amount){ //Es el primero en leerlo
-			writeRequest.threads_left--;
-		}else if(writeRequest.threads_left == 1){//Es el ultimo en leerlo
-			QUEUE_destroyNode(writeRequestNode,writeRequest.msg.type);
-		}
-		//Send to PPD
-		//ppd_status = 2-Esperando Write
-
-		//Disminuir la cantidad de threads que lo leyeron. Ver que se hace cuando es 1
-
-
-		//Volverlo a poner en la cola al principio (no me sirve el take)
-	}
-	pthread_mutex_unlock(&mutex_WRITE);
-	//Esperar respuesta?
-	//Enviar a PFS si habia sido el primero en leerlo
-	//ppd_status = 1;
-*/
-	handle_READ_request();
-return 0;
-}
-
-
-uint32_t handle_READ_request()//
-{
-	/*
-	pthread_mutex_lock(&mutex_READ);
-	queueNode_t* readRequestNode = QUEUE_takeNode(colaREAD);
-	read_node_content readRequest = readRequestNode->data;
-	QUEUE_destroyNode(readRequestNode,readRequest.msg.type);
-
-	pthread_mutex_unlock(&mutex_READ);
-	if (readRequest != NULL){
-		//Send to PPD
-		//ppd_status = 3-Esperando Read
-	}
-
-	//Esperar respuesta?
-	//Enviar a PFS
-	//ppd_status = 1;
-	*/
-	return 0;
-}

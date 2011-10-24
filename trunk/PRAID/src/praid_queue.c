@@ -6,36 +6,16 @@
  */
 #include <pthread.h>
 #include "praid_queue.h"
-#include "praid_comm.h"
-
-
-
-
-
-
-
-
-
-
-
-//A SER DEPRECADO, USAR COMMONS
+#include "tad_queue.h"
 
 /*
-uint32_t praid_READ_add(nipcMsg_t msgIn)
-{return 0;}
-uint32_t praid_WRITE_add(nipcMsg_t msgIn)
-{return 0;}
-uint32_t praid_READ_remove()
-{return 0;}
-uint32_t praid_WRITE_remove()
-{return 0;}
-uint32_t praid_READ_status()
-{return 0;}
-uint32_t praid_WRITE_status()
-{return 0;}
-read_node praid_READ_first()
-{read_node read_node1;return read_node1;}
-//Dame el primero
-write_node praid_WRITE_first()
-{write_node write_node1; return write_node1;}
+Crear PRAID_LIST
+Agregar nodo PRAID_LIST (Nuevo PPD)
+Agregar nodo SUBLISTA Tipo Read (Usa un puntero que va recorriendo)
+Agregar nodo SUBLISTA Tipo Write (A todos los nodos)
+Destruir nodo PRAID_LIST (en caso de fallo de disco, tiene que repartir pedidos pendientes)
+Destruir nodo SUBLISTA
+Buscar su nodo en PRAID_LIST, segun SocketPPD, o estado Synchronize
+Sacar nodo SUBLISTA (para leerlo)
+
 */

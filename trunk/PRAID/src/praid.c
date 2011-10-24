@@ -4,65 +4,56 @@
  *  Created on: 26/09/2011
  *      Author: utn_so
  */
-
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-#include <errno.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <assert.h>
 
 #include "config_manager.h"
-
 #include "praid_console.h"
-#include "praid_listener.h"
+#include "praid_ppd_handler.h"
 #include "praid_queue.h"
-#include "tad_queue.h"
 
-uint32_t raid_console = 0; //0 ENABLE - 1 DISABLE
-uint32_t raid_status = 0; //0 INACTIVE - 1 ACTIVE
-uint32_t ppd_thread_amount = 0; // CONTADOR DE THREADS DE PPD
+uint32_t RAID_CONSOLE = 0; //0 DISABLE - 1 ENABLE
+uint32_t RAID_STATUS = 0; //0 INACTIVE - 1 ACTIVE - 2 WAIT_FIRST_PPD_REPLY
+uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
 
+ppd_list_node PRAID_LIST;
 
-queue_t colaREAD;
-queue_t colaWrite;
-
-
-pthread_mutex_t mutex_console;
-pthread_mutex_t mutex_READ;
-pthread_mutex_t mutex_WRITE;
+pthread_mutex_t mutex_CONSOLE;
+pthread_mutex_t mutex_RAID_STATUS;
+pthread_mutex_t mutex_LIST;
 
 int main(int argc,char **argv){
-
+//Inicio Leer Archivo de Configuracion
 	config_param *praid_config;
 	CONFIG_read("config/praid.config",&praid_config);
-	raid_console  = atoi(CONFIG_getValue(praid_config,"Console"));
+	RAID_CONSOLE  = atoi(CONFIG_getValue(praid_config,"Console"));
+//Fin Leer archivo de Configuracion, seteada Variable Global raid_console
 
-	pthread_mutex_init(&mutex_console, NULL);
-	pthread_mutex_init(&mutex_READ, NULL);
-	pthread_mutex_init(&mutex_WRITE, NULL);
+	print_Console("Bienvenido Proceso RAID");//CONSOLE WELCOME
+//Inicio Seteo de Variables Iniciales
+	pthread_mutex_init(&mutex_CONSOLE, NULL);
+	pthread_mutex_init(&mutex_LIST, NULL);
+//Fin Seteo de Variables Iniciales
 
-	print_Console("Bienvenido Proceso RAID");
+//Inicio Creacion Sockets
+	//TODO Crear Sockets
+//Fin Creacion Sockets
+	while(1){
+		//TODO Escuchar Sockets
+		/*
+		Si es de PFS
+			receive_pfs(nipcMsg_t msgIn)
+		Si es de nuevo PPD
+			pthread_t ppd_thread;
+			pthread_create(&ppd_thread, NULL, ppd_handler_thread, SOCKET DE PPD NUEVO!);
+		*/
+	}
 
-	QUEUE_initialize(&colaREAD);
-	QUEUE_initialize(&colaWrite);
-
-
-	pthread_t listener_thread;
-	pthread_create(&listener_thread, NULL, praid_listener, NULL);
-	pthread_join(listener_thread, NULL);
-
-	//TODO Destruir Cola Read y Write, recorrerla y eliminar nodos
-
-	pthread_mutex_destroy(&mutex_console);
-	pthread_mutex_destroy(&mutex_READ);
-	pthread_mutex_destroy(&mutex_WRITE);
-
-
+//Inicio Liberar PRAID_LIST y variables
+	pthread_mutex_destroy(&mutex_CONSOLE);
+	pthread_mutex_destroy(&mutex_LIST);
 
 return 0;
 }
