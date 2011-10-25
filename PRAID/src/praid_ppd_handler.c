@@ -16,28 +16,22 @@
 
 extern uint32_t RAID_STATUS; //0 INACTIVE - 1 ACTIVE - 2 WAIT_FIRST_PPD_REPLY
 extern uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
-extern ppd_list_node PRAID_LIST;
+extern struct praid_list_node* PRAID_LIST;
 extern pthread_mutex_t mutex_LIST;
 extern pthread_mutex_t mutex_RAID_STATUS;
 
-void *ppd_handler_thread (void *data)
+void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 {
 	pthread_mutex_lock(&mutex_LIST);
-/*
-	Crea nodo PRAID_LIST
-	ppd_list_node* new = malloc(sizeof(ppd_list_node));
-	new->info.tid = (uint32_t)pthread_self();
-	new->info.ppdStatus = 1;//SINCRONIZANDO
-	SUBLISTA: Vacia
-	Socket PPD: SOCKET de PPD nuevo, pasado por valor desde el main (es el void *data)
-
-	new->next = PRAID_LIST;
-	PRAID_LIST = new;
-*/
+	uint32_t self_tid = (uint32_t)pthread_self();
+	praid_list_node* self_list_node = PRAID_list_appendNode(self_tid);
+	print_ConsoleInt(self_list_node->info->tid);// Funciona, escribe su TID por pantalla
 	pthread_mutex_unlock(&mutex_LIST);
 
 	while (1){
-		if(RAID_STATUS != 1){ //Si es el primer PPD que se conecta, pide informacion del disco (DISK_SECTORS_AMOUNT)
+		if(RAID_STATUS == 0 || RAID_STATUS == 2){
+			//Si es el primer PPD que se conecta, pide informacion del disco (DISK_SECTORS_AMOUNT)
+			//Por si acaso se cae el primer disco antes de recibir el pedido de DISK_SECTORS_AMOUNT, pregunto estado 2
 			pthread_mutex_lock(&mutex_RAID_STATUS);
 			RAID_STATUS = 2; //RAID ESPERANDO DISK_SECTORS_AMOUNT
 			pthread_mutex_unlock(&mutex_RAID_STATUS);
@@ -45,16 +39,16 @@ void *ppd_handler_thread (void *data)
 			//TODO Enviar Pedido de informacion de Disco (DISK_SECTORS_AMOUNT)
 			//Esperar respuesta
 			//Decodificar respuesta
-			//Setear DISK_SECTORS_AMOUNT
 		*/
-			pthread_mutex_lock(&mutex_RAID_STATUS);
-			RAID_STATUS = 0; //RAID ACTIVADO
-			pthread_mutex_unlock(&mutex_RAID_STATUS);
+			if(RAID_STATUS != 1){//Si no lo activaron a ultimo momento
+				//Setear DISK_SECTORS_AMOUNT
+				pthread_mutex_lock(&mutex_RAID_STATUS);
+				RAID_STATUS = 1; //RAID ACTIVADO
+				pthread_mutex_unlock(&mutex_RAID_STATUS);
 
-			print_Console("RAID Activado");//CONSOLE STATUS ACTIVE
-
+				print_Console("RAID Activado");//CONSOLE STATUS ACTIVE
+			}
 		}else{ //RAID tiene al menos un disco, estado ACTIVE
-			uint32_t i;
 			print_Console("Nuevo PPD");//CONSOLE NEW PPD
 			pthread_mutex_lock(&mutex_LIST);
 			/*
@@ -74,7 +68,7 @@ void *ppd_handler_thread (void *data)
 			pthread_mutex_lock(&mutex_LIST);
 
 		/*
-		Busca tu propio nodo en PRAID_LIST
+		Busca tu propio nodo en PRAID_LIST -> self_list_node
 		Si hay al menos un nodo en la SUBLISTA
 		Lo quita de la SUBLISTA
 		Lee el nodo de la SUBLISTA

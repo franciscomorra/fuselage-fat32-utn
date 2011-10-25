@@ -26,3 +26,14 @@ uint32_t print_Console (char *message){
 
 	return 0;
 }
+uint32_t print_ConsoleInt (uint32_t nro)
+{
+
+	if(RAID_CONSOLE == 1){
+		pthread_mutex_lock(&mutex_CONSOLE);
+		printf("%d \n",nro);
+		pthread_mutex_unlock(&mutex_CONSOLE);
+	}
+
+	return 0;
+}
