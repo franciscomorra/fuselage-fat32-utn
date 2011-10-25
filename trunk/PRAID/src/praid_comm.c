@@ -10,7 +10,7 @@
 #include "praid_queue.h"
 
 extern uint32_t RAID_STATUS; //0 INACTIVE - 1 ACTIVE
-extern ppd_list_node PRAID_LIST;
+extern struct praid_list_node* PRAID_LIST;
 extern pthread_mutex_t mutex_LIST;
 
 /*

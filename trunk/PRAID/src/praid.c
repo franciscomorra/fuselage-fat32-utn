@@ -18,36 +18,38 @@ uint32_t RAID_CONSOLE = 0; //0 DISABLE - 1 ENABLE
 uint32_t RAID_STATUS = 0; //0 INACTIVE - 1 ACTIVE - 2 WAIT_FIRST_PPD_REPLY
 uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
 
-ppd_list_node PRAID_LIST;
+praid_list_node* PRAID_LIST;
 
 pthread_mutex_t mutex_CONSOLE;
 pthread_mutex_t mutex_RAID_STATUS;
 pthread_mutex_t mutex_LIST;
 
 int main(int argc,char **argv){
+
 //Inicio Leer Archivo de Configuracion
 	config_param *praid_config;
 	CONFIG_read("config/praid.config",&praid_config);
 	RAID_CONSOLE  = atoi(CONFIG_getValue(praid_config,"Console"));
 //Fin Leer archivo de Configuracion, seteada Variable Global raid_console
 
-	print_Console("Bienvenido Proceso RAID");//CONSOLE WELCOME
 //Inicio Seteo de Variables Iniciales
 	pthread_mutex_init(&mutex_CONSOLE, NULL);
 	pthread_mutex_init(&mutex_LIST, NULL);
 //Fin Seteo de Variables Iniciales
 
-//Inicio Creacion Sockets
+	print_Console("Bienvenido Proceso RAID");//CONSOLE WELCOME
+	//Inicio Creacion Sockets
 	//TODO Crear Sockets
-//Fin Creacion Sockets
+	//Fin Creacion Sockets
+
 	while(1){
 		//TODO Escuchar Sockets
 		/*
 		Si es de PFS
 			receive_pfs(nipcMsg_t msgIn)
 		Si es de nuevo PPD
-			pthread_t ppd_thread;
-			pthread_create(&ppd_thread, NULL, ppd_handler_thread, SOCKET DE PPD NUEVO!);
+			pthread_t praid_ppd_thread;
+			pthread_create(&praid_ppd_thread, NULL, ppd_handler_thread, SOCKET DE PPD NUEVO!);
 		*/
 	}
 
