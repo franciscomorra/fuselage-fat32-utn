@@ -29,11 +29,9 @@ typedef struct praid_sublist_node_content{
 	nipcMsg_t msg;
 	uint32_t synch;//0=False - 1=True
 	//SOCKET PFS
-	struct praid_sublist_node_content *next;
-}ppd_sublist_node;
+}ppd_sublist_node_content;
 
 praid_list_node* PRAID_list_appendNode(uint32_t tid);
-
 
 
 
