@@ -16,16 +16,20 @@
 extern uint32_t RAID_CONSOLE;
 extern pthread_mutex_t mutex_CONSOLE;
 
-uint32_t print_Console (char *message){
+uint32_t print_Console (char *message, uint32_t threadID)
+{
 
 	if(RAID_CONSOLE == 1){
 		pthread_mutex_lock(&mutex_CONSOLE);
-		printf("%s \n",message);
+		printf("%s - TID: %d \n",message,threadID);
 		pthread_mutex_unlock(&mutex_CONSOLE);
 	}
 
 	return 0;
+
 }
+
+/*
 uint32_t print_ConsoleInt (uint32_t nro)
 {
 
@@ -36,4 +40,4 @@ uint32_t print_ConsoleInt (uint32_t nro)
 	}
 
 	return 0;
-}
+}*/
