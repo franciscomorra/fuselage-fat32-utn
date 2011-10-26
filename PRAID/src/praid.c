@@ -53,9 +53,6 @@ int main(int argc,char **argv){
 		*/
 	//}
 
-//Inicio Liberar PRAID_LIST y variables
-	pthread_mutex_destroy(&mutex_CONSOLE);
-	pthread_mutex_destroy(&mutex_LIST);
 	print_Console("Adios Proceso RAID",(uint32_t)pthread_self());//CONSOLE WELCOME
 
 return 0;
