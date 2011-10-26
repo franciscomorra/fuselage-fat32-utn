@@ -14,7 +14,10 @@
 #include <string.h>
 #include <pthread.h>
 
+uint32_t print_Console (char *message, uint32_t threadID);
+
+/*
 uint32_t print_Console (char *);
 uint32_t print_ConsoleInt (uint32_t );
-
+*/
 #endif /* PRAID_CONSOLE_H_ */
