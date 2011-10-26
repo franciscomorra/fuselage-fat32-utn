@@ -25,7 +25,6 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 	pthread_mutex_lock(&mutex_LIST);
 	uint32_t self_tid = (uint32_t)pthread_self();
 	praid_list_node* self_list_node = PRAID_list_appendNode(self_tid);
-	print_ConsoleInt(self_list_node->info->tid);// Funciona, escribe su TID por pantalla
 	pthread_mutex_unlock(&mutex_LIST);
 
 	while (1){
@@ -46,10 +45,10 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 				RAID_STATUS = 1; //RAID ACTIVADO
 				pthread_mutex_unlock(&mutex_RAID_STATUS);
 
-				print_Console("RAID Activado");//CONSOLE STATUS ACTIVE
+				print_Console("RAID Activado",(uint32_t)pthread_self());//CONSOLE STATUS ACTIVE
 			}
 		}else{ //RAID tiene al menos un disco, estado ACTIVE
-			print_Console("Nuevo PPD");//CONSOLE NEW PPD
+			print_Console("Nuevo PPD",(uint32_t)pthread_self());//CONSOLE NEW PPD
 			pthread_mutex_lock(&mutex_LIST);
 			/*
 				Crea nodo y lo agrega en la SUBLISTA del primer nodo de PRAID_LIST
@@ -62,7 +61,7 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 
 
 		}
-		print_Console("Iniciando Sincronizacion");//CONSOLE INICIO_SYNCHRONIZE
+		print_Console("Iniciando Sincronizacion",(uint32_t)pthread_self());//CONSOLE INICIO_SYNCHRONIZE
 
 		while(1){
 			pthread_mutex_lock(&mutex_LIST);

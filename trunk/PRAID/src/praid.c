@@ -37,12 +37,12 @@ int main(int argc,char **argv){
 	pthread_mutex_init(&mutex_LIST, NULL);
 //Fin Seteo de Variables Iniciales
 
-	print_Console("Bienvenido Proceso RAID");//CONSOLE WELCOME
+	print_Console("Bienvenido Proceso RAID",(uint32_t)pthread_self());//CONSOLE WELCOME
 	//Inicio Creacion Sockets
 	//TODO Crear Sockets
 	//Fin Creacion Sockets
 
-	while(1){
+	//while(1){
 		//TODO Escuchar Sockets
 		/*
 		Si es de PFS
@@ -51,11 +51,12 @@ int main(int argc,char **argv){
 			pthread_t praid_ppd_thread;
 			pthread_create(&praid_ppd_thread, NULL, ppd_handler_thread, SOCKET DE PPD NUEVO!);
 		*/
-	}
+	//}
 
 //Inicio Liberar PRAID_LIST y variables
 	pthread_mutex_destroy(&mutex_CONSOLE);
 	pthread_mutex_destroy(&mutex_LIST);
+	print_Console("Adios Proceso RAID",(uint32_t)pthread_self());//CONSOLE WELCOME
 
 return 0;
 }
