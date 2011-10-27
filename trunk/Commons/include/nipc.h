@@ -14,6 +14,7 @@ typedef struct NIPC_msg {
 	char *payload;
 } __attribute__((__packed__)) nipcMsg_t;
 
+
 typedef struct {
 	nipcMsg_t msg;
 	struct NIPC_node* next;
@@ -22,5 +23,7 @@ typedef struct {
 nipcMsg_t NIPC_createMsg(NIPC_type type,uint32_t len, char* payload);
 
 void NIPC_cleanMsg(nipcMsg_t* msg);
+
+char* NIPC_createCharMsg(NIPC_type type,uint32_t payload_bytes_len,char* payload_bytes);
 
 #endif /* PRAID_REQUEST_H_ */
