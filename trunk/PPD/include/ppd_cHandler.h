@@ -8,10 +8,10 @@
 #ifndef CHANDLER_H_
 #define CHANDLER_H_
 
-void CHANDLER_main();
+//se encarga de gestionar pedidos info de la consola
+void CHANDLER_info(char*);
 
-void CHANDLER_info();
-
-void CHANDLER_manager();
+//se encarga de hacer la conexion para la consola
+uint32_t CHANDLER_connect(uint32_t*);
 
 #endif /* CHANDLER_H_ */

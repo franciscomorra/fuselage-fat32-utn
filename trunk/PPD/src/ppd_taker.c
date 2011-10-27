@@ -14,32 +14,24 @@ extern uint32_t bytes_perSector;
 uint32_t headPosition;
 uint32_t sectorNum;
 
+void TAKER_handleRequest(requestNode_t* request){
 
-nipcMsg_t TAKER_handleRequest(requestNode_t* request){
-
-	nipcMsg_t msg;
 	sectorNum = TAKER_turnToSectorNum(request);
 	switch (request->type)
 	{
-	case READ_SECTORS:{
-		char* buf = malloc((sizeof(char)*bytes_perSector) + sizeof(uint32_t));
-
-		memcpy(buf,&sectorNum,4);
-		read_sector(file_descriptor,sectorNum,buf+4);
-		msg = NIPC_createMsg(request->type,bytes_perSector + 4,buf);
-		break;
+		case READ_SECTORS:{
+			request->payload = malloc(sizeof(char)*bytes_perSector);
+			read_sector(file_descriptor,sectorNum,request->payload);
+			memcpy(request->len, &bytes_perSector,2);
+			break;
 		}
-	case WRITE_SECTORS:{
-		write_sector(file_descriptor, sectorNum, request->payload);
-		msg = NIPC_createMsg(request->type,4,(char*)sectorNum);
-		break;
-	 	}
+		case WRITE_SECTORS:{
+			write_sector(file_descriptor, sectorNum, request->payload);
+			break;
+		}
 	}
 	headPosition = sectorNum;
-	return msg; //por alguna razon cuando queria que devuelva el msg por parametro me aparecia "out of bound" el payload
-				// entonces tuve que hacer que lo devuela con el return
 }
-
 
 uint32_t TAKER_turnToSectorNum(requestNode_t* CHSnode){
 	uint32_t sectorNum;

@@ -11,8 +11,8 @@
 // definida en el ppd_main por un tema de threads
 void TAKER_main();
 
-// atiende al pedido que el algoritmo saca de la cola y lo manda por sockets
-nipcMsg_t TAKER_handleRequest(requestNode_t*);
+// atiende al pedido que el algoritmo saca de la cola
+void TAKER_handleRequest(requestNode_t*);
 
 // cambia de CHS a numero de sector para poder enviarlo en el payload del nipcMsg_t
 uint32_t TAKER_turnToSectorNum(requestNode_t* CHSnode);
