@@ -11,10 +11,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
-uint32_t console_info();
+uint32_t console_info(uint32_t);
 
-uint32_t console_clean(queue_t parameters);
+uint32_t console_clean(queue_t,uint32_t);
 
-uint32_t console_trace(queue_t,uint32_t);
+uint32_t console_trace(queue_t,uint32_t,uint32_t);
 
 #endif /* PPDCONSOLE_COMMAND_H_ */

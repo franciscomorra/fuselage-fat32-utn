@@ -38,7 +38,6 @@ uint32_t ppd_send(char* msg,uint32_t fd)
 		send(fd,msg,15,NULL);
 	}
 	return 1;
-
 }
 
 uint32_t ppd_receive(char* msgIn,uint32_t fd) {
@@ -58,30 +57,6 @@ uint32_t ppd_receive(char* msgIn,uint32_t fd) {
 			break;
 		}
 
-/*
-			uint32_t a;
-			queueNode_t* queueNode;
-
-			memcpy(&a, msgIn.payload, 4);
-			requestNode_t* request = malloc(sizeof(requestNode_t));
-			COMMON_turnToCHS(a,request);
-			request->type = msgIn.type;
-
-			memcpy(&a, msgIn.len, 2);
-			request->len = a - 4;
-
-			request->payload = malloc(r	break;equest->len);
-			memcpy(request->payload, msgIn.payload + 4, request->len);
-			//TODO sender
-
-			queueNode = QUEUE_createNode(request);
-			sem_wait(&mainMutex);
-			QUEUE_appendNode(queue, queueNode);
-			sem_post(&mainMutex);
-			//agregar tambien el mutex de la consola
-			sem_post(&queueElemSem);
-			break;
-	*/
 		default:{
 			if(msgIn[0] == READ_SECTORS || msgIn[0] == WRITE_SECTORS){
 
@@ -90,16 +65,10 @@ uint32_t ppd_receive(char* msgIn,uint32_t fd) {
 
 				request = TRANSLATE_fromCharToRequest(msgIn,fd);
 
-				if(msgIn[0] == WRITE_SECTORS){
-					request->payload = malloc(*request->len);
-					memcpy(request->payload, msgIn+7, *request->len);
-				}
-
 				queueNode = QUEUE_createNode(request);
 				sem_wait(&mainMutex);
 				QUEUE_appendNode(queue, queueNode);
 				sem_post(&mainMutex);
-				//agregar tambien el mutex de la consola
 				sem_post(&queueElemSem);
 
 
@@ -144,4 +113,9 @@ char* COMM_createCharMessage(NIPC_type type,uint32_t payload_bytes_len)
 	memset(msg+3,0,payload_bytes_len);
 	return msg;
 }
+/*
+uint32_t COMM_recvAll(uint32_t fd,void* msg){
 
+	recv(fd,msg,sizeof(msg),0);
+}
+*/

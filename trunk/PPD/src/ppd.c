@@ -42,7 +42,6 @@ sem_t mainMutex;
 
 //struct pollfd pollFds[2];
 
-
 int main(int argc, char *argv[])
 {
 	file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR);
@@ -97,6 +96,7 @@ int main(int argc, char *argv[])
 	CHANDLER_connect(&consoleFD);		//conecta la consola
 	COMM_connect(&listenFD);			//crea un descriptor de socket encargado de recibir conexiones entrantes
 
+	FD_ZERO(&masterFDs);
 	FD_SET(listenFD,&masterFDs); 		//agrego el descriptor que recibe conexiones al conjunto de FDs
 	FD_SET(consoleFD,&masterFDs);		//agrego el descriptor de la consola al conjunto de FDs
 
@@ -106,6 +106,7 @@ int main(int argc, char *argv[])
 		FDmax = consoleFD;
 
 	while(1){
+		FD_ZERO(&readFDs);
 		readFDs = masterFDs;
 		if(select(FDmax+1, &readFDs,NULL,NULL,NULL) == -1)
 			perror("select");
@@ -120,26 +121,24 @@ int main(int argc, char *argv[])
 						if(newFD > FDmax)
 							FDmax = newFD;
 					}
+				} else { //datos de un cliente
+					uint32_t recvReturn = 0;
+					char* msgIn = malloc(bytes_perSector + 7);
+					if((recvReturn = recv(currFD,msgIn,519,0)) == 0)
+					{
+						close(currFD);
+						FD_CLR(currFD,&masterFDs);
+					} else
+						ppd_receive(msgIn,currFD);
+					//memset(msgIn,0,sizeof(msgIn));
+					free(msgIn);
 				}
-			} else { //datos de un cliente
-				uint32_t recvReturn;
-				char* msgIn = malloc(bytes_perSector + 3);
-				if((recvReturn = recv(currFD,msgIn,sizeof(msgIn),0)) == 0){
-					close(currFD);
-					FD_CLR(currFD,&masterFDs);
-				} else
-					ppd_receive(msgIn,currFD);
-				free(msgIn);
 			}
 		}
 	}
 
-
-
 /*
- *
- *
-	CHANDLER_connect(&pollFds[0].fd); //posicion 0 del pollFds siempre perteneciente a la consola del ppd
+ CHANDLER_connect(&pollFds[0].fd); //posicion 0 del pollFds siempre perteneciente a la consola del ppd
 
 
 	while(1){
@@ -176,16 +175,10 @@ void TAKER_main() {
 
 		uint32_t a;
 		memcpy(&a,msg+3,4);
-		printf("%d\n",a);								//temporal
+		printf("%d\n",a);		//temporal, muestra los sectores atendidos
 
 		free(msg);
 		free(request);
 		sem_post(&mainMutex);
 	}
 }
-/*
-void CHANDLER_main(void) {
-	while(1)
-		CHANDLER_manager();
-}
-*/

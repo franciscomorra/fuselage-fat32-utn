@@ -9,6 +9,6 @@
 #ifndef PPDCONSOLE_CONNECT_H_
 #define PPDCONSOLE_CONNECT_H_
 
-void CONNECT_toProcess(struct sockaddr_un remote);
+uint32_t CONNECT_toProcess(uint32_t*);
 
 #endif /* PPDCONSOLE_CONNECT_H_ */

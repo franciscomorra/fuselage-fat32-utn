@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "ppd_common.h"
 #include "ppd_translate.h"
+#include "ppd_taker.h"
 
 
 requestNode_t* TRANSLATE_fromCharToRequest(char* msg,uint32_t sockFD)
@@ -14,8 +15,15 @@ requestNode_t* TRANSLATE_fromCharToRequest(char* msg,uint32_t sockFD)
 	memcpy(&a,msg+3,4);
 	COMMON_turnToCHS(a,request);
 	request->type = msg[0];
-	memcpy(request->len,msg+1,2);
+	uint32_t len = 0;
+	memcpy(&len,(msg+1),2);
+	len = len - 4;
+	memcpy(request->len,&len,2);				//TODO mejorar para restar 4 al len del msg sin necesidad de variable de paso
 	request->sender = sockFD;
+	if(*msg == WRITE_SECTORS){
+		request->payload = malloc(len);			//sirve para grabar en el payload la cantidad de datos que se quieren escribir en el disco
+		memcpy(request->payload, msg+7,len); 	//TODO mejorar para no usar variable de paso
+	}
 	return request;
 }
 

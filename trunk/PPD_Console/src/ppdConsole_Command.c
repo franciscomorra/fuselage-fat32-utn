@@ -1,5 +1,3 @@
-
-
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -9,17 +7,14 @@
 #include "ppdConsole_Command.h"
 #include "nipc.h"
 
-extern uint32_t sockCHandler;
+uint32_t console_info(uint32_t ppdFD) {
+	char* msg = NIPC_createCharMsg(PPDCONSOLE_INFO,12,NULL);
 
-uint32_t console_info() {
-	char* msg = malloc(3+3*sizeof(uint32_t));
-
-	*msg = PPDCONSOLE_INFO;
-    if (send(sockCHandler, msg, 15, 0) == -1) {
+    if (send(ppdFD, msg, 15, 0)== -1) {
         perror("send");
         exit(1);
     }
-    if(recv(sockCHandler,msg,15,0) == -1)  {
+    if(recv(ppdFD,msg,15,0) == -1)  {
     	perror("recv");
     	exit(1);
     }
@@ -33,7 +28,7 @@ uint32_t console_info() {
 	return 1;
 }
 
-uint32_t console_clean(queue_t parameters){
+uint32_t console_clean(queue_t parameters,uint32_t ppdFD){
 	uint32_t i;
 	char* payload = malloc(516);
 	char* msg;
@@ -43,9 +38,10 @@ uint32_t console_clean(queue_t parameters){
 
 	for(i=firstSector;i<=lastSector;i++){
 		memcpy(payload,&i,sizeof(uint32_t));
-		memset(payload + sizeof(uint32_t),0,512);
-		msg = NIPC_createCharMsg(WRITE_SECTORS,512,payload);
-	    if (send(sockCHandler, msg, 516, 0) == -1) {
+		memset(payload + sizeof(uint32_t),'\0',512);
+		msg = NIPC_createCharMsg(WRITE_SECTORS,516,payload);
+		uint32_t sendReturn;
+	    if ((sendReturn = send(ppdFD, msg, 519, 0)) == -1) {
 	        perror("send");
 	        exit(1);
 	    }
@@ -55,7 +51,7 @@ uint32_t console_clean(queue_t parameters){
 	return 1;
 }
 
-uint32_t console_trace(queue_t parameters,uint32_t len){
+uint32_t console_trace(queue_t parameters,uint32_t len,uint32_t ppdFD){
 	uint32_t i;
 	nipcMsg_t msg;
 	char* payload = malloc(4);
