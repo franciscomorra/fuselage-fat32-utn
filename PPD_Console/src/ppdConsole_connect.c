@@ -8,7 +8,7 @@
 #include <sys/un.h>
 #include "ppdConsole_connect.h"
 
-extern uint32_t sockCHandler;
+uint32_t sockCHandler;
 
 void CONNECT_toProcess(struct sockaddr_un remote){
 

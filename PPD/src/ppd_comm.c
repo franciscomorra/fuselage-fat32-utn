@@ -1,53 +1,99 @@
-
 #include <fcntl.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 #include <semaphore.h>
+//#include <poll.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "nipc.h"
 #include "ppd_SSTF.h"
 #include "ppd_comm.h"
 #include "tad_queue.h"
+#include "ppd_common.h"
+#include "ppd_translate.h"
+#include "ppd_cHandler.h"
 
+#define PORT 9034
 
 extern queue_t* queue;
-extern sem_t queueElemSem;
 extern sem_t mainMutex;
+//extern struct pollfd pollFds[2];
+extern sem_t queueElemSem;
 
-uint32_t ppd_send(nipcMsg_t msg)
+
+uint32_t ppd_send(char* msg,uint32_t fd)
 {
-
+	if(msg[0] == PPDCONSOLE_INFO){
+	/*	pollFds[0].events = POLLOUT;
+		poll(pollFds,2,-1);// avisame cuando pueda mandar datos
+		if(pollFds[sockFD].revents & POLLOUT){
+			if(send(pollFds[sockFD].fd,msg,15,NULL) == -1)
+				perror("send");
+		}
+	*/
+		send(fd,msg,15,NULL);
+	}
 	return 1;
+
 }
 
-uint32_t ppd_receive(nipcMsg_t msgIn) {
+uint32_t ppd_receive(char* msgIn,uint32_t fd) {
 
 	/* Se obtienen los distintos campos del mensaje IPC*/
 
-	switch (msgIn.type) {
+	switch (msgIn[0]) {
 		case HANDSHAKE:
 				//TODO Handshake
 			break;
 
-		case PPDCONSOLE_INFO:
-			//CHANDLER_info();
+		case PPDCONSOLE_INFO:{
+			char* consoleMsg = COMM_createCharMessage(PPDCONSOLE_INFO,3*sizeof(uint32_t)); //crea un msg con un payload mas grande
+			CHANDLER_info(consoleMsg);
+			ppd_send(consoleMsg,fd);
+			free(consoleMsg);
 			break;
+		}
 
-		default: {
-			if ((msgIn.type == WRITE_SECTORS) || (msgIn.type == READ_SECTORS)) {
-				uint32_t a;
+/*
+			uint32_t a;
+			queueNode_t* queueNode;
+
+			memcpy(&a, msgIn.payload, 4);
+			requestNode_t* request = malloc(sizeof(requestNode_t));
+			COMMON_turnToCHS(a,request);
+			request->type = msgIn.type;
+
+			memcpy(&a, msgIn.len, 2);
+			request->len = a - 4;
+
+			request->payload = malloc(r	break;equest->len);
+			memcpy(request->payload, msgIn.payload + 4, request->len);
+			//TODO sender
+
+			queueNode = QUEUE_createNode(request);
+			sem_wait(&mainMutex);
+			QUEUE_appendNode(queue, queueNode);
+			sem_post(&mainMutex);
+			//agregar tambien el mutex de la consola
+			sem_post(&queueElemSem);
+			break;
+	*/
+		default:{
+			if(msgIn[0] == READ_SECTORS || msgIn[0] == WRITE_SECTORS){
+
+				requestNode_t* request;
 				queueNode_t* queueNode;
 
-				memcpy(&a, msgIn.payload, 4);
-				requestNode_t* request = malloc(sizeof(requestNode_t));
-				COMMON_turnToCHS(a,request);
-				request->type = msgIn.type;
+				request = TRANSLATE_fromCharToRequest(msgIn,fd);
 
-				memcpy(&a, msgIn.len, 2);
-				request->len = a - 4;
-
-				request->payload = malloc(request->len);
-				memcpy(request->payload, msgIn.payload + 4, request->len);
-				//TODO sender
+				if(msgIn[0] == WRITE_SECTORS){
+					request->payload = malloc(*request->len);
+					memcpy(request->payload, msgIn+7, *request->len);
+				}
 
 				queueNode = QUEUE_createNode(request);
 				sem_wait(&mainMutex);
@@ -55,8 +101,47 @@ uint32_t ppd_receive(nipcMsg_t msgIn) {
 				sem_post(&mainMutex);
 				//agregar tambien el mutex de la consola
 				sem_post(&queueElemSem);
+
+
 			}
+			break;
 		}
-			return 0;
 	}
+			return 0;
 }
+
+uint32_t COMM_connect(uint32_t* listenFD){
+
+	struct sockaddr_in myaddr;
+
+	if((*listenFD = socket(AF_INET,SOCK_STREAM,0)) == -1){
+		perror("socket");
+		exit(1);
+	}
+	myaddr.sin_family = AF_INET;
+	myaddr.sin_addr.s_addr = INADDR_ANY;
+	myaddr.sin_port = htons(PORT);
+	memset(&(myaddr.sin_zero),'\0',8);
+
+	if(bind(*listenFD,(struct sockaddr *)&myaddr,sizeof(myaddr))==-1){
+		perror("bind");
+		exit(1);
+	}
+	if(listen(*listenFD,10) == -1){
+		perror("listen");
+		exit(1);
+	}
+
+	return 0;
+}
+
+char* COMM_createCharMessage(NIPC_type type,uint32_t payload_bytes_len)
+{
+	char* msg = malloc(payload_bytes_len + 3);
+
+	msg[0] = type;
+	memcpy(msg+1,&payload_bytes_len,2);
+	memset(msg+3,0,payload_bytes_len);
+	return msg;
+}
+

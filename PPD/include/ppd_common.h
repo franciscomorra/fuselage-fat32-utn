@@ -18,9 +18,9 @@ typedef struct requestNode_t {
 	uint32_t cylinder;
 	uint32_t head;
 	uint32_t sector;
-	uint32_t len;
+	char len[2];
+	uint32_t sender;
 	char* payload;
-	char* sender;
 	struct requestNode_t* next;
 } __attribute__((__packed__)) requestNode_t;
 

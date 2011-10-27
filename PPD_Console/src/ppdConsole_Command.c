@@ -9,24 +9,34 @@
 #include "ppdConsole_Command.h"
 #include "nipc.h"
 
-uint32_t sockCHandler;
+extern uint32_t sockCHandler;
 
 uint32_t console_info() {
-	nipcMsg_t msg;
+	char* msg = malloc(3+3*sizeof(uint32_t));
 
-	msg = NIPC_createMsg(PPDCONSOLE_INFO,0,0);
-    if (send(sockCHandler, &msg, sizeof(nipcMsg_t), 0) == -1) {
+	*msg = PPDCONSOLE_INFO;
+    if (send(sockCHandler, msg, 15, 0) == -1) {
         perror("send");
         exit(1);
     }
+    if(recv(sockCHandler,msg,15,0) == -1)  {
+    	perror("recv");
+    	exit(1);
+    }
+    uint32_t C,H,S;
+    memcpy(&C,msg+3,4);
+    memcpy(&H,msg+7,4);
+    memcpy(&S,msg+11,4);
+    printf("La posicion actual del cabezal es: (%d,%d,%d).\n",C,H,S);
+    free(msg);
 
 	return 1;
 }
 
 uint32_t console_clean(queue_t parameters){
 	uint32_t i;
-	nipcMsg_t msg;
 	char* payload = malloc(516);
+	char* msg;
 
 	uint32_t firstSector = atoi(parameters.begin->data);
 	uint32_t lastSector = atoi(parameters.end->data);
@@ -34,12 +44,14 @@ uint32_t console_clean(queue_t parameters){
 	for(i=firstSector;i<=lastSector;i++){
 		memcpy(payload,&i,sizeof(uint32_t));
 		memset(payload + sizeof(uint32_t),0,512);
-		msg = NIPC_createMsg(WRITE_SECTORS,516,payload);
-		//Aca hay q enviar el mensaje al ppd
-
-		//Tengo que hacer el free del payload no???
+		msg = NIPC_createCharMsg(WRITE_SECTORS,512,payload);
+	    if (send(sockCHandler, msg, 516, 0) == -1) {
+	        perror("send");
+	        exit(1);
+	    }
 	}
-
+	free(msg);
+	free(payload);
 	return 1;
 }
 

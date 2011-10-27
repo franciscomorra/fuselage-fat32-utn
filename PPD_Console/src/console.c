@@ -5,10 +5,7 @@
 #include "ppdConsole_connect.h"
 
 #define CANTMAX (7*5)+6+5									//TEMPORAL (va la cantidad maxima de letras q tiene lo ingresado por teclado)
-#define SOCK_PATH "CONSOLE_socket"
-
-uint32_t sockCHandler;
-
+#define SOCK_PATH "/home/utn_so/CONSOLE_socket"
 
 void main () {
 	char* input = malloc(CANTMAX);							//aloco memoria para el ingreso del teclado
@@ -27,6 +24,7 @@ void main () {
 	if (fgets(input,CANTMAX,stdin) == 0 )
 		printf("error fgets\n");
 
+
 	CONSOLE_getCommand(input,command,&parameters,&len);
 
 	while((strcmp(command,"exit")) != 0){
@@ -34,11 +32,12 @@ void main () {
 		if ((strcmp(command,"info")) == 0)
 			console_info();									//funcion que hace el info
 
-		if ((strcmp(command,"clean")) == 0)
+		if ((strcmp(command,"clean")) == 0){
 			if(len == 2)
 				console_clean(parameters);					//funcion que hace el clean
 			else
-				printf("Cantidad de parametros erronea");
+				printf("Cantidad de parametros erronea \n");
+		}
 
 		if ((strcmp(command,"trace")) == 0)
 			console_trace(parameters,len);					//funcion que hace el trace
