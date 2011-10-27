@@ -19,6 +19,7 @@
 extern uint32_t headPosition;
 
 uint32_t CHANDLER_connect(uint32_t* consoleFD){
+
 	uint32_t connectFD,remoteAddrLen,len;
 	struct sockaddr_un local, remote;
 
@@ -37,11 +38,11 @@ uint32_t CHANDLER_connect(uint32_t* consoleFD){
 		exit(1);
 	}
 
-	if (listen(connectFD, 10) == -1) {
+	if (listen(connectFD, 1) == -1) {
 		perror("listen");
 		exit(1);
 	}
-		printf("Waiting for a connection...\n");
+	printf("Waiting for a connection...\n");
 
 	remoteAddrLen = sizeof(remote);
 	if ((*consoleFD = accept(connectFD, (struct sockaddr *) &remote,	&remoteAddrLen)) == -1) {
@@ -49,6 +50,7 @@ uint32_t CHANDLER_connect(uint32_t* consoleFD){
 		exit(1);
 	}
 	printf("Connected.\n");
+
 	return 0;
 }
 

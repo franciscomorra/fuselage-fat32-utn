@@ -30,7 +30,7 @@ void TAKER_handleRequest(requestNode_t* request){
 			break;
 		}
 	}
-	headPosition = sectorNum;
+	headPosition = sectorNum+1;
 }
 
 uint32_t TAKER_turnToSectorNum(requestNode_t* CHSnode){

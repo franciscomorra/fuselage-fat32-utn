@@ -13,12 +13,9 @@ void main () {
 	queue_t parameters;
 	QUEUE_initialize(&parameters);							//aloco memoria para guardar los parametros
 	uint32_t len;
+	uint32_t ppdFD;
 
-    struct sockaddr_un remote;
-    remote.sun_family = AF_UNIX;
-    strcpy(remote.sun_path, SOCK_PATH);
-
-    CONNECT_toProcess(remote);
+    CONNECT_toProcess(&ppdFD);
 
 	printf("Ingrese un Comando\n");
 	if (fgets(input,CANTMAX,stdin) == 0 )
@@ -30,17 +27,17 @@ void main () {
 	while((strcmp(command,"exit")) != 0){
 
 		if ((strcmp(command,"info")) == 0)
-			console_info();									//funcion que hace el info
+			console_info(ppdFD);									//funcion que hace el info
 
 		if ((strcmp(command,"clean")) == 0){
 			if(len == 2)
-				console_clean(parameters);					//funcion que hace el clean
+				console_clean(parameters,ppdFD);					//funcion que hace el clean
 			else
 				printf("Cantidad de parametros erronea \n");
 		}
 
 		if ((strcmp(command,"trace")) == 0)
-			console_trace(parameters,len);					//funcion que hace el trace
+			console_trace(parameters,len,ppdFD);					//funcion que hace el trace
 
 
 		//TODO Si no reconoce el comando entonces lo informa.
