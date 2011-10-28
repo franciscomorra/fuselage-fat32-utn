@@ -8,11 +8,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
+#include <sys/socket.h>
+#include <errno.h>
 #include "config_manager.h"
 #include "praid_console.h"
 #include "praid_ppd_handler.h"
 #include "praid_queue.h"
+#include <sys/types.h>
+#include <netinet/in.h>
+//datos para el select
+
+fd_set masterFDs;					//conjunto total de FDs que queremos administrar
+fd_set readFDs;						//conjunto de FDs de los que deseamos recibir datos
+uint32_t newFD;						//nuevo descriptor de socket de alguna nueva conexion
+uint32_t FDmax;						//mayor descriptor de socket
+uint32_t consoleFD;					//FD correspondiente a la consola
+uint32_t listenFD;					//FD encargado de escuchar nuevas conexiones
+struct sockaddr_in remoteaddr;		//struct correspondiente a una nueva conexion
+uint32_t addrlen;
+uint32_t currFD;					//current fd sirve para saber que fd tuvo cambios
+
+
 
 uint32_t RAID_CONSOLE = 0; //0 DISABLE - 1 ENABLE
 uint32_t RAID_STATUS = 0; //0 INACTIVE - 1 ACTIVE - 2 WAIT_FIRST_PPD_REPLY
@@ -40,11 +56,53 @@ int main(int argc,char **argv){
 	print_Console("Bienvenido Proceso RAID",(uint32_t)pthread_self());//CONSOLE WELCOME
 	//Inicio Creacion Sockets
 	//TODO Crear Sockets
+
+	Create_Sockets_INET(&listenFD);
+
 	//Fin Creacion Sockets
 
-	//while(1){
+
 		//TODO Escuchar Sockets
-		/*
+
+	    FD_ZERO(&masterFDs);
+		FD_SET(listenFD,&masterFDs);  //agrego el descriptor que recibe conexiones al conjunto de FDs
+
+		FDmax=listenFD;   //   por ahora es este porque no hay otro
+
+				while(1){
+					FD_ZERO(&readFDs);
+					readFDs = masterFDs;
+					if(select(FDmax+1, &readFDs,NULL,NULL,NULL) == -1)
+						perror("select");
+					for(currFD = 0; currFD <= FDmax; currFD++){
+						if(FD_ISSET(currFD,&readFDs)){	//hay datos nuevos
+							if( currFD == listenFD){	//nueva conexion
+								addrlen = sizeof(remoteaddr);
+								if((newFD = accept(listenFD,(struct sockaddr *)&remoteaddr,&addrlen))==-1)
+									perror("accept");
+								 else {
+									FD_SET(newFD,&masterFDs);
+									if(newFD > FDmax)
+										FDmax = newFD;
+								}
+							} else { //datos de un cliente
+								uint32_t recvReturn = 0;
+								char* msgIn = malloc(512 + 7);
+								if((recvReturn = recv(currFD,msgIn,519,0)) == 0)//aca el cliente cerro conexion
+								{
+									close(currFD);
+									FD_CLR(currFD,&masterFDs);
+								} //else
+									//aca tengo que preguntar el tipo del msj para saber si es PPD o PFS
+								//ppd_receive(msgIn,currFD);
+								//memset(msgIn,0,sizeof(msgIn));
+								free(msgIn);
+							}
+						}
+					}
+				}
+
+	/*
 		Si es de PFS
 			receive_pfs(nipcMsg_t msgIn)
 		Si es de nuevo PPD
