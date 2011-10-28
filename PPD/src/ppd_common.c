@@ -1,5 +1,7 @@
 
 #include <ppd_common.h>
+#include <string.h>
+#include <stdlib.h>
 
 void COMMON_turnToCHS(uint32_t sectorNum,requestNode_t* new){
 

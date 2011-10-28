@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
-#include <unistd.h>
+#include <unistd.h>			//entre otras cosas sleep()
 #include <fcntl.h>
 #include <semaphore.h>
 #include <pthread.h>
@@ -34,6 +34,7 @@ uint32_t Head;
 uint32_t Sector;
 uint32_t TrackJumpTime;
 uint32_t headPosition;
+uint32_t SectorJumpTime;
 uint32_t bytes_perSector;
 uint32_t file_descriptor;
 queue_t* queue;
@@ -47,7 +48,7 @@ int main(int argc, char *argv[])
 	file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR);
 	bytes_perSector = 512;
 	queue = malloc(sizeof(queue_t));
-	pthread_t TAKERtid;					// thread taker
+	pthread_t TAKERtid;					//thread taker
 	fd_set masterFDs;					//conjunto total de FDs que queremos administrar
 	fd_set readFDs;						//conjunto de FDs de los que deseamos recibir datos
 	uint32_t newFD;						//nuevo descriptor de socket de alguna nueva conexion
@@ -57,6 +58,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_in remoteaddr;		//struct correspondiente a una nueva conexion
 	uint32_t addrlen;
 	uint32_t currFD;					//current fd sirve para saber que fd tuvo cambios
+	uint32_t RPM;						//No es global ya que solo me interesa comunicar el SectorJumpTime
 
 	sem_init(&queueElemSem,0,0);
 	sem_init(&mainMutex,0,1);
@@ -74,6 +76,9 @@ int main(int argc, char *argv[])
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));				//	leer archivo de configuración
 	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));	//
 	headPosition = atoi(CONFIG_getValue(ppd_config,"HeadPosition"));	//
+	RPM = atoi(CONFIG_getValue(ppd_config,"RPM"));						//
+
+	SectorJumpTime = RPM / 60000 * Sector;// RPm/60 -> RPs/1000 -> RPms*Sector = tiempo entre sectores
 
 	char* msg;
 	for(i = 0; i < 7; i++){
@@ -153,7 +158,7 @@ int main(int argc, char *argv[])
 		} else { //se fija por eventos de la consola
 			if(pollFds[0].revents & POLLIN){
 				recv(pollFds[0].fd,msgIn,sizeof(msgIn),NULL);
-				ppd_receive(msgIn,0);
+				ppd_recei65536ve(msgIn,0);
 			}
 			free(msgIn);
 		}
@@ -169,13 +174,14 @@ void TAKER_main() {
 
 		requestNode_t* request = SSTF_takeRequest(queue);
 
-		TAKER_handleRequest(request);
+		TAKER_handleRequest(queue,request);
 		char* msg = TRANSLATE_fromRequestToChar(request);
-		//ppd_send(msg,request->sender);
+		ppd_send(msg,request->sender);
 
 		uint32_t a;
 		memcpy(&a,msg+3,4);
-		printf("%d\n",a);		//temporal, muestra los sectores atendidos
+		printf("%d\n",a);									//temporal, muestra los sectores atendidos
+		fflush(0);											//hace que no se acumulen datos y los largue de a tandas
 
 		free(msg);
 		free(request);

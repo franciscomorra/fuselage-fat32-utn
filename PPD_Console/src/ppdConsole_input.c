@@ -12,7 +12,6 @@ void CONSOLE_getCommand(char* input,char* command,queue_t* parameters,uint32_t* 
 
 	while	((curr_parameter = strtok(NULL,delimiters)) != NULL ) {
 		QUEUE_appendNode(parameters,QUEUE_createNode(curr_parameter));
-		//*(parameters + i) = 0;					// Guarda en el array los patametros
 		paramLenAux++;
 	}
 	memcpy(paramLen,&paramLenAux,4);

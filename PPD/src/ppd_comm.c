@@ -27,15 +27,24 @@ extern sem_t queueElemSem;
 
 uint32_t ppd_send(char* msg,uint32_t fd)
 {
-	if(msg[0] == PPDCONSOLE_INFO){
-	/*	pollFds[0].events = POLLOUT;
-		poll(pollFds,2,-1);// avisame cuando pueda mandar datos
-		if(pollFds[sockFD].revents & POLLOUT){
-			if(send(pollFds[sockFD].fd,msg,15,NULL) == -1)
-				perror("send");
+	switch(msg[0]){
+		case PPDCONSOLE_INFO :{
+		/*	pollFds[0].events = POLLOUT;
+			poll(pollFds,2,-1);// avisame cuando pueda mandar datos
+			if(pollFds[sockFD].revents & POLLOUT){
+				if(send(pollFds[sockFD].fd,msg,15,NULL) == -1)
+					perror("send");
+			}
+		*/
+			send(fd,msg,15,NULL);
+			break;
 		}
-	*/
-		send(fd,msg,15,NULL);
+
+		case PPDCONSOLE_TRACE :{
+
+			break;
+		}
+
 	}
 	return 1;
 }
@@ -50,15 +59,14 @@ uint32_t ppd_receive(char* msgIn,uint32_t fd) {
 			break;
 
 		case PPDCONSOLE_INFO:{
-			char* consoleMsg = COMM_createCharMessage(PPDCONSOLE_INFO,3*sizeof(uint32_t)); //crea un msg con un payload mas grande
-			CHANDLER_info(consoleMsg);
-			ppd_send(consoleMsg,fd);
-			free(consoleMsg);
+			CHANDLER_info(msgIn);
+			ppd_send(msgIn,fd);
+
 			break;
 		}
 
 		default:{
-			if(msgIn[0] == READ_SECTORS || msgIn[0] == WRITE_SECTORS){
+			if(msgIn[0] == READ_SECTORS || msgIn[0] == WRITE_SECTORS || msgIn[0] == PPDCONSOLE_TRACE){
 
 				requestNode_t* request;
 				queueNode_t* queueNode;
