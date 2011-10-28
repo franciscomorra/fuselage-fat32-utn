@@ -3,9 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <unistd.h>			//funcion sleep()
 #include "ppd_SSTF.h"
 #include "ppd_common.h"
-//#include "ppd_queue.h"
+#include "ppd_taker.h"		//funcion getTimeSleep()
 #include "tad_queue.h"
 
 extern uint32_t TrackJumpTime;
@@ -28,46 +29,12 @@ void SSTF_getHead(queue_t* queue){
 	 }
 }
 
-
 requestNode_t* SSTF_takeRequest(queue_t* queue){
 	SSTF_getHead(queue);
 	queueNode_t* node = (QUEUE_takeNode(queue));
+	sleep(TAKER_getSleepTime(node->data)/1000);
 	return node->data;
 }
-/*
-uint32_t SSTF_addRequest(requestNode_t* new){
-
-	 requestNode_t* CHSposition = COMMON_turnToCHS(headPosition);
-
-	 if(first == 0){
-		 sem_wait(&SSTFmutex); //semaforos que uso para que cuando accesa a first no pueda ser interrumpido por el TAKER
-		 first = new;
-		 sem_post(&SSTFmutex);
-		 return 0;
-	 } else {
-		sem_wait(&SSTFmutex);
-		requestNode_t* aux = first;
-		if (SSTF_near(new,CHSposition,first)){
-			new->next = first;
-			first = new;
-			sem_post(&SSTFmutex);
-		} else {
-			sem_post(&SSTFmutex);
-			while (aux->next != 0){
-				if(SSTF_near(new,aux,aux->next)){
-					new->next = aux->next;
-					aux->next = new;
-					return 0;
-				} else
-					aux = aux->next;
-			}
-			aux->next = new;
-		}
-
-	}
-	 return 0;
-}
-*/
 
 uint32_t SSTF_near(requestNode_t* new, requestNode_t* aux,requestNode_t* auxSig){
 
@@ -81,20 +48,12 @@ uint32_t SSTF_near(requestNode_t* new, requestNode_t* aux,requestNode_t* auxSig)
 		return 1;
 	else
 		if (distTrackNA == distTrackAS){
-			if(SSTF_sectorDist(((aux->sector))+(distTrackNA*TrackJumpTime),new->sector)
-			< SSTF_sectorDist(((aux->sector))+(distTrackNA*TrackJumpTime),auxSig->sector))
+			if(TAKER_sectorDist(((aux->sector))+(distTrackNA*TrackJumpTime),new->sector)
+			< TAKER_sectorDist(((aux->sector))+(distTrackNA*TrackJumpTime),auxSig->sector))
 				return 1;
 	}
 	return 0;
 }
 
-uint32_t SSTF_sectorDist(uint32_t fstSector, uint32_t lstSector){
-	if (lstSector < fstSector)
-		return (Sector - (fstSector - lstSector));
-	else
-		return (lstSector - fstSector);
-
-	return 0;
-}
 
 

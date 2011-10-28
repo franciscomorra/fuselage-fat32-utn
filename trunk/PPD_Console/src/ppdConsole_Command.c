@@ -52,19 +52,28 @@ uint32_t console_clean(queue_t parameters,uint32_t ppdFD){
 }
 
 uint32_t console_trace(queue_t parameters,uint32_t len,uint32_t ppdFD){
-	uint32_t i;
-	nipcMsg_t msg;
-	char* payload = malloc(4);
+	char* msg;
 	queueNode_t* cur_parameter = parameters.begin;
+	char* payload = malloc(sizeof(uint32_t));
+	uint32_t requestSector = 0;
 
 	while(cur_parameter != 0){
-		memcpy(payload,cur_parameter->data,sizeof(uint32_t));
-		msg = NIPC_createMsg(PPDCONSOLE_TRACE,sizeof(uint32_t),payload);
+		requestSector = atoi(cur_parameter->data);
+		memcpy(payload,&requestSector,4);
+
+		msg = NIPC_createCharMsg(PPDCONSOLE_TRACE,sizeof(uint32_t),payload);
 		cur_parameter = cur_parameter->next;
-		//Aca hay q enviar el mensaje al ppd
-		//Tengo que hacer el free del payload no???
+		uint32_t sendReturn;
+	    if ((sendReturn = send(ppdFD, msg, 7, 0)) == -1) {
+	        perror("send");
+	        exit(1);
+	    }
+	    if(recv(ppdFD,msg,12,0) == -1)  {
+	    	perror("recv");
+	    	exit(1);
+	    }
 	}
-
-
+	free(msg);
+	free(payload);
 	return 1;
 }
