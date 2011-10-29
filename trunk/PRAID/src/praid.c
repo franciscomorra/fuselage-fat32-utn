@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include"sockets.h"
 #include "config_manager.h"
 #include "praid_console.h"
 #include "praid_ppd_handler.h"
@@ -54,15 +55,14 @@ int main(int argc,char **argv){
 //Fin Seteo de Variables Iniciales
 
 	print_Console("Bienvenido Proceso RAID",(uint32_t)pthread_self());//CONSOLE WELCOME
-	//Inicio Creacion Sockets
-	//TODO Crear Sockets
+
+
+	//creacion Sockets listen
 
 	Create_Sockets_INET(&listenFD);
 
-	//Fin Creacion Sockets
 
-
-		//TODO Escuchar Sockets
+		// Escuchar Sockets (select)
 
 	    FD_ZERO(&masterFDs);
 		FD_SET(listenFD,&masterFDs);  //agrego el descriptor que recibe conexiones al conjunto de FDs
@@ -92,24 +92,27 @@ int main(int argc,char **argv){
 								{
 									close(currFD);
 									FD_CLR(currFD,&masterFDs);
-								} //else
+								} else{
 									//aca tengo que preguntar el tipo del msj para saber si es PPD o PFS
-								//ppd_receive(msgIn,currFD);
-								//memset(msgIn,0,sizeof(msgIn));
+									if(msgIn+++=1){         //pedido PFS
+										pfs_receive(msgIn,currFD); //aca me fijo que tipo es y tengo tambien el descriptor
+										memset(msgIn,0,sizeof(msgIn));
+									}else If(msgIn+++=0){   //pedido PPD
+										//Si es de nuevo PPD
+											//pthread_t praid_ppd_thread;
+											//pthread_create(&praid_ppd_thread, NULL, ppd_handler_thread, SOCKET DE PPD NUEVO!);
+									}
+
+								}
+
+
 								free(msgIn);
 							}
 						}
 					}
 				}
 
-	/*
-		Si es de PFS
-			receive_pfs(nipcMsg_t msgIn)
-		Si es de nuevo PPD
-			pthread_t praid_ppd_thread;
-			pthread_create(&praid_ppd_thread, NULL, ppd_handler_thread, SOCKET DE PPD NUEVO!);
-		*/
-	//}
+
 
 	print_Console("Adios Proceso RAID",(uint32_t)pthread_self());//CONSOLE WELCOME
 
