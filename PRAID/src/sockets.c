@@ -36,3 +36,19 @@ uint32_t Create_Sockets_INET(uint32_t* listenFD){
 
 	return 0;
 }
+
+/* Se obtienen los distintos campos del mensaje IPC*/
+uint32_t ppd_receive(char* msgIn,uint32_t fd) {
+
+
+
+	if(msgIn[0]== HANDSHAKE){
+
+				//TODO Handshake
+	}
+
+	if(msgIn[0] == READ_SECTORS || msgIn[0] == WRITE_SECTORS){
+
+		//TODO LISTA
+	}
+}
