@@ -13,39 +13,40 @@ extern struct praid_list_node* PRAID_LIST;
 
 praid_list_node* PRAID_list_appendNode(uint32_t tid)//Hay que pasarle el socket!
 {
-
-	queue_t *sublista;
-	QUEUE_initialize(&sublista);
-
+	praid_list_node *nodoLISTA = malloc(sizeof(praid_list_node));
 	praid_list_node_content *data = malloc(sizeof(praid_list_node_content));
+	queue_t* subList = malloc(sizeof(queue_t));
+	queueNode_t *subListNode = malloc(sizeof(queueNode_t));
+	praid_sl_content *data_sublist= malloc(sizeof(praid_sl_content));
+
 	data->tid = tid;
 	data->ppdStatus = 1;//Sincronizando
 	//SOCKET PPD!
-	data->colaSublista = sublista;
-	praid_list_node *aux = malloc(sizeof(praid_list_node));
 
-	aux->info = data;
-	aux->next = PRAID_LIST;
-	PRAID_LIST = aux;
+	data_sublist->synch = 1;
+	//SOCKET PPD
+	//NIPC Type WRITE_SECTORS
+	QUEUE_initialize(subList);
 
-return aux;
-}
+	subListNode->data = (praid_sl_content*)data_sublist;
+
+	subListNode->next = NULL;
+	subList->begin = subList->end = subListNode;
+
+//	QUEUE_appendNode(subList, data_sublist);
 /*
-//TODO Creacion Subnodo Sincronizacion
-	ppd_sublist_node_content *contenido_nodo_sublista= malloc(sizeof(ppd_sublist_node_content));
-	char* sectorCount = 0;//Primer Sector del disco
-	//contenido_nodo_sublista->msg = NIPC_createMsg(READ_SECTORS,sizeof(uint32_t),sectorCount);
-	contenido_nodo_sublista->synch = 1;
-	//SOCKETS!
-
-	queueNode_t *nodo_sublista = QUEUE_createNode(contenido_nodo_sublista);
-	pthread_mutex_lock(&mutex_LIST);
-	TODO Ver como se usan las funciones del queue bien
-	//QUEUE_initialize(&self_list_node->info->colaSublista);
-	//QUEUE_appendNode(&self_list_node->info->colaSublista, nodo_sublista);
-
-	pthread_mutex_unlock(&mutex_LIST);
+	praid_sl_content data_SL_memcpy;
+	memcpy(&data_SL_memcpy,subListNode->data,sizeof(praid_sl_content));
 */
+	data->colaSublista = subList;
+	nodoLISTA->info = data;
+	nodoLISTA->next = PRAID_LIST;
+	PRAID_LIST = nodoLISTA;
+
+return nodoLISTA;
+}
+
+
 
 
 
