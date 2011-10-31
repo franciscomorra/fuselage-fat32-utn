@@ -29,21 +29,14 @@ uint32_t fat32_readFAT(fatTable_t *fat);
 //fat32_readBootSector: Lee el boot sector en la estructura BS_struct
 uint32_t fat32_readBootSector(bootSector_t *bs);
 
-//fat32_getClusterData: Llena el buffer 'buf' con los bytes que se leeran del cluster 'cluster_no'
-char* fat32_getClusterRawData(cluster_t);
+char* fat32_getClusterRawData(uint32_t);
 
-//fat32_readDirectory: Devuelve una lista con todos los ficheros dentro del path pasado
-queue_t fat32_readDirectory(const char* path);
+clusterChain_t fat32_getClusterChainData(uint32_t first_cluster);
 
-//fat32_getDirEntry: Obtiene la dirEntry_t del archivo/carpeta apuntado por path
-dirEntry_t* fat32_getDirEntry(char* path);
+queue_t fat32_readDirectory(const char* path,clusterChain_t *cluster_chain);
 
-fat32file_t fat32_getFile(const char* path);
+dirEntry_t* fat32_getDirEntry(char* path,clusterChain_t* cluster_chain);
 
-queue_t fat32_getClusterChainData(uint32_t first_cluster);
-
-char* fat32_getClusterChainRawData(queue_t cluster_list);
-
-cluster_t fat32_getClusterData(uint32_t);
+void fat32_writeClusterData(cluster_t *cluster);
 
 #endif /* PFS_FAT32_H_ */

@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include "utils.h"
 
-size_t LFNENTRY_getLongFileName(lfnEntry_t lfn,char* ret_longfilename) {
+size_t LFNENTRY_getString(lfnEntry_t lfn,char* ret_longfilename) {
 	size_t utf8_size;
 	char long_filename[26];
 	memset(ret_longfilename,0,13);
@@ -19,4 +19,43 @@ size_t LFNENTRY_getLongFileName(lfnEntry_t lfn,char* ret_longfilename) {
 	unicode_utf16_to_utf8_inbuffer((uint16_t*) long_filename, 13,ret_longfilename, &utf8_size);
 	//free(long_filename);
 	return strlen(ret_longfilename);
+}
+
+
+char* LFNENTRY_getLFN(queue_t lfn_entries)
+{
+	char longfilename_buf[255];
+	memset(longfilename_buf,0,255);
+
+	char tmp_longfilename_part[13];
+
+
+	uint32_t tmp_longfilename_part_size = 0,new_longfilename_size = 0;
+
+	queueNode_t *lfn_node = (queueNode_t*) lfn_entries.begin;
+	lfnEntry_t* lfn;
+	while (lfn_node != NULL)
+	{
+		lfn = (lfnEntry_t*) lfn_node->data;
+		tmp_longfilename_part_size = LFNENTRY_getString(*lfn, tmp_longfilename_part);
+		new_longfilename_size += tmp_longfilename_part_size;
+
+		shiftbytes_right(longfilename_buf, 255, tmp_longfilename_part_size);
+		memcpy(longfilename_buf, tmp_longfilename_part,	tmp_longfilename_part_size);
+
+		lfn_node = lfn_node->next;
+	}
+
+	char *new_longfilename = malloc(new_longfilename_size+1);
+	memset(new_longfilename,0,new_longfilename_size+1);
+	memcpy(new_longfilename,longfilename_buf,new_longfilename_size);
+
+	return new_longfilename;
+
+	//	//Obtengo la cadena parte del nombre del LFN
+			//new_longfilename_size += tmp_longfilename_part_size; 										//Aumento el tamaño del nombre del archivo que estoy leyendo
+			//
+
+			//
+			//		//Libero la memoria usada
 }

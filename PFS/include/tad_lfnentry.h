@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include "tad_queue.h"
 
 typedef struct lfn_sequence_number
 {
@@ -32,6 +33,8 @@ typedef struct  LFN_ENTRY
 
 } __attribute__((__packed__)) lfnEntry_t;
 
-size_t LFNENTRY_getLongFileName(lfnEntry_t lfn,char* ret_longfilename);
+size_t LFNENTRY_getString(lfnEntry_t lfn,char* ret_longfilename);
+
+char* LFNENTRY_getLFN(queue_t lfn_entries);
 
 #endif /* TAD_LFNENTRY_H_ */

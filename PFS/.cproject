@@ -32,7 +32,7 @@
 								<option id="gnu.cpp.compiler.exe.debug.option.optimization.level.1030219015" name="Optimization Level" superClass="gnu.cpp.compiler.exe.debug.option.optimization.level" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.exe.debug.option.debugging.level.325505438" name="Debug Level" superClass="gnu.cpp.compiler.exe.debug.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 							</tool>
-							<tool command="gcc -D_FILE_OFFSET_BITS=64 -DFUSE_USE_VERSION=28" id="cdt.managedbuild.tool.gnu.c.compiler.exe.debug.1813990581" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.debug">
+							<tool command="gcc -D_FILE_OFFSET_BITS=64 -DFUSE_USE_VERSION=28 -fno-stack-protector" id="cdt.managedbuild.tool.gnu.c.compiler.exe.debug.1813990581" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.debug">
 								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.exe.debug.option.optimization.level.1606568211" name="Optimization Level" superClass="gnu.c.compiler.exe.debug.option.optimization.level" valueType="enumerated"/>
 								<option id="gnu.c.compiler.exe.debug.option.debugging.level.194015013" name="Debug Level" superClass="gnu.c.compiler.exe.debug.option.debugging.level" value="gnu.c.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.include.paths.202623304" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">

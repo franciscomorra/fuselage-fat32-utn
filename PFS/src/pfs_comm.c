@@ -14,6 +14,8 @@
 #include <string.h>
 #include "pfs_comm.h"
 #include "ppd_io.h"
+#include "tad_sector.h"
+#include <stdbool.h>
 #include "tad_bootsector.h"
 
 //ACA SE HACE LA CONEXION POR SOCKET Y LA VARIABLE QUE LA REPRESENTE SERA static
@@ -21,13 +23,27 @@
 
 extern bootSector_t boot_sector;
 
-char* PFS_sectorOperation(NIPC_type op_type,uint32_t sector)
+char* PFS_sectorRead(uint32_t sector)
 {
 		nipcMsg_t msg;
-		msg = NIPC_createMsg(op_type,sizeof(uint32_t),(char*) &sector);
-		char *buf = PFS_request(msg);
+		msg = NIPC_createMsg(READ_SECTORS,sizeof(uint32_t),(char*) &sector);
+		char* buf = PFS_request(msg);
 		NIPC_cleanMsg(&msg);
 		return buf;
+}
+
+uint32_t PFS_sectorWrite(sector_t sector)
+{
+		nipcMsg_t msg;
+		msg.type = WRITE_SECTORS;
+		uint32_t len = 4 + boot_sector.bytes_perSector;
+		memcpy(msg.len,&len,2);
+
+		msg.payload = malloc(len);
+		memcpy(msg.payload,sector.number,4);
+		memcpy(msg.payload+4,sector.data,boot_sector.bytes_perSector);
+		PFS_request(msg);
+		return 0;
 }
 
 char* PFS_requestSectorsOperation(NIPC_type request_type,uint32_t *sectors,size_t sectors_count)
@@ -69,8 +85,18 @@ char* PFS_request(nipcMsg_t msg)
 		return buf;
 
 	}
-	else if (msg.type == WRITE_SECTORS){
+	else if (msg.type == WRITE_SECTORS)
+	{
+		uint32_t file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR); //TEMPORAL
 
+				char *buf = malloc(boot_sector.bytes_perSector);
+				uint32_t *sector = malloc(sizeof(uint32_t));
+				memcpy(sector,msg.payload,4);
+				memcpy(buf,msg.payload+4,boot_sector.bytes_perSector);
+				write_sector(file_descriptor, *sector, buf);
+				free(sector);
+				close(file_descriptor);
+				return buf;
 	}
 	return 0;
 }

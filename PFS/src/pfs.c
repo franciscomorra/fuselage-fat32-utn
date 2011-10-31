@@ -12,6 +12,10 @@
 #include <signal.h>
 #include <stdint.h>
 #include "tad_queue.h"
+#include "tad_cluster.h"
+#include "pfs_fat32.h"
+#include "tad_bitmap.h"
+
 	struct args
 	{
 		int argc;
@@ -38,8 +42,7 @@ int main(int argc, char *argv[])
 	args.argc = argc;
 	args.argv = argv;
 
-
-	pthread_t fuselage_thread;
+		pthread_t fuselage_thread;
 	//fuselage_main(0);
 	pthread_create(&fuselage_thread,NULL,fuselage_main,NULL);
 
