@@ -31,127 +31,73 @@ uint32_t DIRENTRY_getClusterNumber(dirEntry_t *entry)
 }
 
 
-
-queue_t DIRENTRY_interpretDirTableData(char* table_data,size_t sizeofData,uint32_t init_cluster)
+queue_t DIRENTRY_interpretTableData(clusterChain_t cluster_chain)
 {
+	lfnEntry_t *lfn_entry = (lfnEntry_t*) cluster_chain.data; //Uso este puntero para recorrer el cluster_data de a 32 bytes cada vez que incremento en 1 este puntero
 
-
-	uint32_t indexOfEntry = 2;
-	size_t numberOfEntries = 0;
-
-	size_t bytes_perCluster = (boot_sector.bytes_perSector*boot_sector.sectors_perCluster);
-	size_t entries_perCluster = bytes_perCluster / sizeof(dirEntry_t);
-
-	lfnEntry_t *lfn_entry = (lfnEntry_t*) table_data; //Uso este puntero para recorrer el cluster_data de a 32 bytes cada vez que incremento en 1 este puntero
-	char longfilename_buf[255]; //Uso este buffer para ir almacenando los LFN de un archivo
-	memset(longfilename_buf, 0, 255); //Lo seteo a 0
-	char *tmp_longfilename_part[13], *new_longfilename; //Puntero para UN LFN de UN archivo, y puntero para el nombre largo completo de un archivo
-	size_t tmp_longfilename_part_size = 0, new_longfilename_size = 0; //Tamaño de cadena de los punteros
-	queueNode_t *new_file_node; //Punteros a nodos de una lista que sera la que se obtenga de esta funcion
 	queue_t file_list; //Creo un puntero a la cola
 	QUEUE_initialize(&file_list); //Inicializo la cola
 
-	if (*table_data == '.') //Si el primer char es '.' entonces no es el directorio raiz y debo agregar las dirEntry_t '.' y '..'
-	{
-		dirEntry_t *point = (dirEntry_t*) lfn_entry; //Casteo el puntero a dirEntry_t para interpretar los bytes como una dirEntry_t
-		fat32file_t *pointFile = FILE_createStruct(".",point); //Creo una struct fat32file_t que contendra el longfilename y la dirEntry_t
-		pointFile->clusterofEntry = init_cluster;
-		pointFile->index_firstEntry = 0;
-		pointFile->numberOfEntries = 1;
-		new_file_node = QUEUE_createNode(pointFile); //Creo el nodo
-		QUEUE_appendNode(&file_list,new_file_node); //Lo agrego a la cola
-		lfn_entry++; //Incremento el puntero en 32 bytes = sizeof(lfnEntry_t)
+	queue_t *lfn_entries;
 
-		dirEntry_t *pointpoint = (dirEntry_t*) (lfn_entry);
-		fat32file_t *pointpointFile = FILE_createStruct("..",pointpoint); //IDEM ANTERIOR
-		pointFile->clusterofEntry = init_cluster;
-		pointFile->index_firstEntry = 1;
-		pointFile->numberOfEntries = 1;
-		new_file_node = QUEUE_createNode(pointpointFile);
-		QUEUE_appendNode(&file_list,new_file_node);
-		++lfn_entry;
+
+	if (*(cluster_chain.data) == '.') //Si el primer char es '.' entonces no es el directorio raiz y debo agregar las dirEntry_t '.' y '..'
+	{
+		fat32file_t *pointFile = malloc(sizeof(fat32file_t));
+		lfn_entries = malloc(sizeof(queue_t));
+		QUEUE_initialize(lfn_entries);
+		pointFile->long_file_name = malloc(1);
+		strcpy(pointFile->long_file_name,".");
+		pointFile->lfn_entries = *lfn_entries;
+
+		pointFile->dir_entry = (dirEntry_t*) lfn_entry++;
+		QUEUE_appendNode(&file_list,pointFile); //Lo agrego a la cola
+
+
+		fat32file_t *pointpointFile = malloc(sizeof(fat32file_t));
+		lfn_entries = malloc(sizeof(queue_t));
+		QUEUE_initialize(lfn_entries);
+		pointpointFile->long_file_name = malloc(2);
+		strcpy(pointpointFile->long_file_name,"..");
+		pointpointFile->lfn_entries = *lfn_entries;
+		pointpointFile->dir_entry = (dirEntry_t*) lfn_entry++;
+		QUEUE_appendNode(&file_list,pointpointFile);
+
 	}
 
+	lfn_entries = malloc(sizeof(queue_t));
+	QUEUE_initialize(lfn_entries);
 
 	while (*((char*) lfn_entry) != 0x00) //Mientras el primer byte de cada 32 bytes que voy recorriendo sea distinto de 0x00 quiere decir que hay una LFN o una DIRENTRY
 	{
 		//Borrado : number = 37
 		if (lfn_entry->sequence_no.number == 1 && lfn_entry->sequence_no.deleted == false)				//Si es la ultima LFN del archivo y no esta eliminada (Saltea tambien la DIRENTRY ya que las marca igual que las LFN eliminadas)
 		{
-			numberOfEntries += 2;
-			indexOfEntry++;
-			//CODIGO QUE PROCESA EL LONGFILENAME
-			tmp_longfilename_part_size = LFNENTRY_getLongFileName(*lfn_entry,tmp_longfilename_part); 	//Obtengo la ultima parte (Viene a ser la primera del nombre , estan dispuestas al reves)
-			new_longfilename_size += tmp_longfilename_part_size; 										//Aumento el tamaño del nombre para obtener el tamaño final
+			QUEUE_appendNode(lfn_entries,lfn_entry++);
 
-			shiftbytes_right(longfilename_buf, 255, tmp_longfilename_part_size);						/* Corro lo que esta almacenado en el buffer
-																										 * la cantidad de posiciones necesarias hacia la derecha para que entre
-																										 * la ultima parte del nombre
-																										 * */
+			fat32file_t *new_file = malloc(sizeof(fat32file_t));
+			new_file->dir_entry =  (dirEntry_t*) lfn_entry++;
+			new_file->lfn_entries = *lfn_entries;
+			new_file->long_file_name = LFNENTRY_getLFN(new_file->lfn_entries);
 
-			memcpy(longfilename_buf, tmp_longfilename_part,	tmp_longfilename_part_size);				/* Copio la siguiente parte del nombre en el buffer donde
-																	0xb71a3100									 * quedara el nombre completo
-																										 */
+			QUEUE_appendNode(&file_list,new_file); 															//Lo agrego a la cola
 
-			new_longfilename = malloc(new_longfilename_size + 1); 													/* Obtengo memoria para el nuevo nombre de archivo */
-			memset(new_longfilename, 0, new_longfilename_size + 1); 												// Seteo a 0
-			memcpy(new_longfilename, longfilename_buf, new_longfilename_size);										/*Copio el nombre completo que esta en el buffer a la memoria almacenada antes */
-			memset(longfilename_buf, 0, 255); 																		/* Seteo el buffer donde se van almacenando las partes a 0 para empezar con el siguiente archivo */
-			//free(tmp_longfilename_part); 																			//Libero memoria
-			/* ACA TERMINA CON LA ULTIMA LFN DEL ARCHIVO Y EL NOMBRE QUEDA ALMACENADO EN new_longfilename */
+			lfn_entries = malloc(sizeof(queue_t));
+			QUEUE_initialize(lfn_entries);
 
-			//CODIGO QUE PROCESA LA DIRENTRY
-			dirEntry_t *direntry = (dirEntry_t*) ++lfn_entry; 														//Casteo
-
-			fat32file_t *new_file = FILE_createStruct(new_longfilename,direntry); 									//Creo la estructura fat32file_t para el nuevo archivo
-
-
-
-			new_file->numberOfEntries= numberOfEntries;
-			new_file->clusterofEntry = init_cluster + (indexOfEntry / entries_perCluster);
-			new_file->index_firstEntry = (indexOfEntry - numberOfEntries + 1) - ((new_file->clusterofEntry - init_cluster)*entries_perCluster);
-
-			queueNode_t *new_file_node = QUEUE_createNode(new_file); 												//Creo el nodo
-			QUEUE_appendNode(&file_list,new_file_node); 															//Lo agrego a la cola
-			/* ACA TERMINA DE LEER LA DIRENTRY DEL ARCHIVO Y CREA EL fat32file_t con el new_longfilename y la dirEntry_t */
-
-			lfn_entry++;																							// Apunto al primer LFN del siguiente archivo
-
-			free(new_longfilename);
-			numberOfEntries = 0;
-			new_longfilename_size = 0;
 
 		}
 		else if (lfn_entry->sequence_no.number != 1 && lfn_entry->sequence_no.deleted == false)		 //Si no es la ultima LFN del archivo
 		{
-			tmp_longfilename_part_size = LFNENTRY_getLongFileName(*lfn_entry, tmp_longfilename_part); 	//Obtengo la cadena parte del nombre del LFN
-			new_longfilename_size += tmp_longfilename_part_size; 										//Aumento el tamaño del nombre del archivo que estoy leyendo
-			shiftbytes_right(longfilename_buf, 255, tmp_longfilename_part_size);						/* Corro lo que esta almacenado en el buffer
-																										 * la cantidad de posiciones necesarias hacia la derecha para que entre
-																										 * la siguiente parte del nombre
-																										 * */
-
-			memcpy(longfilename_buf, tmp_longfilename_part,	tmp_longfilename_part_size);				/* Copio la siguiente parte del nombre en el buffer donde
-																										 * voy uniendo las partes
-																										 */
-
-			//free(tmp_longfilename_part); 		//Libero la memoria usada
-			lfn_entry++; 						//Paso a la siguiente entrada LFN
-			numberOfEntries++;
+			QUEUE_appendNode(lfn_entries,lfn_entry++);
 		}
 		else if (lfn_entry->sequence_no.deleted == true) 	//Si es una entrada eliminada la salteo
 		{
 			lfn_entry++; 		//Incremento 32 bytes para saltearla
 		}
 
-		indexOfEntry++;
-
 	}
-
-	//free(longfilename_buf); //Libero el buffer temporal
 
 	return file_list; //Retorno un puntero a la estructura de la cola
 }
-
-
 

@@ -15,7 +15,7 @@ typedef struct sector_t
 	uint32_t number;
 	size_t size;
 	char* data;
-	bool modified		:1;
+	bool modified ;
 } sector_t;
 
 #endif /* TAD_SECTOR_H_ */

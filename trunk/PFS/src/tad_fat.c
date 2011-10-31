@@ -29,9 +29,7 @@ queue_t FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 			cluster_number = malloc(sizeof(uint32_t));
 			*cluster_number = cluster_no;
 			log_debug(log_file,"PFS","FAT_getClusterChain() -> LIST_addNode(0x%x,0x%x)",cluster_list,cluster_number);
-			new_cluster_node = QUEUE_createNode(cluster_number);
-
-			QUEUE_appendNode(&cluster_list,new_cluster_node);
+			QUEUE_appendNode(&cluster_list,cluster_number);
 	}
 	else if (fat->table[cluster_no] != fat->EOC)
 	{
@@ -40,8 +38,7 @@ queue_t FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 			cluster_number = malloc(sizeof(uint32_t));
 			*cluster_number = cluster_no;
 			log_debug(log_file,"PFS","FAT_getClusterChain() -> LIST_addNode(0x%x,0x%x)",cluster_list,cluster_number);
-			new_cluster_node = QUEUE_createNode(cluster_number);
-			QUEUE_appendNode(&cluster_list,new_cluster_node);
+			QUEUE_appendNode(&cluster_list,cluster_number);
 
 			cluster_no = fat->table[cluster_no];
 		}
@@ -49,9 +46,7 @@ queue_t FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 		cluster_number = malloc(sizeof(uint32_t));
 		*cluster_number = cluster_no;
 		log_debug(log_file,"PFS","FAT_getClusterChain() -> LIST_addNode(0x%x,0x%x)",cluster_list,cluster_number);
-		new_cluster_node = QUEUE_createNode(cluster_number);
-
-		QUEUE_appendNode(&cluster_list,new_cluster_node);
+		QUEUE_appendNode(&cluster_list,cluster_number);
 	}
 
 
@@ -70,8 +65,7 @@ queue_t FAT_getFreeClusters(fatTable_t* FAT) {
 		{
 			cluster_number = malloc(sizeof(uint32_t));
 			*cluster_number = cluster_no;
-			new_cluster_node = QUEUE_createNode(cluster_number);
-			QUEUE_appendNode(&cluster_list,new_cluster_node);
+			QUEUE_appendNode(&cluster_list,cluster_number);
 		}
 	}
 
