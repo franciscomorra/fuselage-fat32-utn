@@ -62,7 +62,7 @@ Enviar Mensaje a Socket (a PPD o a PFS)
 
 //Decodificacion del NIPC
 
-uint32_t receive_pfs(nipcMsg_t msgIn)
+uint32_t pfs_receive(char* msgIn,uint32_t fd)
 {
 /*
 	Handshake:
@@ -111,7 +111,7 @@ uint32_t receive_pfs(nipcMsg_t msgIn)
  *
 uint32_t PRAID_manage_PPD(nipcMsg_t msgIn, PPDnode* first, PPDnode* last, diskInfo* sender, pfsInfo receiver){
 
-	switch (msgIn.type)	{
+	switch (msgIn[0])	{
 
 		case HANDSHAKE:
 			if(first == last){

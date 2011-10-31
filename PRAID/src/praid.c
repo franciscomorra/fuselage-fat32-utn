@@ -72,37 +72,50 @@ int main(int argc,char **argv){
 
 
 while(1){
-                                       FD_ZERO(&readFDs);
-                                       readFDs = masterFDs;
-                                       if(select(FDmax+1, &readFDs,NULL,NULL,NULL) == -1)
-                                               perror("select");
-                                       for(currFD = 0; currFD <= FDmax; currFD++){
-                                               if(FD_ISSET(currFD,&readFDs)){  //hay datos nuevos
-                                                       if( currFD == listenFD){        //nueva conexion
-                                                               addrlen = sizeof(remoteaddr);
-                                                               if((newFD = accept(listenFD,(struct sockaddr *)&remoteaddr,&addrlen))==-1)
-                                                                       perror("accept");
-                                                                else {
-                                                                       FD_SET(newFD,&masterFDs);
-                                                                       if(newFD > FDmax)
-                                                                               FDmax = newFD;
-                                                               }
-                                                       } else { //datos de un cliente
-                                                               uint32_t recvReturn = 0;
-                                                               char* msgIn = malloc(512 + 7);
-                                                               if((recvReturn = recv(currFD,msgIn,519,0)) == 0)//aca el cliente cerro conexion
-                                                               {
-                                                                       close(currFD);
-                                                                       FD_CLR(currFD,&masterFDs);
-                                                               } //else
-                                                                       //aca tengo que preguntar el tipo del msj para saber si es PPD o PFS
-                                                               //ppd_receive(msgIn,currFD);
-                                                               //memset(msgIn,0,sizeof(msgIn));
-                                                               free(msgIn);
-                                                       }
-                                               }
-                                       }
-                               }
+                      FD_ZERO(&readFDs);
+                      readFDs = masterFDs;
+                      if(select(FDmax+1, &readFDs,NULL,NULL,NULL) == -1)
+                              perror("select");
+                      for(currFD = 0; currFD <= FDmax; currFD++){
+                              if(FD_ISSET(currFD,&readFDs)){  //hay datos nuevos
+                                      if( currFD == listenFD){        //nueva conexion
+                                              addrlen = sizeof(remoteaddr);
+                                              if((newFD = accept(listenFD,(struct sockaddr *)&remoteaddr,&addrlen))==-1)
+                                                      perror("accept");
+                                               else {
+                                                      FD_SET(newFD,&masterFDs);
+                                                      if(newFD > FDmax)
+                                                              FDmax = newFD;
+                                              }
+                                      } else { //datos de un cliente
+                                              uint32_t recvReturn = 0;
+                                              char* msgIn = malloc(512 + 7);
+                                              if((recvReturn = recv(currFD,msgIn,519,0)) == 0)//aca el cliente cerro conexion
+                                              {
+                                                      close(currFD);
+                                                      FD_CLR(currFD,&masterFDs);
+                                              } /*else{
+                                           	   //aca tengo que preguntar el tipo del msj para saber si es PPD o PFS
+                                           	   if(msgIn[10]==1){
+                                           		   //PFS=1  pongo 10 por poner un ejemplo
+
+                                           		   //pfs_receive(msgIn,currFD);
+                                           		   //memset(msgIn,0,sizeof(msgIn));
+                                           	   }
+                                           	   else if(msgIn[10]==2){
+                                           		   //PPD=2   pongo 10 por poner un ejemplo
+
+
+                                           	   }
+                                              }
+                                              */
+                                              free(msgIn);
+                                      }
+                              }
+                      }
+              }
+
+
 
 
 print_Console("Adios Proceso RAID",(uint32_t)pthread_self());//CONSOLE WELCOME
