@@ -21,9 +21,13 @@ void QUEUE_initialize(queue_t* line)
 	//(line)->end = NULL;
 	return;
 }
-void QUEUE_appendNode(queue_t *line,queueNode_t* new_node)
+void QUEUE_appendNode(queue_t *line, void *data)
 {
-	assert(line != NULL);
+
+	assert(data!=NULL && line != NULL);
+	queueNode_t *new_node = malloc(sizeof(queueNode_t));
+	new_node->data=data;
+	new_node->next = NULL;
 
 	if (line->begin == NULL)
 	{
@@ -53,17 +57,18 @@ void QUEUE_destroyQueue(queue_t *line,uint32_t var_type)
 	{
 		while (cur != NULL)
 		{
-			QUEUE_destroyNode(&cur,var_type);
+			QUEUE_freeNode(&cur,var_type);
 			cur = cur->next;
 		}
 	}
 	free(line);
 }
 
-void QUEUE_destroyNode(queueNode_t *node,uint32_t var_type)
+void QUEUE_freeNode(queueNode_t *node,uint32_t var_type)
 {
 	assert(node != NULL);
-	QUEUE_freeByType((void*)node,var_type);
+	free(node->data);
+	free(node);
 }
 
 queueNode_t* QUEUE_searchNode(queue_t *line,void *data,size_t dataLength)
@@ -82,16 +87,6 @@ queueNode_t* QUEUE_searchNode(queue_t *line,void *data,size_t dataLength)
 		return NULL;
 	 }
 	return NULL;
-}
-
-queueNode_t* QUEUE_createNode(void* data)
-{
-	assert(data!=NULL);
-	queueNode_t *new_node = malloc(sizeof(queueNode_t));
-	new_node->data=data;
-	new_node->next = NULL;
-
-	return new_node;
 }
 
 void QUEUE_freeByType(void* pointer,uint32_t var_type)
@@ -143,3 +138,6 @@ void QUEUE_cleanQueue(queue_t *line,uint32_t var_type)
 		}
 	}
 }
+
+
+
