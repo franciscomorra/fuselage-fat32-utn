@@ -26,28 +26,38 @@ void TAKER_handleRequest(queue_t* queue, requestNode_t* request){
 	switch (request->type)
 	{
 		case PPDCONSOLE_TRACE:{
-			request->payload = malloc(sizeof(uint32_t)*3+3);			//12B para "headP","ProxSector" y "sectorPedido" + 3B tipo y len
+			uint32_t len = sizeof(uint32_t)*5;
+			request->payload = malloc(len+3);									//12B para "headP","ProxSector" y "sectorPedido" + 3B tipo y len
+
 			memcpy(request->payload+4,&headPosition,4);
-			SSTF_getHead(queue);										//TODO cambiarlo cuando elejimos otro algoritmo
+
+			SSTF_getHead(queue);												//TODO cambiarlo cuando elejimos otro algoritmo
 			uint32_t nextSector = TAKER_turnToSectorNum(queue->begin->data);
 			memcpy(request->payload+8,&nextSector,4);
+
+			uint32_t distance = TAKER_getReachedDistance(request,CHSposition);	//calcula la distancia entre el sector alcanzado luego de llegar al cilindro
+			memcpy(request->payload+12,&distance,4);							//y el sector al cual se buscaba llegar
+
+			uint32_t delay = TAKER_getSleepTime(request);						//calcula el tiempo que va a tardar dicho pedido
+			memcpy(request->payload+16,&delay,4);
+
+			memcpy(request->len,&len,2);										//actualiza el LEN del nodo
 			break;
 		}
 		case READ_SECTORS:{
 			request->payload = malloc(sizeof(char)*bytes_perSector);
 			read_sector(file_descriptor,sectorNum,request->payload);
 			memcpy(request->len, &bytes_perSector,2);
-			headPosition = sectorNum+1;
 			break;
 		}
 		case WRITE_SECTORS:{
 			write_sector(file_descriptor, sectorNum, request->payload);
-			headPosition = sectorNum+1;
 			break;
 		}
 		default:
 			break;
 	}
+	headPosition = sectorNum+1;
 	free(CHSposition);
 }
 
@@ -68,6 +78,12 @@ uint32_t TAKER_getSleepTime(requestNode_t* request){
 
 	free(CHSposition);
 	return (cDistance + sDistance);
+}
+
+uint32_t TAKER_getReachedDistance(requestNode_t* request,requestNode_t* CHSposition){
+	uint32_t cDistance = abs(request->cylinder - CHSposition->cylinder);
+	uint32_t reachedSector = cDistance*(TrackJumpTime/SectorJumpTime)+request->cylinder;
+	return TAKER_sectorDist(reachedSector % Sector,CHSposition->sector);
 }
 
 uint32_t TAKER_sectorDist(uint32_t fstSector, uint32_t lstSector){
