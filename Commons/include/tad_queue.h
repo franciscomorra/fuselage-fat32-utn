@@ -29,12 +29,12 @@ typedef struct queue_t
 } queue_t;
 
 void QUEUE_initialize(queue_t* );
-void QUEUE_appendNode(queue_t*,queueNode_t*);
+void QUEUE_appendNode(queue_t*,void*);
 queueNode_t* QUEUE_takeNode(queue_t*);
 queueNode_t* QUEUE_searchNode(queue_t*,void*,size_t);
 queueNode_t* QUEUE_createNode(void*);
 void QUEUE_destroyQueue(queue_t*,uint32_t);
-void QUEUE_destroyNode(queueNode_t *,uint32_t );
+void QUEUE_freeNode(queueNode_t *,uint32_t );
 void QUEUE_freeByType(void*,uint32_t);
 uint32_t QUEUE_length(queue_t *);
 void QUEUE_cleanQueue(queue_t*,uint32_t);
