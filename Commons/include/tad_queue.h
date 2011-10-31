@@ -5,8 +5,8 @@
  *      Author: utn_so
  */
 
-#ifndef TAD_LIST_H_
-#define TAD_LIST_H_
+#ifndef TAD_QUEUE_H_
+#define TAD_QUEUE__H_
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -38,4 +38,4 @@ void QUEUE_freeNode(queueNode_t *,uint32_t );
 void QUEUE_freeByType(void*,uint32_t);
 uint32_t QUEUE_length(queue_t *);
 void QUEUE_cleanQueue(queue_t*,uint32_t);
-#endif /* TAD_LIST_H_ */
+#endif /* TAD_QUEUE_H_ */
