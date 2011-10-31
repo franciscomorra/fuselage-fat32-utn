@@ -20,16 +20,17 @@ typedef struct praid_list_node{
 
 typedef struct praid_list_node_content{
 	uint32_t tid;
-	uint32_t ppdStatus;
-	struct queue_t *colaSublista;
+	uint32_t ppdStatus; //0=Ready, 1=Sincronizando
+	struct queue_t* colaSublista;
 	//SOCKET PPD
 }praid_list_node_content;
 
-typedef struct praid_sublist_node_content{
-	nipcMsg_t msg;
+typedef struct praid_sl_content{
 	uint32_t synch;//0=False - 1=True
+	nipcMsg_t msg;
+
 	//SOCKET PFS
-}ppd_sublist_node_content;
+}praid_sl_content;
 
 praid_list_node* PRAID_list_appendNode(uint32_t tid);
 
