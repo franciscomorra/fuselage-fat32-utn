@@ -6,7 +6,7 @@
  */
 #include "tad_queue.h"
 //#include "tad_file.h"
-
+#include <string.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -57,7 +57,7 @@ void QUEUE_destroyQueue(queue_t *line,uint32_t var_type)
 	{
 		while (cur != NULL)
 		{
-			QUEUE_freeNode(&cur,var_type);
+			QUEUE_freeNode(cur,var_type);
 			cur = cur->next;
 		}
 	}

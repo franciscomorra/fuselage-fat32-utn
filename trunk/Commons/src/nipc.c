@@ -34,7 +34,7 @@ char* NIPC_toBytes(nipcMsg_t msg)
 	memcpy(&len,msg.len,2);
 	char *buf = malloc(3+len);
 
-	memcpy(buf,msg.type,1);
+	memcpy(buf,&msg.type,1);
 	memcpy(buf+1,msg.len,2);
 	memcpy(buf+3,msg.payload,len);
 	return buf;
