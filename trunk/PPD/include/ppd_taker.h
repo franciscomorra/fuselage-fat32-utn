@@ -26,5 +26,7 @@ uint32_t TAKER_getSleepTime(requestNode_t*);
 //devuelve la distancia que hay entre dos sectores logicos en el disco
 uint32_t TAKER_sectorDist(uint32_t,uint32_t);
 
+uint32_t TAKER_getReachedDistance(requestNode_t* request,requestNode_t* CHSposition);
+
 #endif /* PPD_TAKER_H_ */
 

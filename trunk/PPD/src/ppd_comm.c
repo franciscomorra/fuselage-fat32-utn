@@ -41,7 +41,7 @@ uint32_t ppd_send(char* msg,uint32_t fd)
 		}
 
 		case PPDCONSOLE_TRACE :{
-
+			send(fd,msg,msg+3,NULL);
 			break;
 		}
 

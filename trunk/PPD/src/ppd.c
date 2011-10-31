@@ -129,13 +129,13 @@ int main(int argc, char *argv[])
 				} else { //datos de un cliente
 					uint32_t recvReturn = 0;
 					char* msgIn = malloc(bytes_perSector + 7);
+					//char msgIn[bytes_perSector + 7];
 					if((recvReturn = recv(currFD,msgIn,519,0)) == 0)
 					{
 						close(currFD);
 						FD_CLR(currFD,&masterFDs);
 					} else
 						ppd_receive(msgIn,currFD);
-					//memset(msgIn,0,sizeof(msgIn));
 					free(msgIn);
 				}
 			}

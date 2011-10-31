@@ -3,9 +3,15 @@
 #include "ppdConsole_input.h"
 #include "ppdConsole_Command.h"
 #include "ppdConsole_connect.h"
+#include "config_manager.h"
 
 #define CANTMAX (7*5)+6+5									//TEMPORAL (va la cantidad maxima de letras q tiene lo ingresado por teclado)
 #define SOCK_PATH "/home/utn_so/CONSOLE_socket"
+
+uint32_t Head;
+uint32_t Sector;
+uint32_t TrackJumpTime;
+uint32_t SectorJumpTime;
 
 void main () {
 	char* input = malloc(CANTMAX);							//aloco memoria para el ingreso del teclado
@@ -14,6 +20,16 @@ void main () {
 	QUEUE_initialize(&parameters);							//aloco memoria para guardar los parametros
 	uint32_t len;
 	uint32_t ppdFD;
+
+	config_param *ppd_config;
+	CONFIG_read("config/ppd.config",&ppd_config);
+
+	Head =  atoi(CONFIG_getValue(ppd_config,"Head"));					//
+	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));				//	leer archivo de configuración
+	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));	//
+	uint32_t RPM = atoi(CONFIG_getValue(ppd_config,"RPM"));
+
+	SectorJumpTime = RPM / 60000 * Sector;
 
     CONNECT_toProcess(&ppdFD);
 
@@ -54,7 +70,6 @@ void main () {
 
 	free(input);
 	free(command);
-	//free(parameters);
 	//hacer frees necesarios
 
 }
