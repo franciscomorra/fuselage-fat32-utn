@@ -5,13 +5,54 @@
  *      Author: utn_so
  */
 
+
+#include <fcntl.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <semaphore.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "nipc.h"
 #include "praid_comm.h"
 #include "praid_queue.h"
-
+#include <errno.h>
+#define PORT 9333
 extern uint32_t RAID_STATUS; //0 INACTIVE - 1 ACTIVE
 extern struct praid_list_node* PRAID_LIST;
 extern pthread_mutex_t mutex_LIST;
+
+
+
+uint32_t Create_Sockets_INET(uint32_t* listenFD){
+
+	struct sockaddr_in dir;
+
+	if((*listenFD = socket(AF_INET,SOCK_STREAM,0)) == -1){
+		perror("socket");
+		exit(1);
+	}
+	dir.sin_family = AF_INET;
+	dir.sin_addr.s_addr = INADDR_ANY;
+	dir.sin_port = htons(PORT);
+	memset(&(dir.sin_zero),'\0',8);
+
+	if(bind(*listenFD,(struct sockaddr *)&dir,sizeof(dir))==-1){
+		perror("bind");
+		exit(1);
+	}
+	if(listen(*listenFD,10) == -1){
+		perror("listen");
+		exit(1);
+	}
+
+	return 0;
+}
+
+
 
 /*
 Manejar pedido de nuevo PPD

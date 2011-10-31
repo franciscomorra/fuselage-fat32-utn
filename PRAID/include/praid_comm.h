@@ -14,4 +14,7 @@
 
 uint32_t receive_pfs(nipcMsg_t);
 
+
+uint32_t  Create_Sockets_INET(uint32_t*);
+
 #endif /* PRAID_COMM_H_ */
