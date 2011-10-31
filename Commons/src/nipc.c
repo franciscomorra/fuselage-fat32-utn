@@ -27,6 +27,34 @@ void NIPC_cleanMsg(nipcMsg_t* msg)
 	return;
 }
 
+
+char* NIPC_toBytes(nipcMsg_t msg)
+{
+	uint32_t len = 0;
+	memcpy(&len,msg.len,2);
+	char *buf = malloc(3+len);
+
+	memcpy(buf,msg.type,1);
+	memcpy(buf+1,msg.len,2);
+	memcpy(buf+3,msg.payload,len);
+	return buf;
+}
+
+nipcMsg_t NIPC_toMsg(char* msg)
+{
+	uint32_t len = 0;
+	memcpy(&len,msg+1,2);
+	nipcMsg_t nipc_msg;
+	memcpy(&nipc_msg.type,msg,1);
+	memcpy(nipc_msg.len,msg+1,2);
+	nipc_msg.payload = malloc(len);
+	memcpy(nipc_msg.payload,msg+3,len);
+
+	return nipc_msg;
+}
+
+
+
 char* NIPC_createCharMsg(NIPC_type type,uint32_t payload_bytes_len,char* payload_bytes)
 {
 	char* msg = malloc(3 + payload_bytes_len);
@@ -37,3 +65,4 @@ char* NIPC_createCharMsg(NIPC_type type,uint32_t payload_bytes_len,char* payload
 		memcpy(msg+3,payload_bytes,payload_bytes_len);
 	return msg;
 }
+
