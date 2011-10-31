@@ -12,7 +12,7 @@
 #include "nipc.h"
 #include "praid_queue.h"
 
-uint32_t receive_pfs(nipcMsg_t);
+uint32_t pfs_receive(char*,uint32_t);
 
 
 uint32_t  Create_Sockets_INET(uint32_t*);
