@@ -22,15 +22,16 @@ size_t LFNENTRY_getString(lfnEntry_t lfn,char* ret_longfilename) {
 }
 
 
-char* LFNENTRY_getLFN(queue_t lfn_entries)
+size_t LFNENTRY_getLFN(queue_t lfn_entries,char** ret_longfilename)
 {
-	char longfilename_buf[255];
+	char *longfilename_buf = malloc(255);
 	memset(longfilename_buf,0,255);
 
-	char tmp_longfilename_part[13];
+	char *tmp_longfilename_part = malloc(13);
 
 
-	uint32_t tmp_longfilename_part_size = 0,new_longfilename_size = 0;
+	uint32_t tmp_longfilename_part_size = 0;
+	uint32_t new_longfilename_size = 0;
 
 	queueNode_t *lfn_node = (queueNode_t*) lfn_entries.begin;
 	lfnEntry_t* lfn;
@@ -46,16 +47,10 @@ char* LFNENTRY_getLFN(queue_t lfn_entries)
 		lfn_node = lfn_node->next;
 	}
 
-	char *new_longfilename = malloc(new_longfilename_size+1);
-	memset(new_longfilename,0,new_longfilename_size+1);
-	memcpy(new_longfilename,longfilename_buf,new_longfilename_size);
+	*ret_longfilename = malloc(new_longfilename_size+1);
+	memset(*ret_longfilename,0,new_longfilename_size+1);
+	memcpy(*ret_longfilename,longfilename_buf,new_longfilename_size);
 
-	return new_longfilename;
+	return strlen(*ret_longfilename);
 
-	//	//Obtengo la cadena parte del nombre del LFN
-			//new_longfilename_size += tmp_longfilename_part_size; 										//Aumento el tamaño del nombre del archivo que estoy leyendo
-			//
-
-			//
-			//		//Libero la memoria usada
 }
