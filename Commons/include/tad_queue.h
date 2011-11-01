@@ -6,7 +6,7 @@
  */
 
 #ifndef TAD_QUEUE_H_
-#define TAD_QUEUE__H_
+#define TAD_QUEUE_H_
 
 #include <stdint.h>
 #include <stdlib.h>
