@@ -68,8 +68,18 @@ uint32_t pfs_receive(char* msgIn,uint32_t fd)
 	Handshake:
 		if(RAID_STATUS!=1){
 			//Responde hanshake
+
+			 msgOut=NIPC_createCharMsg(0,0,0)  //si esta bien contestar type 0, payload 0
+			  bytes_sent = send(fd, msgOut, len, 0);
 		}else{
-			//Error, no hay PPD asociado
+			//Respoder hanshake:Error, no hay PPD asociado
+			 char *msgOut = "Error, no hay PPD asociado";
+             uint32_t len, bytes_sent;
+
+             len = strlen(msgOut);
+             bytes_sent = send(fd, msgOut, len, 0);
+
+
 		}
 	Pedido de READ:
 		pthread_mutex_lock(&mutex_LIST);
@@ -92,6 +102,26 @@ uint32_t pfs_receive(char* msgIn,uint32_t fd)
 }
 
 
+uint32_t ppd_receive(char* msgIn,uint32_t fd)
+{
+/*
+	Handshake:
+			//Responde hanshake
+
+			 msgOut=NIPC_createCharMsg(0,0,0)  //si esta bien contestar type 0, payload 0
+			 uint32_t len, bytes_sent;
+             len = strlen(msgOut);
+             bytes_sent = send(sockfd, msgOut, len, 0);
+
+			 send(fd,msgOut,0);
+
+	Pedido de READ:
+		TODO
+	Pedido de WRITE:
+		TODO
+*/
+	return 0;
+}
 
 
 
