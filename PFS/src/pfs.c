@@ -14,7 +14,7 @@
 #include "tad_queue.h"
 #include "tad_cluster.h"
 #include "pfs_fat32.h"
-#include "tad_bitmap.h"
+
 
 	struct args
 	{

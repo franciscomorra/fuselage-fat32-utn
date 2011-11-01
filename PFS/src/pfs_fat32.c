@@ -161,7 +161,7 @@ queue_t fat32_readDirectory(const char* path,clusterChain_t *cluster_chain)
 	bool dir_exists = false;
 
 	*cluster_chain = fat32_getClusterChainData(2);
-	queue_t file_list = DIRENTRY_interpretTableData( *cluster_chain);
+	queue_t file_list = DIRENTRY_interpretTableData(*cluster_chain);
 
 
 	if (strcmp(path,"/") == 0) return file_list;
