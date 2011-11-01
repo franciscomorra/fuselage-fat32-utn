@@ -104,7 +104,8 @@ while(1){
                                            	   }
                                            	   else if(msgIn[10]==2){
                                            		   //PPD=2   pongo 10 por poner un ejemplo
-
+                                                   //ppd_receive(msgIn,currFD);
+                                                   //memset(msgIn,0,sizeof(msgIn));
 
                                            	   }
                                               }
