@@ -74,7 +74,8 @@ uint32_t console_trace(queue_t parameters,uint32_t len,uint32_t ppdFD){
 	    cur_parameter = cur_parameter->next;
 	}
 	for(i=0;i<=len;i++){
-		if(recv(ppdFD,msg,3+5*sizeof(uint32_t),0) == -1)  {
+		uint32_t recvReturn = 0;
+		if((recvReturn = recv(ppdFD,msg,3+5*sizeof(uint32_t),0)) == -1)  {
 			    	perror("recv");
 			    	exit(1);
 		}
@@ -114,7 +115,9 @@ void console_showTrace(char* msg){
 	for(i=0;i<=distance;i++)
 		printf("%d:%d:%d ",CHS.cylinder,CHS.head,(sector+i)%16);
 
-	printf("\nTiempo Consumido: %dms\n",(uint32_t)*(msg+15));
+	uint32_t delay = 0;
+	memcpy(&delay,msg+15,4);
+	printf("\nTiempo Consumido: %dms\n",delay);
 
 	memcpy(&len,msg+1,2);
 	if(len == 20){
