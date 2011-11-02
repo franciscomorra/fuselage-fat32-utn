@@ -36,7 +36,8 @@ char* TRANSLATE_fromRequestToChar(requestNode_t* request)
 {
 	char* msg = malloc(((uint32_t)*request->len) + 7);
 	msg[0] = request->type;
-	memcpy(msg+1,request->len,2);
+	uint32_t msgLen = (*request->len)+sizeof(uint32_t);
+	memcpy(msg+1,&msgLen,2);
 	uint32_t sectorNum = TAKER_turnToSectorNum(request->CHS);
 	memcpy(msg+3,&sectorNum,4);
 	memcpy(msg+7,request->payload,(uint32_t)*request->len);
