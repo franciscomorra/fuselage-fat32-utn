@@ -56,8 +56,7 @@ uint32_t CHANDLER_connect(uint32_t* consoleFD){
 
 void CHANDLER_info(char* msg){
 	// agrega la posicion actual del cabezal al mensaje
-	requestNode_t* CHSPosition = malloc(sizeof(requestNode_t));
-	COMMON_turnToCHS(headPosition,CHSPosition);
+	CHS_t* CHSPosition = COMMON_turnToCHS(headPosition);
 	memcpy(msg+3,&CHSPosition->cylinder,4);
 	memcpy(msg+7,&CHSPosition->head,4);
 	memcpy(msg+11,&CHSPosition->sector,4);

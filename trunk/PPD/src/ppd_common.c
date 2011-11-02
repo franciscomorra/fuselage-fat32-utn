@@ -1,11 +1,13 @@
 
-#include <ppd_common.h>
+#include "ppd_common.h"
 #include <string.h>
 #include <stdlib.h>
 
-void COMMON_turnToCHS(uint32_t sectorNum,requestNode_t* new){
+CHS_t* COMMON_turnToCHS(uint32_t sectorNum){
+	CHS_t* CHS = malloc(sizeof(CHS_t));
 
-	new->cylinder = (sectorNum) / (Sector * Head);
-	new->head = (sectorNum % (Sector * Head)) / Sector;
-	new->sector = (sectorNum % (Sector * Head)) % Sector;
+	CHS->cylinder = (sectorNum) / (Sector * Head);
+	CHS->head = (sectorNum % (Sector * Head)) / Sector;
+	CHS->sector = (sectorNum % (Sector * Head)) % Sector;
+	return CHS;
 }

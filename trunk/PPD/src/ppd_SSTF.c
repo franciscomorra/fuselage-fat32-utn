@@ -13,13 +13,13 @@ extern uint32_t TrackJumpTime;
 extern uint32_t headPosition;
 
 void SSTF_getHead(queue_t* queue){
-	requestNode_t* CHSposition = malloc(sizeof(requestNode_t));
- 	COMMON_turnToCHS(headPosition,CHSposition);
+	CHS_t* CHSposition = COMMON_turnToCHS(headPosition);
 	queueNode_t* aux = queue->begin;
 	queueNode_t* prevAux = queue->begin;
 
+
 	 while(aux != 0){
-		 if(SSTF_near(aux->data,CHSposition,queue->begin->data)){
+		 if(SSTF_near(((requestNode_t*)aux->data)->CHS,CHSposition,((requestNode_t*)queue->begin->data)->CHS)){
 			 prevAux->next = aux->next;
 			 aux->next = queue->begin;
 			 queue->begin = aux;
@@ -32,11 +32,11 @@ void SSTF_getHead(queue_t* queue){
 requestNode_t* SSTF_takeRequest(queue_t* queue){
 	SSTF_getHead(queue);
 	queueNode_t* node = (QUEUE_takeNode(queue));
-	sleep(TAKER_getSleepTime(node->data)/1000);
+	sleep(TAKER_getSleepTime(((requestNode_t*)node->data)->CHS)/1000);
 	return node->data;
 }
 
-uint32_t SSTF_near(requestNode_t* new, requestNode_t* aux,requestNode_t* auxSig){
+uint32_t SSTF_near(CHS_t* new, CHS_t* aux,CHS_t* auxSig){ //TODO cambiar los parametros todos a CHS_t
 
 	//se fija si la distancia entre  new y aux es menor que la de aux y auxSig
 	// si es asi devuelve True
@@ -54,6 +54,5 @@ uint32_t SSTF_near(requestNode_t* new, requestNode_t* aux,requestNode_t* auxSig)
 	}
 	return 0;
 }
-
 
 

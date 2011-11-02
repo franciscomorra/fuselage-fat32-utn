@@ -17,16 +17,22 @@ void TAKER_main();
 // atiende al pedido que el algoritmo saca de la cola
 void TAKER_handleRequest(queue_t*,requestNode_t*);
 
+//Genera la informacion necesaria para imprimir datos del comando Trace
+void TAKER_getTraceInfo(CHS_t* CHSrequest,uint32_t* distance,uint32_t* delay);
+
 // cambia de CHS a numero de sector para poder enviarlo en el payload del nipcMsg_t
-uint32_t TAKER_turnToSectorNum(requestNode_t* CHSnode);
+uint32_t TAKER_turnToSectorNum(CHS_t* CHSnode);
 
 //devuelve el tiempo en ms que le lleva al disco llegar a cada sector
-uint32_t TAKER_getSleepTime(requestNode_t*);
+uint32_t TAKER_getSleepTime(CHS_t*);
+
+//calcula la distancia entre el sector alcanzado luego de llegar al cilindro y el sector al cual se buscaba llegar
+uint32_t TAKER_getReachedDistance(CHS_t* CHSrequest,CHS_t* CHSposition);
 
 //devuelve la distancia que hay entre dos sectores logicos en el disco
 uint32_t TAKER_sectorDist(uint32_t,uint32_t);
 
-uint32_t TAKER_getReachedDistance(requestNode_t* request,requestNode_t* CHSposition);
+
 
 #endif /* PPD_TAKER_H_ */
 

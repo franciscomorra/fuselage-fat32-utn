@@ -1,9 +1,3 @@
-/*
- * ppd.c
- *
- *  Created on: 06/09/2011
- *      Author: utn_so
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -21,13 +15,13 @@
 #include <netinet/in.h>
 #include "nipc.h"
 #include "config_manager.h"
-#include "ppd_queue.h"
 #include "ppd_SSTF.h"
 #include "ppd_common.h"
 #include "ppd_comm.h"
 #include "ppd_taker.h"
 #include "ppd_cHandler.h"
 #include "ppd_translate.h"
+#include "tad_queue.h"
 
 uint32_t Cylinder;
 uint32_t Head;
@@ -59,7 +53,7 @@ int main(int argc, char *argv[])
 	uint32_t addrlen;
 	uint32_t currFD;					//current fd sirve para saber que fd tuvo cambios
 	uint32_t RPM;						//No es global ya que solo me interesa comunicar el SectorJumpTime
-
+	fd_set writeFDs;
 	sem_init(&queueElemSem,0,0);
 	sem_init(&mainMutex,0,1);
 
@@ -78,7 +72,7 @@ int main(int argc, char *argv[])
 	headPosition = atoi(CONFIG_getValue(ppd_config,"HeadPosition"));	//
 	RPM = atoi(CONFIG_getValue(ppd_config,"RPM"));						//
 
-	SectorJumpTime = RPM / 60000 * Sector;// RPm/60 -> RPs/1000 -> RPms*Sector = tiempo entre sectores
+	SectorJumpTime = (RPM*Sector)/60000;// RPm/60 -> RPs/1000 -> RPms*Sector = tiempo entre sectores
 
 	char* msg;
 	for(i = 0; i < 7; i++){
@@ -88,7 +82,7 @@ int main(int argc, char *argv[])
 	}
 	if(pthread_create(&TAKERtid,NULL,(void*)&TAKER_main,NULL)) //crea el thread correspondiente al TAKER
 			perror("error creacion de thread ");
-
+/*
 	switch(fork()){ 																	//ejecuta la consola
 		case 0: 																		//si crea un nuevo proceso entra por esta rama
 			execl("/home/utn_so/Desktop/trabajos/PPD_Console/Debug/PPD_Console",NULL); 	//ejecuta la consola en el nuevo proceso
@@ -97,7 +91,7 @@ int main(int argc, char *argv[])
 			perror("fork");
 			break;
 	}
-
+*/
 	CHANDLER_connect(&consoleFD);		//conecta la consola
 	COMM_connect(&listenFD);			//crea un descriptor de socket encargado de recibir conexiones entrantes
 
@@ -115,6 +109,7 @@ int main(int argc, char *argv[])
 		readFDs = masterFDs;
 		if(select(FDmax+1, &readFDs,NULL,NULL,NULL) == -1)
 			perror("select");
+		uint32_t prueba = 0;
 		for(currFD = 0; currFD <= FDmax; currFD++){
 			if(FD_ISSET(currFD,&readFDs)){	//hay datos nuevos
 				if( currFD == listenFD){	//nueva conexion
@@ -129,7 +124,6 @@ int main(int argc, char *argv[])
 				} else { //datos de un cliente
 					uint32_t recvReturn = 0;
 					char* msgIn = malloc(bytes_perSector + 7);
-					//char msgIn[bytes_perSector + 7];
 					if((recvReturn = recv(currFD,msgIn,519,0)) == 0)
 					{
 						close(currFD);
@@ -157,7 +151,7 @@ int main(int argc, char *argv[])
 			printf("Timeout occurred! No data after 3.5 seconds \n");
 		} else { //se fija por eventos de la consola
 			if(pollFds[0].revents & POLLIN){
-				recv(pollFds[0].fd,msgIn,sizeof(msgIn),NULL);
+				recv(pollFdTAKER_handleRequests[0].fd,msgIn,sizeof(msgIn),NULL);
 				ppd_recei65536ve(msgIn,0);
 			}
 			free(msgIn);
@@ -184,6 +178,7 @@ void TAKER_main() {
 		fflush(0);											//hace que no se acumulen datos y los largue de a tandas
 
 		free(msg);
+		free(request->CHS);
 		free(request);
 		sem_post(&mainMutex);
 	}
