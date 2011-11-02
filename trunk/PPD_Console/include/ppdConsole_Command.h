@@ -23,7 +23,7 @@ uint32_t console_clean(queue_t,uint32_t);
 
 uint32_t console_trace(queue_t,uint32_t,uint32_t);
 
-void console_turnToCHS(uint32_t* sectorNum,CHS_t CHS);
+void console_turnToCHS(uint32_t* sectorNum,CHS_t* CHS);
 
 void console_showTrace(char* msg);
 
