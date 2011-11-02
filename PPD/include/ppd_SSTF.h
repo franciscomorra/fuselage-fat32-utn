@@ -21,7 +21,7 @@ requestNode_t* SSTF_takeRequest(queue_t*);
 uint32_t SSTF_addRequest(requestNode_t* new);
 
 //devuelve true si el nodo A esta mas cerca del nodo B que el C
-uint32_t SSTF_near(requestNode_t* A,requestNode_t* B,requestNode_t* C);
+uint32_t SSTF_near(CHS_t* A,CHS_t* B,CHS_t* C);
 
 //definida en el ppd_main para ser usada como thread
 uint32_t SSTF_main(void);

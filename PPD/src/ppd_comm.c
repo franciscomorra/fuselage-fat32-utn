@@ -41,7 +41,9 @@ uint32_t ppd_send(char* msg,uint32_t fd)
 		}
 
 		case PPDCONSOLE_TRACE :{
-			send(fd,msg,msg+3,NULL);
+			uint32_t len;
+			memcpy(&len,msg+1,2);
+			send(fd,msg,len+3,NULL);
 			break;
 		}
 
@@ -50,9 +52,6 @@ uint32_t ppd_send(char* msg,uint32_t fd)
 }
 
 uint32_t ppd_receive(char* msgIn,uint32_t fd) {
-
-	/* Se obtienen los distintos campos del mensaje IPC*/
-
 	switch (msgIn[0]) {
 		case HANDSHAKE:
 				//TODO Handshake
@@ -73,9 +72,8 @@ uint32_t ppd_receive(char* msgIn,uint32_t fd) {
 
 				request = TRANSLATE_fromCharToRequest(msgIn,fd);
 
-				queueNode = QUEUE_createNode(request);
 				sem_wait(&mainMutex);
-				QUEUE_appendNode(queue, queueNode);
+				QUEUE_appendNode(queue,request);
 				sem_post(&mainMutex);
 				sem_post(&queueElemSem);
 
@@ -121,9 +119,4 @@ char* COMM_createCharMessage(NIPC_type type,uint32_t payload_bytes_len)
 	memset(msg+3,0,payload_bytes_len);
 	return msg;
 }
-/*
-uint32_t COMM_recvAll(uint32_t fd,void* msg){
 
-	recv(fd,msg,sizeof(msg),0);
-}
-*/
