@@ -49,8 +49,8 @@ uint32_t console_clean(queue_t parameters,uint32_t ppdFD){
 	        exit(1);
 	    }
 	}
-	free(msg);
 	free(payload);
+	free(msg);
 	return 1;
 }
 
@@ -80,35 +80,49 @@ uint32_t console_trace(queue_t parameters,uint32_t len,uint32_t ppdFD){
 		}
 		console_showTrace(msg);
 	}
-	free(msg);
 	free(payload);
+	free(msg);
+
 	return 1;
 }
 
-void console_turnToCHS(uint32_t* sectorNum,CHS_t CHS){
+void console_turnToCHS(uint32_t* sectorNum,CHS_t* CHS){
 
-	CHS.cylinder = (*sectorNum) / (Sector * Head);
-	CHS.head = (*sectorNum % (Sector * Head)) / Sector;
-	CHS.sector = (*sectorNum % (Sector * Head)) % Sector;
+	CHS->cylinder = (*sectorNum) / (Sector * Head);
+	CHS->head = (*sectorNum % (Sector * Head)) / Sector;
+	CHS->sector = (*sectorNum % (Sector * Head)) % Sector;
 
 }
 
 void console_showTrace(char* msg){
 	CHS_t CHS;
+	CHS_t headPosition;
 	uint32_t distance;
+	uint32_t len;
 
-	console_turnToCHS((uint32_t*)(msg+7),CHS);
-	printf("Posición Actual: %d:%d:%d\n",CHS.cylinder,CHS.head,CHS.sector);
-	console_turnToCHS((uint32_t*)(msg+3),CHS);
+	console_turnToCHS((uint32_t*)(msg+7),&headPosition);
+	printf("Posición Actual: %d:%d:%d\n",headPosition.cylinder,headPosition.head,headPosition.sector);
+	console_turnToCHS((uint32_t*)(msg+3),&CHS);
 	printf("Sector Solicitado: %d:%d:%d\n",CHS.cylinder,CHS.head,CHS.sector);
 
-	memcpy(&distance,msg+15,4);
-	uint32_t sector = (Sector-distance+CHS.sector)%Sector;
-	printf("Sectores Recorridos: ");
-	for(;sector<=distance;sector++)
-		printf("%d:%d:%d",CHS.cylinder,CHS.head,sector);
+	printf("Pistas Recorridas Desde: %d Hasta: %d\n",headPosition.cylinder,CHS.cylinder);
 
-	printf("\nTiempo Consumido: %dms",*(msg+19));
-	console_turnToCHS((uint32_t*)(msg+11),CHS);
+	memcpy(&distance,msg+11,4);
+	uint32_t sector = (Sector-distance+CHS.sector)%Sector;
+	uint32_t i;
+	printf("Sectores Recorridos: ");
+	for(i=0;i<=distance;i++)
+		printf("%d:%d:%d ",CHS.cylinder,CHS.head,(sector+i)%16);
+
+	printf("\nTiempo Consumido: %dms\n",(uint32_t)*(msg+15));
+
+	memcpy(&len,msg+1,2);
+	if(len == 20){
+	console_turnToCHS((uint32_t*)(msg+19),&CHS);
 	printf("Proximo Sector: %d:%d:%d\n",CHS.cylinder,CHS.head,CHS.sector);
+	} else
+		printf("Proximo Sector: -\n");
+	putchar('\n');
+
+
 }

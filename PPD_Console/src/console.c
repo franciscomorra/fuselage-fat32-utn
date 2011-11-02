@@ -22,14 +22,14 @@ void main () {
 	uint32_t ppdFD;
 
 	config_param *ppd_config;
-	CONFIG_read("config/ppd.config",&ppd_config);
+	CONFIG_read("/home/utn_so/Desktop/trabajos/PPD/config/ppd.config",&ppd_config);
 
 	Head =  atoi(CONFIG_getValue(ppd_config,"Head"));					//
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));				//	leer archivo de configuración
 	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));	//
 	uint32_t RPM = atoi(CONFIG_getValue(ppd_config,"RPM"));
 
-	SectorJumpTime = RPM / 60000 * Sector;
+	SectorJumpTime = (RPM*Sector)/ 60000;
 
     CONNECT_toProcess(&ppdFD);
 
