@@ -32,8 +32,10 @@ typedef struct praid_sl_content{
 	//SOCKET PFS
 }praid_sl_content;
 
-praid_list_node* PRAID_list_appendNode(uint32_t tid);
-
+praid_list_node* PRAID_list_appendNode(uint32_t);
+uint32_t PRAID_add_READ_Request(praid_sl_content*);
+uint32_t PRAID_add_WRITE_Request(praid_sl_content*);
+uint32_t PRAID_clear_list_node(praid_list_node*);
 
 
 #endif /* PRAID_QUEUE_H_ */
