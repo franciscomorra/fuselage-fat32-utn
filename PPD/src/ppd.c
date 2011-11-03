@@ -22,6 +22,8 @@
 #include "ppd_cHandler.h"
 #include "ppd_translate.h"
 #include "tad_queue.h"
+#include "ppd_qManager.h"
+
 
 uint32_t Cylinder;
 uint32_t Head;
@@ -31,8 +33,9 @@ uint32_t headPosition;
 uint32_t SectorJumpTime;
 uint32_t bytes_perSector;
 uint32_t file_descriptor;
-queue_t* queue;
-sem_t queueElemSem;
+flag_t Algorithm;
+multiQueue_t* multiQueue;
+
 sem_t mainMutex;
 
 //struct pollfd pollFds[2];
@@ -41,7 +44,7 @@ int main(int argc, char *argv[])
 {
 	file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR);
 	bytes_perSector = 512;
-	queue = malloc(sizeof(queue_t));
+	multiQueue = malloc(sizeof(multiQueue_t));
 	pthread_t TAKERtid;					//thread taker
 	fd_set masterFDs;					//conjunto total de FDs que queremos administrar
 	fd_set readFDs;						//conjunto de FDs de los que deseamos recibir datos
@@ -54,8 +57,9 @@ int main(int argc, char *argv[])
 	uint32_t currFD;					//current fd sirve para saber que fd tuvo cambios
 	uint32_t RPM;						//No es global ya que solo me interesa comunicar el SectorJumpTime
 	fd_set writeFDs;
-	sem_init(&queueElemSem,0,0);
+	sem_init(&(multiQueue->queueElemSem),0,0);
 	sem_init(&mainMutex,0,1);
+	multiQueue->flag = QUEUE2_ACTIVE;
 
 	int i;													// temporal
  	uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};	// temporal
@@ -70,7 +74,18 @@ int main(int argc, char *argv[])
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));				//	leer archivo de configuración
 	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));	//
 	headPosition = atoi(CONFIG_getValue(ppd_config,"HeadPosition"));	//
-	RPM = atoi(CONFIG_getValue(ppd_config,"RPM"));						//
+	RPM = atoi(CONFIG_getValue(ppd_config,"RPM"));
+	if(strcmp("SSTF",CONFIG_getValue(ppd_config,"Algorithm")) == 0)
+		Algorithm = SSTF;
+	else
+		Algorithm = FSCAN;
+
+
+	multiQueue->queue1 = malloc(sizeof(queue_t));
+	QUEUE_initialize(multiQueue->queue1);
+	multiQueue->queue2 = malloc(sizeof(queue_t));
+	QUEUE_initialize(multiQueue->queue1);
+
 
 	SectorJumpTime = (RPM*Sector)/60000;// RPm/60 -> RPs/1000 -> RPms*Sector = tiempo entre sectores
 
@@ -80,9 +95,9 @@ int main(int argc, char *argv[])
 		memcpy(msg+3,p+i,4);										// temporal
  		ppd_receive(msg,1);
 	}
-	if(pthread_create(&TAKERtid,NULL,(void*)&TAKER_main,NULL)) //crea el thread correspondiente al TAKER
+	if(pthread_create(&TAKERtid,NULL,TAKER_main,NULL)) //crea el thread correspondiente al TAKER
 			perror("error creacion de thread ");
-/*
+
 	switch(fork()){ 																	//ejecuta la consola
 		case 0: 																		//si crea un nuevo proceso entra por esta rama
 			execl("/home/utn_so/Desktop/trabajos/PPD_Console/Debug/PPD_Console",NULL); 	//ejecuta la consola en el nuevo proceso
@@ -91,7 +106,7 @@ int main(int argc, char *argv[])
 			perror("fork");
 			break;
 	}
-*/
+
 	CHANDLER_connect(&consoleFD);		//conecta la consola
 	COMM_connect(&listenFD);			//crea un descriptor de socket encargado de recibir conexiones entrantes
 
@@ -109,7 +124,7 @@ int main(int argc, char *argv[])
 		readFDs = masterFDs;
 		if(select(FDmax+1, &readFDs,NULL,NULL,NULL) == -1)
 			perror("select");
-		uint32_t prueba = 0;
+
 		for(currFD = 0; currFD <= FDmax; currFD++){
 			if(FD_ISSET(currFD,&readFDs)){	//hay datos nuevos
 				if( currFD == listenFD){	//nueva conexion
@@ -139,7 +154,7 @@ int main(int argc, char *argv[])
 /*
  CHANDLER_connect(&pollFds[0].fd); //posicion 0 del pollFds siempre perteneciente a la consola del ppd
 
-
+sem_wait(&mainMutex);
 	while(1){
 		char* msgIn = malloc(bytes_perSector + 3);
 
@@ -163,8 +178,10 @@ return 0;
 
 void TAKER_main() {
 	while(1){
-		sem_wait(&queueElemSem);
+		sleep(2);
+		sem_wait(&(multiQueue->queueElemSem));
 		sem_wait(&mainMutex);
+		queue_t* queue = QMANAGER_selectActiveQueue(multiQueue);
 
 		requestNode_t* request = SSTF_takeRequest(queue);
 

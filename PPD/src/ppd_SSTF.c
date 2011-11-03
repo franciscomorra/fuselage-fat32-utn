@@ -36,20 +36,20 @@ requestNode_t* SSTF_takeRequest(queue_t* queue){
 	return node->data;
 }
 
-uint32_t SSTF_near(CHS_t* new, CHS_t* aux,CHS_t* auxSig){ //TODO cambiar los parametros todos a CHS_t
+uint32_t SSTF_near(CHS_t* new, CHS_t* headP,CHS_t* auxSig){
 
-	//se fija si la distancia entre  new y aux es menor que la de aux y auxSig
+	//se fija si la distancia entre  new y head Position es menor que la de head Position y auxSig
 	// si es asi devuelve True
 
-	uint32_t distTrackNA = abs(new->cylinder - aux->cylinder);
-	uint32_t distTrackAS = abs(auxSig->cylinder - aux->cylinder);
+	uint32_t distTrackNA = abs(new->cylinder - headP->cylinder);
+	uint32_t distTrackAS = abs(auxSig->cylinder - headP->cylinder);
 
 	if (distTrackNA < distTrackAS)
 		return 1;
 	else
 		if (distTrackNA == distTrackAS){
-			if(TAKER_sectorDist(((aux->sector))+(distTrackNA*TrackJumpTime),new->sector)
-			< TAKER_sectorDist(((aux->sector))+(distTrackNA*TrackJumpTime),auxSig->sector))
+			if(TAKER_sectorDist(((headP->sector))+(distTrackNA*TrackJumpTime),new->sector)
+			< TAKER_sectorDist(((headP->sector))+(distTrackNA*TrackJumpTime),auxSig->sector))
 				return 1;
 	}
 	return 0;

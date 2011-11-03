@@ -11,10 +11,6 @@
 #include <stdint.h>
 #include "nipc.h"
 
-#define HANDSHAKE 0
-#define READ 2
-#define WRITE 1
-
 //envia mensajes por sockets
 uint32_t ppd_send(char*,uint32_t);
 

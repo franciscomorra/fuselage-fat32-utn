@@ -16,13 +16,16 @@
 #include "ppd_common.h"
 #include "ppd_translate.h"
 #include "ppd_cHandler.h"
+#include "ppd_qManager.h"
 
 #define PORT 9034
 
-extern queue_t* queue;
+//extern queue_t* queue;
+extern multiQueue_t* multiQueue;
 extern sem_t mainMutex;
+extern uint32_t Algorithm;
 //extern struct pollfd pollFds[2];
-extern sem_t queueElemSem;
+//extern sem_t queueElemSem;
 
 
 uint32_t ppd_send(char* msg,uint32_t fd)
@@ -52,6 +55,7 @@ uint32_t ppd_send(char* msg,uint32_t fd)
 }
 
 uint32_t ppd_receive(char* msgIn,uint32_t fd) {
+
 	switch (msgIn[0]) {
 		case HANDSHAKE:
 				//TODO Handshake
@@ -67,15 +71,15 @@ uint32_t ppd_receive(char* msgIn,uint32_t fd) {
 		default:{
 			if(msgIn[0] == READ_SECTORS || msgIn[0] == WRITE_SECTORS || msgIn[0] == PPDCONSOLE_TRACE){
 
-				requestNode_t* request;
-				queueNode_t* queueNode;
-
-				request = TRANSLATE_fromCharToRequest(msgIn,fd);
+				requestNode_t* request = TRANSLATE_fromCharToRequest(msgIn,fd);
 
 				sem_wait(&mainMutex);
+				queue_t* queue = QMANAGER_selectPassiveQueue(multiQueue);
+
 				QUEUE_appendNode(queue,request);
+
 				sem_post(&mainMutex);
-				sem_post(&queueElemSem);
+				sem_post(&multiQueue->queueElemSem);
 
 
 			}

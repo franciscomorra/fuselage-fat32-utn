@@ -16,7 +16,7 @@ extern uint32_t file_descriptor;
 extern uint32_t bytes_perSector;
 extern uint32_t TrackJumpTime;
 extern uint32_t SectorJumpTime;
-extern sem_t queueElemSem;
+extern multiQueue_t* multiQueue;
 
 uint32_t headPosition;
 uint32_t sectorNum;
@@ -39,7 +39,7 @@ void TAKER_handleRequest(queue_t* queue, requestNode_t* request){
 
 
 			memcpy(request->payload,&headPosition,4);					//Si no hay proximo sector en la cola no copio nada al payload y disminuyo el Len
-			if(queueElemSem.__align != 0){
+			if(multiQueue->queueElemSem.__align != 0){
 				SSTF_getHead(queue);									//TODO cambiarlo cuando elejimos otro algoritmo
 				queueHead = queue->begin->data;							//Obtiene el proximo sector que mostrara segun la planificacion
 				nextSector = TAKER_turnToSectorNum(queueHead->CHS);
@@ -64,7 +64,7 @@ void TAKER_handleRequest(queue_t* queue, requestNode_t* request){
 		default:
 			break;
 	}
-	headPosition = sectorNum+1;
+	TAKER_updateHPos(sectorNum);
 }
 
 void TAKER_getTraceInfo(CHS_t* CHSrequest,uint32_t* distance,uint32_t* delay){
@@ -115,3 +115,9 @@ uint32_t TAKER_sectorDist(uint32_t fstSector, uint32_t lstSector){
 
 	return 0;
 }
+void TAKER_updateHPos(uint32_t sectorNum){
+	headPosition = sectorNum + 1;
+	if((headPosition % Sector) == 0)
+		headPosition = headPosition - Sector;
+}
+
