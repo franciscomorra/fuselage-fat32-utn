@@ -32,6 +32,9 @@ uint32_t TAKER_getReachedDistance(CHS_t* CHSrequest,CHS_t* CHSposition);
 //devuelve la distancia que hay entre dos sectores logicos en el disco
 uint32_t TAKER_sectorDist(uint32_t,uint32_t);
 
+//actualiza la posicion del cabezal controlando que no cambie de cilindro
+void TAKER_updateHPos(uint32_t sectorNum);
+
 
 
 #endif /* PPD_TAKER_H_ */
