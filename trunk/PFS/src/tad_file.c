@@ -59,3 +59,27 @@ void FILE_freeQueue(queue_t* file_queue)
 	}
 }
 
+void FILE_splitNameFromPath(char *path,char **ret_filename,char **ret_path_to_filename)
+{
+
+	char *aux = path + strlen(path) - 1;
+	uint32_t char_count = 0;
+
+	while (*(aux--) != '/')
+	{
+		char_count++;
+	}
+
+	size_t filename_size = char_count;
+	size_t path_size = strlen(path) - char_count;
+
+	*ret_filename = malloc(filename_size+1);
+	memset(*ret_filename,0,filename_size+1);
+	memcpy(*ret_filename,path+path_size,filename_size);
+
+	*ret_path_to_filename = malloc(path_size+1);
+	memset(*ret_path_to_filename,0,path_size+1);//Reservo la cantidad necesaria calculada +1 por el caracter '\0'
+
+	memcpy(*ret_path_to_filename,path,path_size);
+	return;
+}

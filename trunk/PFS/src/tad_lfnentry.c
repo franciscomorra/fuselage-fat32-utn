@@ -22,7 +22,7 @@ size_t LFNENTRY_getString(lfnEntry_t lfn,char* ret_longfilename) {
 }
 
 
-size_t LFNENTRY_getLFN(queue_t lfn_entries,char** ret_longfilename)
+char* LFNENTRY_getLFN(queue_t lfn_entries)
 {
 	char *longfilename_buf = malloc(255);
 	memset(longfilename_buf,0,255);
@@ -47,10 +47,11 @@ size_t LFNENTRY_getLFN(queue_t lfn_entries,char** ret_longfilename)
 		lfn_node = lfn_node->next;
 	}
 
-	*ret_longfilename = malloc(new_longfilename_size+1);
-	memset(*ret_longfilename,0,new_longfilename_size+1);
-	memcpy(*ret_longfilename,longfilename_buf,new_longfilename_size);
-
-	return strlen(*ret_longfilename);
+	char *ret_longfilename = malloc(new_longfilename_size+1);
+	memset(ret_longfilename,0,new_longfilename_size+1);
+	memcpy(ret_longfilename,longfilename_buf,new_longfilename_size);
+	free(longfilename_buf);
+	free(tmp_longfilename_part);
+	return ret_longfilename;
 
 }

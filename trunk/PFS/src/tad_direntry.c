@@ -79,7 +79,7 @@ queue_t DIRENTRY_interpretTableData(clusterChain_t cluster_chain)
 			new_file->dir_entry =  (dirEntry_t*) lfn_entry++;
 			new_file->lfn_entries = *lfn_entries;
 
-			LFNENTRY_getLFN(new_file->lfn_entries,&(new_file->long_file_name));
+			new_file->long_file_name = LFNENTRY_getLFN(new_file->lfn_entries);
 
 			QUEUE_appendNode(&file_list,new_file); 															//Lo agrego a la cola
 

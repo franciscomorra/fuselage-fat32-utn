@@ -23,7 +23,7 @@
 
 extern bootSector_t boot_sector;
 
-char* PFS_sectorRead(uint32_t sector)
+char* PPDINTERFACE_readSector(uint32_t sector)
 {
 		nipcMsg_t msg;
 		msg = NIPC_createMsg(READ_SECTORS,sizeof(uint32_t),(char*) &sector);
@@ -32,7 +32,7 @@ char* PFS_sectorRead(uint32_t sector)
 		return buf;
 }
 
-uint32_t PFS_sectorWrite(sector_t sector)
+uint32_t PPDINTERFACE_writeSector(sector_t sector)
 {
 		nipcMsg_t msg;
 		msg.type = WRITE_SECTORS;
@@ -40,9 +40,10 @@ uint32_t PFS_sectorWrite(sector_t sector)
 		memcpy(msg.len,&len,2);
 
 		msg.payload = malloc(len);
-		memcpy(msg.payload,sector.number,4);
+		memcpy(msg.payload,&sector.number,4);
 		memcpy(msg.payload+4,sector.data,boot_sector.bytes_perSector);
 		PFS_request(msg);
+		NIPC_cleanMsg(&msg);
 		return 0;
 }
 
@@ -81,6 +82,7 @@ char* PFS_request(nipcMsg_t msg)
 		memcpy(sector,msg.payload,4);
 		read_sector(file_descriptor, *sector, buf);
 		free(sector);
+
 		close(file_descriptor);
 		return buf;
 
@@ -95,6 +97,7 @@ char* PFS_request(nipcMsg_t msg)
 				memcpy(buf,msg.payload+4,boot_sector.bytes_perSector);
 				write_sector(file_descriptor, *sector, buf);
 				free(sector);
+				free(buf);
 				close(file_descriptor);
 				return buf;
 	}

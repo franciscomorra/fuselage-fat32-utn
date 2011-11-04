@@ -24,7 +24,7 @@ void CLUSTER_freeQueue(queue_t *cluster_queue)
 	{
 		cur_cluster = (cluster_t*) cur_cluster_node->data;
 		CLUSTER_free(cur_cluster);
-		QUEUE_freeNode(cur_cluster_node,0);
+		QUEUE_freeNode(cur_cluster_node);
 	}
 }
 
@@ -68,6 +68,7 @@ cluster_t* CLUSTER_newCluster(char* startOfData,uint32_t numberOfCluster)
 	new_cluster->size = boot_sector.sectors_perCluster;
 	new_cluster->number = numberOfCluster;
 	new_cluster->sectors = sector_queue;
+	new_cluster->modified = false;
 	return new_cluster;
 
 }
@@ -91,24 +92,29 @@ void CLUSTER_freeChain(clusterChain_t *cluster_chain)
 	free(cluster_chain->data);
 }
 
-uint32_t CLUSTER_setModified(char *addr,clusterChain_t *cluster_chain)
+uint32_t CLUSTER_setModified2(char *addr,clusterChain_t *cluster_chain,size_t len_modified) // + CANTIDAD MODIFICADA
 {
 		queue_t cluster_queue = cluster_chain->clusters;
 		queueNode_t *cluster_node = (queueNode_t*) cluster_queue.begin;
 		bool found = false;
-		while (cluster_node != NULL)
+
+	while (cluster_node != NULL)
 		{
 			cluster_t *cluster = (cluster_t*) cluster_node->data;
 			queue_t sector_queue = cluster->sectors;
 			queueNode_t *sector_node = (queueNode_t*)  sector_queue.begin;
+
+
+
 			while (sector_node != NULL)
 			{
 				sector_t* sector = (sector_t*) sector_node->data;
-				uint32_t byte_index;
-				for (byte_index = 0; byte_index < boot_sector.bytes_perSector; byte_index++)
+				uint32_t addr_index;
+				for (addr_index = 0; addr_index < boot_sector.bytes_perSector; addr_index++)
 				{
-					if ((sector->data+byte_index) == addr)
+					if ((sector->data+addr_index) == addr)
 					{
+
 
 						sector->modified = true;
 						cluster->modified = true;
@@ -121,3 +127,28 @@ uint32_t CLUSTER_setModified(char *addr,clusterChain_t *cluster_chain)
 		}
 		return 1;
 }
+
+/*uint32_t CLUSTER_setModified(char *addr,cluster_t *cluster,size_t len_modified)
+{
+			uint32_t addr_index;
+			bool sector_found = false;
+			sector_t *last_sector;
+
+			for (addr_index=0; addr_index < len_modified; addr_index++)
+			{
+				sector_found = false;
+				queueNode_t *cur_sector_node = cluster->sectors.begin;
+				while (cur_sector_node != NULL && sector_found == false)
+				{
+					sector_t *cur_sector = (sector_t*) cur_sector_node.data;
+
+					uint32_t sector_byte_index;
+					if (cur_sector->data <= addr+addr_index && addr+addr_index <= cur_sector->data+boot_sector.bytes_perSector)
+					{
+						cur_sector->modified = true;
+						sector_found = true;
+					}
+					cur_sector_node = cur_sector_node->next;
+				}
+			}
+}*/

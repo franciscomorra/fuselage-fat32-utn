@@ -9,6 +9,7 @@
 #define TAD_SECTOR_H_
 
 #include <stdbool.h>
+#include "tad_queue.h"
 
 typedef struct sector_t
 {
@@ -17,5 +18,6 @@ typedef struct sector_t
 	char* data;
 	bool modified ;
 } sector_t;
+
 
 #endif /* TAD_SECTOR_H_ */
