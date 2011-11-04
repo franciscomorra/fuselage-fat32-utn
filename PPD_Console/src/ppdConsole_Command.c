@@ -11,7 +11,9 @@ extern uint32_t Head;
 extern uint32_t Sector;
 
 uint32_t console_info(uint32_t ppdFD) {
-	char* msg = NIPC_createCharMsg(PPDCONSOLE_INFO,12,NULL);
+
+	char* msg = malloc(12+3);
+	NIPC_createCharMsg(msg,PPDCONSOLE_INFO,12,NULL);
 
     if (send(ppdFD, msg, 15, 0)== -1) {
         perror("send");
@@ -34,7 +36,7 @@ uint32_t console_info(uint32_t ppdFD) {
 uint32_t console_clean(queue_t parameters,uint32_t ppdFD){
 	uint32_t i;
 	char* payload = malloc(516);
-	char* msg;
+	char* msg = malloc(519);
 
 	uint32_t firstSector = atoi(parameters.begin->data);
 	uint32_t lastSector = atoi(parameters.end->data);
@@ -42,7 +44,7 @@ uint32_t console_clean(queue_t parameters,uint32_t ppdFD){
 	for(i=firstSector;i<=lastSector;i++){
 		memcpy(payload,&i,sizeof(uint32_t));
 		memset(payload + sizeof(uint32_t),'\0',512);
-		msg = NIPC_createCharMsg(WRITE_SECTORS,516,payload);
+		NIPC_createCharMsg(msg,WRITE_SECTORS,516,payload);
 		uint32_t sendReturn;
 	    if ((sendReturn = send(ppdFD, msg, 519, 0)) == -1) {
 	        perror("send");
@@ -55,7 +57,8 @@ uint32_t console_clean(queue_t parameters,uint32_t ppdFD){
 }
 
 uint32_t console_trace(queue_t parameters,uint32_t len,uint32_t ppdFD){
-	char* msg;
+	char* msgOut = malloc(3+sizeof(uint32_t));
+	char* msgIn = malloc(3+sizeof(uint32_t)*5);
 	queueNode_t* cur_parameter = parameters.begin;
 	char* payload = malloc(sizeof(uint32_t)*5);
 	uint32_t requestSector = 0;
@@ -64,25 +67,27 @@ uint32_t console_trace(queue_t parameters,uint32_t len,uint32_t ppdFD){
 	while(cur_parameter != 0){
 		requestSector = atoi(cur_parameter->data);
 		memcpy(payload,&requestSector,4);
+		NIPC_createCharMsg(msgOut,PPDCONSOLE_TRACE,sizeof(uint32_t),payload);
 
-		msg = NIPC_createCharMsg(PPDCONSOLE_TRACE,sizeof(uint32_t),payload);
 		uint32_t sendReturn;
-	    if ((sendReturn = send(ppdFD, msg, 3+sizeof(uint32_t), 0)) == -1) {
+	    if ((sendReturn = send(ppdFD, msgOut, 3+sizeof(uint32_t), 0)) == -1) {
 	        perror("send");
 	        exit(1);
 	    }
 	    cur_parameter = cur_parameter->next;
 	}
-	for(i=0;i<=len;i++){
-		uint32_t recvReturn = 0;
-		if((recvReturn = recv(ppdFD,msg,3+5*sizeof(uint32_t),0)) == -1)  {
+	uint32_t recvLen=0;
+	for(i=0;i<len;i++){
+		NIPC_createCharMsg(msgIn,PPDCONSOLE_TRACE,sizeof(uint32_t)*5,NULL);
+		if((recvLen=recv(ppdFD,msgIn,3+5*sizeof(uint32_t),0)) == -1)  {
 			    	perror("recv");
 			    	exit(1);
 		}
-		console_showTrace(msg);
+		console_showTrace(msgIn);
 	}
 	free(payload);
-	free(msg);
+	free(msgOut);
+	free(msgIn); //rompe
 
 	return 1;
 }
@@ -99,7 +104,7 @@ void console_showTrace(char* msg){
 	CHS_t CHS;
 	CHS_t headPosition;
 	uint32_t distance;
-	uint32_t len;
+	uint16_t len;
 
 	console_turnToCHS((uint32_t*)(msg+7),&headPosition);
 	printf("Posición Actual: %d:%d:%d\n",headPosition.cylinder,headPosition.head,headPosition.sector);
@@ -115,9 +120,7 @@ void console_showTrace(char* msg){
 	for(i=0;i<=distance;i++)
 		printf("%d:%d:%d ",CHS.cylinder,CHS.head,(sector+i)%16);
 
-	uint32_t delay = 0;
-	memcpy(&delay,msg+15,4);
-	printf("\nTiempo Consumido: %dms\n",delay);
+	printf("\nTiempo Consumido: %dms\n",(uint32_t)*(msg+15));
 
 	memcpy(&len,msg+1,2);
 	if(len == 20){
