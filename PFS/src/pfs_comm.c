@@ -16,20 +16,58 @@
 #include "ppd_io.h"
 #include "tad_sector.h"
 #include <stdbool.h>
+#include <semaphore.h>
 #include "tad_bootsector.h"
+#include "tad_sockets.h"
+#include <sys/socket.h>
+#include <errno.h>
 
 //ACA SE HACE LA CONEXION POR SOCKET Y LA VARIABLE QUE LA REPRESENTE SERA static
 //PARA QUE SU SCOPE SEA SOLO DENTRO DE ESTE ARCHIVO QUE MANEJARA LAS CONEXIONES
 
 extern bootSector_t boot_sector;
+extern socketPool_t sockets_toPPD;
 
-char* PPDINTERFACE_readSector(uint32_t sector)
+char* PPDINTERFACE_readSector(uint32_t sector) //TODO CAMBIAR ESTA FUNCION POR UNA QUE RECIBA TODOS LOS SECTORES Y LOS PIDA AL PPD
 {
-		nipcMsg_t msg;
-		msg = NIPC_createMsg(READ_SECTORS,sizeof(uint32_t),(char*) &sector);
-		char* buf = PFS_request(msg);
+	nipcMsg_t msg2 = NIPC_createMsg(READ_SECTORS,sizeof(uint32_t),(char*) &sector);
+	char *buf1 = PFS_request(msg2);
+	NIPC_cleanMsg(&msg2);
+	return buf1;
+}
+
+char* PPDINTERFACE_readSectors(uint32_t* sectors, size_t len)
+{
+	uint32_t sock_index = 0;
+	uint32_t sector_index = 0;
+	size_t recvdata_len = (boot_sector.bytes_perSector + 7) * len;
+
+	sem_wait(&sockets_toPPD.free_sockets);
+	for (;sock_index < sockets_toPPD.size;sock_index++)
+	{
+		if (sockets_toPPD.sockets[sock_index].status == SOCK_FREE)
+		{
+			sockets_toPPD.sockets[sock_index].status = SOCK_NOTFREE;
+			break;
+		}
+	}
+
+	for (;sector_index < len;sector_index++)
+	{
+		nipcMsg_t msg = NIPC_createMsg(READ_SECTORS,sizeof(uint32_t),(char*) sectors+sector_index);
+		sendMsgToPPD(msg);
 		NIPC_cleanMsg(&msg);
-		return buf;
+	}
+
+	char* buf = malloc(recvdata_len);
+	if (recv(sockets_toPPD.sockets[sock_index].descriptor,buf,recvdata_len,NULL) == -1)
+	{
+		free(buf);
+		buf = NULL;
+	}
+	sockets_toPPD.sockets[sock_index].status = SOCK_FREE;
+	sem_post(&sockets_toPPD.free_sockets);
+	return buf;
 }
 
 uint32_t PPDINTERFACE_writeSector(sector_t sector)
@@ -73,6 +111,7 @@ char* PFS_request(nipcMsg_t msg)
 	//CAMBIAR POR ENVIO POR SOCKET
 	//CAMBIAR POR ENVIO POR SOCKET
 
+
 	if (msg.type == READ_SECTORS)
 	{
 		uint32_t file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR); //TEMPORAL
@@ -101,6 +140,49 @@ char* PFS_request(nipcMsg_t msg)
 				close(file_descriptor);
 				return buf;
 	}
+
+
 	return 0;
+}
+
+socketPool_t create_connections_pool(uint32_t max_conn,char* address,uint32_t port)
+{
+	socketPool_t sock_pool;
+	sock_pool.size = max_conn;
+	sock_pool.sockets = malloc(sizeof(socketInet_t)*max_conn);
+	sem_init(&sock_pool.free_sockets,NULL,max_conn);
+	uint32_t index = 0;
+
+	for (;index < max_conn;index++)
+	{
+		sock_pool.sockets[index] = SOCKET_inet_create(SOCK_STREAM,address,port,MODE_CONNECT);
+		if (sock_pool.sockets[index].status == SOCK_OK)
+		{
+
+			sock_pool.sockets[index].status = SOCK_FREE;
+		}
+		else
+		{
+			sock_pool.size = 0;
+			return sock_pool;
+		}
+	}
+
+	return sock_pool;
+
+}
+
+int32_t sendMsgToPPD(socketInet_t socket,nipcMsg_t msg)
+{
+	char* msg_inBytes = NIPC_toBytes(msg);
+	int32_t transmitted = 0;
+	if ((transmitted = send(socket.descriptor,msg_inBytes,7,NULL)) == -1)
+	{
+		return errno;
+	}
+	else
+	{
+		return transmitted;
+	}
 }
 

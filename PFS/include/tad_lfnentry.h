@@ -36,4 +36,6 @@ typedef struct  LFN_ENTRY
 size_t LFNENTRY_getString(lfnEntry_t lfn,char* ret_longfilename);
 
 char* LFNENTRY_getLFN(queue_t lfn_entries);
+
+lfnEntry_t LFNENTRY_create(char* filename);
 #endif /* TAD_LFNENTRY_H_ */
