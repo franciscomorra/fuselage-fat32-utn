@@ -7,9 +7,9 @@
 #include "ppd_taker.h"
 
 
-requestNode_t* TRANSLATE_fromCharToRequest(char* msg,uint32_t sockFD)
+request_t* TRANSLATE_fromCharToRequest(char* msg,uint32_t sockFD)
 {
-	requestNode_t* request = malloc(sizeof(requestNode_t));
+	request_t* request = malloc(sizeof(request_t));
 
 	uint32_t sectorNum;
 	memcpy(&sectorNum,msg+3,4);
@@ -32,7 +32,7 @@ requestNode_t* TRANSLATE_fromCharToRequest(char* msg,uint32_t sockFD)
 	return request;
 }
 
-char* TRANSLATE_fromRequestToChar(requestNode_t* request)
+char* TRANSLATE_fromRequestToChar(request_t* request)
 {
 	uint16_t len;
 	memcpy(&len,request->len,2);

@@ -23,14 +23,13 @@ typedef struct CHS_t {
 	uint32_t sector;
 } __attribute__((__packed__)) CHS_t;
 
-typedef struct requestNode_t {
+typedef struct request_t {
 	NIPC_type type;
 	struct CHS_t* CHS;
 	char len[2];
 	uint32_t sender;
 	char* payload;
-	struct requestNode_t* next;
-} __attribute__((__packed__)) requestNode_t;
+} __attribute__((__packed__)) request_t;
 
 typedef enum {
 	QUEUE1_ACTIVE=0x00, QUEUE2_ACTIVE=0x01, SSTF=0x02, FSCAN=0x03

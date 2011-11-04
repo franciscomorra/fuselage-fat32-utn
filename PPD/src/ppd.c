@@ -59,13 +59,13 @@ int main(int argc, char *argv[])
 	sem_init(&(multiQueue->queueElemSem),0,0);
 	sem_init(&mainMutex,0,1);
 	multiQueue->flag = QUEUE2_ACTIVE;
-/*
+
 	int i;														// temporal
  	//uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};	// temporal
 	uint32_t vec[4] = {176,199,191,200};
  	uint32_t* p = malloc(7*sizeof(uint32_t));					// temporal
  	memcpy(p,vec,7*4);											// temporal
-*/
+
 	config_param *ppd_config;
 	CONFIG_read("config/ppd.config",&ppd_config);
 
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 	QUEUE_initialize(multiQueue->queue1);
 	if(Algorithm == SSTF){
 		multiQueue->flag = SSTF;
-		if(pthread_create(&TAKERtid,NULL,TAKER_main,SSTF_getHead)) 				//crea el thread correspondiente al TAKER
+		if(pthread_create(&TAKERtid,NULL,TAKER_main,SSTF_getNext)) 				//crea el thread correspondiente al TAKER
 					perror("error creacion de thread ");
 	} else {
 		multiQueue->queue2 = malloc(sizeof(queue_t));
@@ -92,18 +92,18 @@ int main(int argc, char *argv[])
 	}
 
 	SectorJumpTime = (RPM*Sector)/60000;// RPm/60 -> RPs/1000 -> RPms*Sector = tiempo entre sectores
-/*
+
 	char* msg;
 	for(i = 0; i < 4; i++){
 		msg = COMM_createCharMessage(READ_SECTORS,4);				// temporal
 		memcpy(msg+3,p+i,4);										// temporal
- 		ppd_receive(msg,1);
+ 		COMM_handleReceive(msg,1);
 	}
-*/
+
 
 	switch(fork()){ 																	//ejecuta la consola
 		case 0: 																		//si crea un nuevo proceso entra por esta rama
-			execl("/home/utn_so/Desktop/trabajos/PPD_Console/Debug/PPD_Console",NULL); 	//ejecuta la consola en el nuevo proceso
+			execl("/home/utn_so/Desarrollo/Workspace/PPD_Console/Debug/PPD_Console",NULL); 	//ejecuta la consola en el nuevo proceso
 			break;
 		case -1:																		//se creo mal el proceso
 			perror("fork");
@@ -139,17 +139,22 @@ int main(int argc, char *argv[])
 							FDmax = newFD;
 					}
 				} else { //datos de un cliente
-					uint32_t recvReturn = 0;
+				/*	uint32_t recvReturn = 0;
 					char* msgIn = malloc(bytes_perSector + 7);
 					//TODO hacer dos recv uno que lea la cabecera y asi obtenga el payload del mensaje y otro que obtenga el mensaje en si
 					//TODO cambiar el valor de cantidad de bytes que recive
-					if((recvReturn = recv(currFD,msgIn,7,0)) == 0)
+					if((recvReturn = recv(currFD,msgIn,3,0)) == 0)
 					{
 						close(currFD);
 						FD_CLR(currFD,&masterFDs);
 					} else
-						ppd_receive(msgIn,currFD);
+						COMM_handleReceive(msgIn,currFD);
 					free(msgIn);
+				*/
+					if(COMM_recieve(currFD) == 0){		//si es igual a cero cierra la conexion
+						close(currFD);
+						FD_CLR(currFD,&masterFDs);
+					}
 				}
 			}
 		}
@@ -180,24 +185,25 @@ sem_wait(&mainMutex);
 return 0;
 }
 
-void TAKER_main(uint32_t (*getHead)(queue_t*)) {
+void TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**)){
 
 	while(1){
 		sem_wait(&multiQueue->queueElemSem);
 		queue_t* queue = QMANAGER_selectActiveQueue(multiQueue);
-		requestNode_t* request;
+		request_t* request;
+		queueNode_t* prevCandidate = NULL;
 
 		sem_wait(&mainMutex);
-		if(getHead(queue) == 1) //TODO cambiar a getNext
-			request = TAKER_takeRequest(queue); //TODO agregar puntero a funcion para saber calcular el TRACE
+		if(getNext(queue,&prevCandidate) == 1) //TODO cambiar a getNext
+			request = TAKER_takeRequest(queue,prevCandidate);
 		else {
-			// aca viene la parte del FSCAN...
+			//TODO aca viene la parte del FSCAN...
 		}
 		sem_post(&mainMutex);
 
-		TAKER_handleRequest(queue,request);
+		TAKER_handleRequest(queue,request);		//TODO agregar puntero a funcion para saber calcular el TRACE
 		char* msg = TRANSLATE_fromRequestToChar(request);
-		ppd_send(msg,request->sender);
+		COMM_send(msg,request->sender);
 
 		uint32_t a;
 		memcpy(&a,msg+3,4);

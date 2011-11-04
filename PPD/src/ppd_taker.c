@@ -21,14 +21,14 @@ extern multiQueue_t* multiQueue;
 uint32_t headPosition;
 uint32_t sectorNum;
 
-void TAKER_handleRequest(queue_t* queue, requestNode_t* request){
+void TAKER_handleRequest(queue_t* queue, request_t* request){
 	sectorNum = TAKER_turnToSectorNum(request->CHS);
 	switch (request->type)
 	{
 		case PPDCONSOLE_TRACE:{
 			//payload = headPosition+distance+sleep+(queueHead)
 
-			requestNode_t* queueHead =0;								//Siguiente pedido en la cola en CHS
+			request_t* queueHead =0;								//Siguiente pedido en la cola en CHS
 			uint32_t nextSector;										//Siguiente pedido en la cola en Numero
 			uint32_t distance;											//Distancia entre el pedido solicitado y la headPosition
 			uint32_t delay;												//Tiempo que se tardara en leer el pedido solicitado
@@ -66,12 +66,34 @@ void TAKER_handleRequest(queue_t* queue, requestNode_t* request){
 	}
 	TAKER_updateHPos(sectorNum);
 }
-
-requestNode_t* TAKER_takeRequest(queue_t* queue){
+/*
+request_t* TAKER_takeRequest(queue_t* queue){
 	queueNode_t* node = (QUEUE_takeNode(queue));
-	sleep(TAKER_distanceTime(((requestNode_t*)node->data)->CHS)/1000);
-	return node->data;
+	sleep(TAKER_distanceTime(((request_t*)node->data)->CHS)/1000);
+	request_t* request = node->data;
+	free(node);
+	return request;
 }
+*/
+
+request_t* TAKER_takeRequest(queue_t* queue, queueNode_t* prevCandidate){
+	request_t* request;
+	queueNode_t* aux;
+	if(prevCandidate == 0){
+		request = queue->begin->data;
+		aux = queue->begin;
+		queue->begin = queue->begin->next;
+		sleep(TAKER_distanceTime(request->CHS)/1000);
+	} else {
+		request = prevCandidate->next->data;
+		aux = prevCandidate->next;
+		prevCandidate->next = aux->next;
+		sleep(TAKER_distanceTime(request->CHS)/1000);
+	}
+	free(aux);
+	return request;
+}
+
 
 void TAKER_getTraceInfo(CHS_t* CHSrequest,uint32_t* distance,uint32_t* delay){
 
@@ -92,7 +114,7 @@ uint32_t TAKER_turnToSectorNum(CHS_t* CHS){
 }
 
 uint32_t TAKER_distanceTime(CHS_t* CHSrequest){
-	CHS_t* CHSposition = malloc(sizeof(requestNode_t));
+	CHS_t* CHSposition = malloc(sizeof(request_t));
 	 CHSposition = COMMON_turnToCHS(headPosition);
 
 	 uint32_t cDistance = abs(CHSposition->cylinder - CHSrequest->cylinder)*TrackJumpTime;
