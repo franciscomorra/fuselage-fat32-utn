@@ -100,10 +100,9 @@ int main(int argc, char *argv[])
  		COMM_handleReceive(msg,1);
 	}
 
-
 	switch(fork()){ 																	//ejecuta la consola
 		case 0: 																		//si crea un nuevo proceso entra por esta rama
-			execl("/home/utn_so/Desarrollo/Workspace/PPD_Console/Debug/PPD_Console",NULL); 	//ejecuta la consola en el nuevo proceso
+			execl("/home/utn_so/Desktop/trabajos/PPD_Console/Debug/PPD_Console",NULL); 	//ejecuta la consola en el nuevo proceso
 			break;
 		case -1:																		//se creo mal el proceso
 			perror("fork");
@@ -201,7 +200,7 @@ void TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**)){
 		}
 		sem_post(&mainMutex);
 
-		TAKER_handleRequest(queue,request);		//TODO agregar puntero a funcion para saber calcular el TRACE
+		TAKER_handleRequest(queue,request,getNext);		//TODO agregar puntero a funcion para saber calcular el TRACE
 		char* msg = TRANSLATE_fromRequestToChar(request);
 		COMM_send(msg,request->sender);
 
