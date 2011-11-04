@@ -18,28 +18,30 @@ requestNode_t* TRANSLATE_fromCharToRequest(char* msg,uint32_t sockFD)
 
 	request->type = msg[0];
 
-	uint32_t len = 0;
+	uint16_t len = 0;
 	memcpy(&len,(msg+1),2);
 	len = len - 4;
-	memcpy(request->len,&len,2);				//TODO mejorar para restar 4 al len del msg sin necesidad de variable de paso
+	memcpy(request->len,&len,2);
 
 	request->sender = sockFD;
 
 	if(*msg == WRITE_SECTORS){
 		request->payload = malloc(len);			//sirve para grabar en el payload la cantidad de datos que se quieren escribir en el disco
-		memcpy(request->payload, msg+7,len); 	//TODO mejorar para no usar variable de paso
+		memcpy(request->payload, msg+7,len);
 	}
 	return request;
 }
 
 char* TRANSLATE_fromRequestToChar(requestNode_t* request)
 {
-	char* msg = malloc(((uint32_t)*request->len) + 7);
+	uint16_t len;
+	memcpy(&len,request->len,2);
+	len += 4;     //TODO cambiar esto ya
+	char* msg = malloc(len+ 7);
 	msg[0] = request->type;
-	uint32_t msgLen = (*request->len)+sizeof(uint32_t);
-	memcpy(msg+1,&msgLen,2);
+	memcpy(msg+1,&len,2);
 	uint32_t sectorNum = TAKER_turnToSectorNum(request->CHS);
 	memcpy(msg+3,&sectorNum,4);
-	memcpy(msg+7,request->payload,(uint32_t)*request->len);
+	memcpy(msg+7,request->payload,len);
 	return msg;
 }

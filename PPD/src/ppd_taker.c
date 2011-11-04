@@ -39,7 +39,7 @@ void TAKER_handleRequest(queue_t* queue, requestNode_t* request){
 
 
 			memcpy(request->payload,&headPosition,4);					//Si no hay proximo sector en la cola no copio nada al payload y disminuyo el Len
-			if(multiQueue->queueElemSem.__align != 0){
+			if(multiQueue->queueElemSem.__align != 0){					//TODO pasar por parametro la funcion para conseguir el proximo sector
 				SSTF_getHead(queue);									//TODO cambiarlo cuando elejimos otro algoritmo
 				queueHead = queue->begin->data;							//Obtiene el proximo sector que mostrara segun la planificacion
 				nextSector = TAKER_turnToSectorNum(queueHead->CHS);
@@ -67,11 +67,17 @@ void TAKER_handleRequest(queue_t* queue, requestNode_t* request){
 	TAKER_updateHPos(sectorNum);
 }
 
+requestNode_t* TAKER_takeRequest(queue_t* queue){
+	queueNode_t* node = (QUEUE_takeNode(queue));
+	sleep(TAKER_distanceTime(((requestNode_t*)node->data)->CHS)/1000);
+	return node->data;
+}
+
 void TAKER_getTraceInfo(CHS_t* CHSrequest,uint32_t* distance,uint32_t* delay){
 
 	CHS_t* CHSposition = COMMON_turnToCHS(headPosition);
-	*distance = TAKER_getReachedDistance(CHSrequest,CHSposition);
-	*delay = TAKER_getSleepTime(CHSrequest);							//calcula el tiempo que va a tardar dicho pedido
+	*distance = TAKER_sectReachedDistance(CHSrequest,CHSposition);
+	*delay = TAKER_distanceTime(CHSrequest);							//calcula el tiempo que va a tardar dicho pedido
 
 	free(CHSposition);
 
@@ -85,24 +91,24 @@ uint32_t TAKER_turnToSectorNum(CHS_t* CHS){
 	return sectorNum;
 }
 
-uint32_t TAKER_getSleepTime(CHS_t* CHSrequest){
+uint32_t TAKER_distanceTime(CHS_t* CHSrequest){
 	CHS_t* CHSposition = malloc(sizeof(requestNode_t));
 	 CHSposition = COMMON_turnToCHS(headPosition);
 
-	 uint32_t cDistance = abs(CHSposition->cylinder - CHSrequest->cylinder)* TrackJumpTime;
-	 uint32_t sDistance = TAKER_sectorDist(CHSrequest->sector,CHSposition->sector)*SectorJumpTime;
+	 uint32_t cDistance = abs(CHSposition->cylinder - CHSrequest->cylinder)*TrackJumpTime;
+	 uint32_t sDistance = TAKER_sectReachedDistance(CHSrequest,CHSposition)*SectorJumpTime;
 
 	free(CHSposition);
 	return (cDistance + sDistance);
 }
 
-uint32_t TAKER_getReachedDistance(CHS_t* CHSrequest,CHS_t* CHSposition){
+uint32_t TAKER_sectReachedDistance(CHS_t* CHSrequest,CHS_t* CHSposition){
 	uint32_t cDistance = abs(CHSrequest->cylinder - CHSposition->cylinder);
 	uint32_t reachedSector;
 	if(cDistance == 0)
 		reachedSector = CHSposition->sector;
 	else
-	 reachedSector = (cDistance*(TrackJumpTime/SectorJumpTime)+CHSrequest->cylinder) % Sector;
+	 reachedSector = ((cDistance*(TrackJumpTime/SectorJumpTime))%Sector + CHSposition->sector)%Sector;	//TODO cambiar a coma flotante
 	uint32_t sDistance = TAKER_sectorDist(reachedSector,CHSrequest->sector);
 	return sDistance;
 }
@@ -119,5 +125,19 @@ void TAKER_updateHPos(uint32_t sectorNum){
 	headPosition = sectorNum + 1;
 	if((headPosition % Sector) == 0)
 		headPosition = headPosition - Sector;
+}
+
+uint32_t TAKER_near(CHS_t* A, CHS_t* headP,CHS_t* B){
+
+	//se fija si la distancia entre A y head Position es menor que la de head Position y B
+	// si es asi devuelve 1
+	// si la distancia entre cilindros es igual lo deja a modo FIFO
+
+	uint32_t distTrackAB = abs(A->cylinder - headP->cylinder);
+	uint32_t distTrackBC = abs(B->cylinder - headP->cylinder);
+
+	if (distTrackAB < distTrackBC)
+		return 1;
+	return 0;
 }
 
