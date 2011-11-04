@@ -15,7 +15,7 @@
 void TAKER_main(uint32_t (*getNext)(queue_t*,queueNode_t**));
 
 // atiende al pedido que el algoritmo saca de la cola
-void TAKER_handleRequest(queue_t*,request_t*);
+void TAKER_handleRequest(queue_t*,request_t*,uint32_t (*getNext)(queue_t*,queueNode_t**));
 
 //saca el primer nodo de la cola y lo transforma de tipo queueNode a requestNode
 request_t* TAKER_takeRequest(queue_t*,queueNode_t*);

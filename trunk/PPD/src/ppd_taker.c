@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <semaphore.h>
+#include <unistd.h>
 #include "ppd_common.h"
 #include "ppd_comm.h"
 #include "nipc.h"
@@ -21,34 +22,38 @@ extern multiQueue_t* multiQueue;
 uint32_t headPosition;
 uint32_t sectorNum;
 
-void TAKER_handleRequest(queue_t* queue, request_t* request){
+void TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t(*getNext)(queue_t*,queueNode_t**)){
 	sectorNum = TAKER_turnToSectorNum(request->CHS);
 	switch (request->type)
 	{
 		case PPDCONSOLE_TRACE:{
 			//payload = headPosition+distance+sleep+(queueHead)
 
-			request_t* queueHead =0;								//Siguiente pedido en la cola en CHS
-			uint32_t nextSector;										//Siguiente pedido en la cola en Numero
-			uint32_t distance;											//Distancia entre el pedido solicitado y la headPosition
-			uint32_t delay;												//Tiempo que se tardara en leer el pedido solicitado
-			uint32_t len = sizeof(uint32_t)*4;							//Tamaño del payload
+			queueNode_t* queueNext =NULL;													//Siguiente pedido en la cola en CHS
+			uint32_t nextSector;														//Siguiente pedido en la cola en Numero
+			uint32_t distance;															//Distancia entre el pedido solicitado y la headPosition
+			uint32_t delay;																//Tiempo que se tardara en leer el pedido solicitado
+			uint32_t len = sizeof(uint32_t)*4;											//Tamaño del payload
 			request->payload = malloc(len);
 			memset(request->payload,0,len);
 			TAKER_getTraceInfo(request->CHS,&distance,&delay);
 
 
-			memcpy(request->payload,&headPosition,4);					//Si no hay proximo sector en la cola no copio nada al payload y disminuyo el Len
-			if(multiQueue->queueElemSem.__align != 0){					//TODO pasar por parametro la funcion para conseguir el proximo sector
-				SSTF_getHead(queue);									//TODO cambiarlo cuando elejimos otro algoritmo
-				queueHead = queue->begin->data;							//Obtiene el proximo sector que mostrara segun la planificacion
-				nextSector = TAKER_turnToSectorNum(queueHead->CHS);
+			memcpy(request->payload,&headPosition,4);									//Si no hay proximo sector en la cola no copio nada al payload y disminuyo el Len
+			if(multiQueue->queueElemSem.__align != 0){									//TODO pasar por parametro la funcion para conseguir el proximo sector
+				if(getNext(queue,&queueNext)==1)
+				{																		//Obtiene el proximo sector que mostrara segun la planificacion
+					if(queueNext == NULL)
+						nextSector = TAKER_turnToSectorNum(((request_t*)queue->begin->data)->CHS);
+					else
+						nextSector = TAKER_turnToSectorNum(((request_t*)queueNext->data)->CHS);
+				}
 				memcpy(request->payload+12,&nextSector,4);
 			} else len = len - sizeof(uint32_t);
 
 			memcpy(request->payload+4,&distance,4);
 			memcpy(request->payload+8,&delay,4);
-			memcpy(request->len,&len,2);								//actualiza el LEN del nodo
+			memcpy(request->len,&len,2);												//actualiza el LEN del nodo
 			break;
 		}
 		case READ_SECTORS:{
