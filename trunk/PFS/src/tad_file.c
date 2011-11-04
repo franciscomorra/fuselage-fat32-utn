@@ -77,9 +77,17 @@ void FILE_splitNameFromPath(char *path,char **ret_filename,char **ret_path_to_fi
 	memset(*ret_filename,0,filename_size+1);
 	memcpy(*ret_filename,path+path_size,filename_size);
 
-	*ret_path_to_filename = malloc(path_size+1);
-	memset(*ret_path_to_filename,0,path_size+1);//Reservo la cantidad necesaria calculada +1 por el caracter '\0'
 
-	memcpy(*ret_path_to_filename,path,path_size);
+	//Reservo la cantidad necesaria calculada +1 por el caracter '\0'
+	*ret_path_to_filename = malloc(path_size+1);
+	memset(*ret_path_to_filename,0,path_size+1);
+	if (path_size != 1)
+	{
+		memcpy(*ret_path_to_filename,path,path_size-1);
+	}
+	else
+	{
+		memset(*ret_path_to_filename,'/',1);
+	}
 	return;
 }

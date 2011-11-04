@@ -11,10 +11,14 @@
 #include <stdio.h>
 #include <signal.h>
 #include <stdint.h>
-#include "tad_queue.h"
-#include "tad_cluster.h"
-#include "pfs_fat32.h"
 
+
+#include "pfs_fat32.h"
+#include <sys/socket.h>
+#include "tad_sockets.h"
+
+#include "pfs_comm.h"
+#include "tad_direntry.h"
 
 	struct args
 	{
@@ -24,6 +28,7 @@
 
 char* cmd_received;
 pthread_mutex_t signal_lock = PTHREAD_MUTEX_INITIALIZER;
+socketPool_t sockets_toPPD;
 
 void finish_him()
 {
@@ -34,8 +39,11 @@ void finish_him()
 
 int main(int argc, char *argv[])
 {
-
-
+	//DIRENTRY_create("santi",5);
+	/*
+	sockets_toPPD = create_connections_pool(10,"127.0.0.1",9034);
+	if (sockets_toPPD.size == 0) return 1;
+	*/
 	signal(SIGKILL,finish_him);
 	signal(SIGINT,finish_him);
 	signal(SIGTERM,finish_him);
@@ -51,7 +59,7 @@ int main(int argc, char *argv[])
 	memset(cmd,0,1024);
 	char new_char;
 	uint32_t char_index = 0;
-	queueNode_t *tmp_node;
+
 
 	while(1)
 	{

@@ -17,6 +17,8 @@
 #include "tad_queue.h"
 #include "tad_cluster.h"
 
+#define ARCHIVE_ATTR 1
+#define DIR_ATTR 0
 //___STRUCT_FILE_ATTRIBUTE
 typedef struct file_attr
 {
@@ -80,5 +82,11 @@ uint32_t DIRENTRY_getClusterNumber(dirEntry_t *dir_entry);
 
 //DIRENTRY_interpretTableData: Interpreta una tabla de directorio y devuelve una lista de todos los archivos/directorios que aparecen en ella
 queue_t DIRENTRY_interpretTableData(clusterChain_t cluster_chain);
+
+dirEntry_t DIRENTRY_create(char* filename,uint32_t cluster,uint32_t attr);
+
+date_bytes DIRENTRY_getDate();
+
+time_bytes DIRENTRY_getTime();
 
 #endif /* DIR_ENTRY_H_ */

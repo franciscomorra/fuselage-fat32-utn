@@ -28,5 +28,7 @@ queue_t FAT_getClusterChain(fatTable_t *fat,uint32_t first_cluster);
 //FAT_getFreeClusters: Obtiene una lista de clusters libres
 queue_t FAT_getFreeClusters(fatTable_t* FAT);
 
+uint32_t FAT_setUsed(fatTable_t* fat,uint32_t clusterToSet);
+
 
 #endif /* TAD_FAT_H_ */

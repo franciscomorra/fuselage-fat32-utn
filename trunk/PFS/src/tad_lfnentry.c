@@ -55,3 +55,29 @@ char* LFNENTRY_getLFN(queue_t lfn_entries)
 	return ret_longfilename;
 
 }
+
+lfnEntry_t LFNENTRY_create(char* filename)
+{
+	lfnEntry_t new_lfn;
+	size_t utf16_size;
+	memset(&new_lfn,0,sizeof(lfnEntry_t));
+	*((uint16_t*) new_lfn.first_cluster) = 0;
+	new_lfn.attr = 0x0F;
+	new_lfn.reserved = 0x00;
+	new_lfn.sequence_no.deleted = false;
+	new_lfn.sequence_no.last = true;
+	new_lfn.sequence_no.number = 1;
+	char* str_from = malloc(13);
+	char* str_to = malloc(26);
+	memset(str_from,0,13);
+	strcpy(str_from,filename);
+
+	unicode_utf8_to_utf16_inbuffer(str_from, 13,(uint16_t*) str_to, &utf16_size);
+	memcpy(new_lfn.name_chars1,str_to,10);
+	memcpy(new_lfn.name_chars2,str_to+10,12);
+	memcpy(new_lfn.name_chars3,str_to+12,4);
+	/*unicode_utf8_to_utf16_inbuffer(str_buf+5, 6,(uint16_t*) new_lfn.name_chars2, &utf16_size);
+	unicode_utf8_to_utf16_inbuffer(str_buf+11, 2,(uint16_t*) new_lfn.name_chars3, &utf16_size);*/
+
+	return new_lfn;
+}

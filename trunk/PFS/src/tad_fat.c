@@ -61,7 +61,7 @@ queue_t FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 
 queue_t FAT_getFreeClusters(fatTable_t* fat) {
 	uint32_t cluster_no, *cluster_number;
-	queueNode_t *new_cluster_node;
+
 	queue_t cluster_list;
 	QUEUE_initialize(&cluster_list);
 	uint32_t *casted_table = (uint32_t*) fat->table;
@@ -77,6 +77,37 @@ queue_t FAT_getFreeClusters(fatTable_t* fat) {
 
 
 	return cluster_list;
+}
+
+uint32_t FAT_getFreeCluster(fatTable_t* fat)
+{
+	uint32_t cluster_no;
+	uint32_t *casted_table = (uint32_t*) fat->table;
+	for(cluster_no = 2;cluster_no < fat->size;cluster_no++)
+	{
+		if(casted_table[cluster_no] == 0)
+		{
+			return cluster_no;
+		}
+	}
+
+	return 0; //DISCO LLENO
+}
+
+uint32_t FAT_setUsed(fatTable_t* fat,uint32_t clusterToSet)
+{
+	uint32_t cluster_no;
+	uint32_t *casted_table = (uint32_t*) fat->table;
+	casted_table[clusterToSet] = fat->EOC;
+	/*for(cluster_no = 2;cluster_no < fat->size;cluster_no++)
+	{
+		if(casted_table[cluster_no] == clusterToSet)
+		{
+			casted_table[cluster_no] = fat->EOC;
+			return 0;
+		}
+	}*/
+	return 1;
 }
 
 uint32_t FAT_read(fatTable_t *fat)
@@ -99,7 +130,7 @@ uint32_t FAT_read(fatTable_t *fat)
 
 	for (cur_sector = first_sector; cur_sector <= last_sector; cur_sector++)
 	{
-		char *sector_buf = PPDINTERFACE_readSector(cur_sector);
+		char *sector_buf = PPDINTERFACE_readSector(cur_sector); //TODO: ARMAR UN ARRAY DE SECTORES Y MANDARLO A LA FUNCION PPDINTERFACE_readSectorS
 		memcpy(fat->table+((cur_sector-32)*boot_sector.bytes_perSector),sector_buf,boot_sector.bytes_perSector);
 		free(sector_buf);
 		sector_t *new_sector = malloc(sizeof(sector_t));

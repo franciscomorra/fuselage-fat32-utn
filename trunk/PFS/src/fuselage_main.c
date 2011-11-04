@@ -45,6 +45,9 @@ extern pthread_mutex_t signal_lock;
 void *fuselage_main (void *data)
 {
 
+
+
+
 	log_file = log_create("PFS","pfs.log",DEBUG,M_CONSOLE_DISABLE);
 	log_debug(log_file,"PFS","Inicio PFS");
 
@@ -389,14 +392,13 @@ static int fuselage_write(const char *fullpath, const char *file_buff, size_t bu
 	fuselage_truncate(fullpath,buff_size);
 	clusterChain_t cluster_chain;
 	memset(&cluster_chain,0,sizeof(clusterChain_t));
-
 	dirEntry_t* file_entry = fat32_getDirEntry(fullpath,&cluster_chain);
 
-	clusterChain_t file_clusters = fat32_readClusterChain(fi->fh);
+	clusterChain_t file_clusters = fat32_readClusterChain(DIRENTRY_getClusterNumber(file_entry));
 
 	memcpy(file_clusters.data+off,file_buff,buff_size);
 
-	fat32_writeClusterChain(&cluster_chain);
+	//fat32_writeClusterChain(&cluster_chain);
 	fat32_writeClusterChain(&file_clusters);
 
 	CLUSTER_freeChain(&cluster_chain);
@@ -407,15 +409,84 @@ static int fuselage_write(const char *fullpath, const char *file_buff, size_t bu
 
 static int fuselage_create(const char *fullpath, mode_t mode, struct fuse_file_info *fi)
 {
+	return fat32_mk(fullpath,ARCHIVE_ATTR);
+	/*
 	char *filename;
 	char *path;
+	lfnEntry_t new_lfn;
+	dirEntry_t new_direntry;
 	FILE_splitNameFromPath(fullpath,&filename,&path);
+
 
 	clusterChain_t cluster_chain;
 	memset(&cluster_chain,0,sizeof(clusterChain_t));
-	dirEntry_t *dir_entry = fat32_getDirEntry(path,&cluster_chain);
-	clusterChain_t dirtable = fat32_readClusterChain(DIRENTRY_getClusterNumber(dir_entry));
+	uint32_t folderTableCluster;
+	if (strcmp(path,"/") != 0)
+	{
+		dirEntry_t *entryOfFolder = fat32_getDirEntry(path,&cluster_chain);
+		folderTableCluster = DIRENTRY_getClusterNumber(entryOfFolder);
+		CLUSTER_freeChain(&cluster_chain);
+	}
+	else
+	{
+		folderTableCluster = 2;
+	}
+	clusterChain_t dirtable = fat32_readClusterChain(folderTableCluster);
 
 
+	dirEntry_t *dirtable_index = (dirEntry_t*) dirtable.data;
+	dirEntry_t *lastPosForAnEntry = (dirEntry_t*) (dirtable.data+(dirtable.size*boot_sector.bytes_perSector*boot_sector.sectors_perCluster)-sizeof(dirEntry_t));
+	bool write = false, freeSpace = false;
+	uint32_t entry_offset = 0;
+
+
+	while (dirtable_index != lastPosForAnEntry)
+	{
+		if (*((char*) dirtable_index) == 0xE5 || *((char*) dirtable_index) == 0x00)
+		{
+			write = freeSpace = true;
+			break;
+		}
+		entry_offset++;
+		dirtable_index++;
+	}
+
+	if (freeSpace == false)
+	{
+		write = true;
+		CLUSTER_freeChain(&dirtable);
+		FAT_appendCluster(fat,folderTableCluster);
+		dirtable = fat32_readClusterChain(folderTableCluster);
+	}
+
+	queueNode_t *cluster_node = dirtable.clusters.begin;
+
+	while (cluster_node != NULL)
+	{
+		if (cluster_node->next == NULL) break;
+		cluster_node = cluster_node->next;
+	}
+	cluster_t* last_cluster = (cluster_t*) cluster_node->data;
+	uint32_t cluster_toAssign = FAT_getFreeCluster(&fat);
+	FAT_setUsed(&fat,cluster_toAssign);
+
+	new_lfn = LFNENTRY_create(filename);
+	new_direntry = DIRENTRY_create(filename,cluster_toAssign,ARCHIVE_ATTR);
+
+	memcpy(last_cluster->data+(entry_offset*sizeof(lfnEntry_t)),&new_lfn,sizeof(lfnEntry_t));
+	memcpy(last_cluster->data+(entry_offset+1*sizeof(lfnEntry_t)),&new_direntry,sizeof(dirEntry_t));
+
+	if (write)
+	{
+		fat32_writeClusterChain(&dirtable);
+		FAT_write(&fat);
+	}
+	CLUSTER_freeChain(&dirtable);
+	return 0;*/
+}
+
+static int fuselage_mkdir(const char *fullpath, mode_t mode)
+{
+	return fat32_mk(fullpath,DIR_ATTR);
 
 }
