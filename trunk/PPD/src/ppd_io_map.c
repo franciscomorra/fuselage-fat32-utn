@@ -9,12 +9,11 @@
 #include <sys/mman.h>
 
 extern uint32_t bytes_perSector;
-uint32_t  page_size,sectors_perPage;
+uint32_t  page_size = 4096;
+uint32_t sectors_perPage = 8;
 
 int32_t read_sector(uint32_t file_descriptor,uint32_t sector, char* buf)
 {
-	page_size = 4096;
-	sectors_perPage = 8;
 	uint32_t page = floor(sector / sectors_perPage);
 
 

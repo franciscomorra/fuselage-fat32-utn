@@ -9,17 +9,12 @@
 #include "ppd_taker.h"		//funcion getTimeSleep()
 #include "tad_queue.h"
 
-extern uint32_t TrackJumpTime;
-extern uint32_t headPosition;
-
-void SSTF_getHead(queue_t* queue){
-	CHS_t* CHSposition = COMMON_turnToCHS(headPosition);
+uint32_t SSTF_getHead(queue_t* queue){			//TODO cambiar por getNext
 	queueNode_t* aux = queue->begin;
 	queueNode_t* prevAux = queue->begin;
 
-
 	 while(aux != 0){
-		 if(SSTF_near(((requestNode_t*)aux->data)->CHS,CHSposition,((requestNode_t*)queue->begin->data)->CHS)){
+		 if(SSTF_near(((requestNode_t*)aux->data)->CHS,((requestNode_t*)queue->begin->data)->CHS)){
 			 prevAux->next = aux->next;
 			 aux->next = queue->begin;
 			 queue->begin = aux;
@@ -27,32 +22,23 @@ void SSTF_getHead(queue_t* queue){
 		 prevAux = aux;
 		 aux=aux->next;
 	 }
+	 return 1;
 }
+/*
+uint32_t SSTF_getNext(queue_t* queue,requestNode_t* request){
+	queueNode_t* currNode = queue->begin;
+	queueNode_t* prevCandidate = 0;
+	CHS_t* headPCHS = COMMON_turnToCHS(headPosition);
 
-requestNode_t* SSTF_takeRequest(queue_t* queue){
-	SSTF_getHead(queue);
-	queueNode_t* node = (QUEUE_takeNode(queue));
-	sleep(TAKER_getSleepTime(((requestNode_t*)node->data)->CHS)/1000);
-	return node->data;
-}
+	while(currNode != 0){
+		if(TAKER_near(,,,))
 
-uint32_t SSTF_near(CHS_t* new, CHS_t* headP,CHS_t* auxSig){
-
-	//se fija si la distancia entre  new y head Position es menor que la de head Position y auxSig
-	// si es asi devuelve True
-
-	uint32_t distTrackNA = abs(new->cylinder - headP->cylinder);
-	uint32_t distTrackAS = abs(auxSig->cylinder - headP->cylinder);
-
-	if (distTrackNA < distTrackAS)
-		return 1;
-	else
-		if (distTrackNA == distTrackAS){
-			if(TAKER_sectorDist(((headP->sector))+(distTrackNA*TrackJumpTime),new->sector)
-			< TAKER_sectorDist(((headP->sector))+(distTrackNA*TrackJumpTime),auxSig->sector))
-				return 1;
 	}
+}
+*/
+uint32_t SSTF_near(CHS_t* new,CHS_t* queueHead){
+	uint32_t i = TAKER_distanceTime(new);
+	if(TAKER_distanceTime(new)< TAKER_distanceTime(queueHead))
+		return 1;
 	return 0;
 }
-
-
