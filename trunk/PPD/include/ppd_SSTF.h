@@ -14,8 +14,11 @@
 // va colocando en la cabeza de la cola el nodo cuyo CHS este mas cerca del headPosition
 uint32_t SSTF_getHead(queue_t*);
 
+//devuelve el nodo anterior al que hay que sacar segun el algoritmo SSTF
+uint32_t SSTF_getNext(queue_t*,queueNode_t**);
+
 //agrega un nuevo requestNode_t a la lista segun el algoritmo SSTF
-uint32_t SSTF_addRequest(requestNode_t* new);
+uint32_t SSTF_addRequest(request_t* new);
 
 //devuelve true si el nodo A esta mas cerca del nodo B que el C
 uint32_t SSTF_near(CHS_t* A,CHS_t* C);

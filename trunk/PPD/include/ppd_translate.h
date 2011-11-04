@@ -11,9 +11,9 @@
 #include <stdint.h>
 #include "ppd_common.h"
 
-requestNode_t* TRANSLATE_fromCharToRequest(char* msg,uint32_t sockFD);
+request_t* TRANSLATE_fromCharToRequest(char* msg,uint32_t sockFD);
 
-char* TRANSLATE_fromRequestToChar(requestNode_t* request);
+char* TRANSLATE_fromRequestToChar(request_t* request);
 
 
 #endif /* PPD_TRANSLATE_H_ */

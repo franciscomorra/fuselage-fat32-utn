@@ -27,7 +27,7 @@ extern sem_t mainMutex;
 //extern sem_t queueElemSem;
 
 
-uint32_t ppd_send(char* msg,uint32_t fd)
+uint32_t COMM_send(char* msg,uint32_t fd)
 {
 	switch(msg[0]){
 		case PPDCONSOLE_INFO :{
@@ -54,7 +54,7 @@ uint32_t ppd_send(char* msg,uint32_t fd)
 	return 1;
 }
 
-uint32_t ppd_receive(char* msgIn,uint32_t fd) {
+uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 
 	switch (msgIn[0]) {
 		case HANDSHAKE:
@@ -63,7 +63,7 @@ uint32_t ppd_receive(char* msgIn,uint32_t fd) {
 
 		case PPDCONSOLE_INFO:{
 			CHANDLER_info(msgIn);
-			ppd_send(msgIn,fd);
+			COMM_send(msgIn,fd);
 
 			break;
 		}
@@ -71,7 +71,7 @@ uint32_t ppd_receive(char* msgIn,uint32_t fd) {
 		default:{
 			if(msgIn[0] == READ_SECTORS || msgIn[0] == WRITE_SECTORS || msgIn[0] == PPDCONSOLE_TRACE){
 
-				requestNode_t* request = TRANSLATE_fromCharToRequest(msgIn,fd);
+				request_t* request = TRANSLATE_fromCharToRequest(msgIn,fd);
 				queue_t* queue = QMANAGER_selectPassiveQueue(multiQueue);
 
 				sem_wait(&mainMutex);
@@ -121,5 +121,25 @@ char* COMM_createCharMessage(NIPC_type type,uint32_t payload_bytes_len)
 	memcpy(msg+1,&payload_bytes_len,2);
 	memset(msg+3,0,payload_bytes_len);
 	return msg;
+}
+
+uint32_t COMM_recieve(uint32_t currFD){
+	char* msgHeader = malloc(3);							//alojo memoria para recibir la cabecera del mensaje (tipo y len)
+	uint32_t recvReturn = 0;
+
+
+	if((recvReturn = recv(currFD,msgHeader,3,0)) != 0)		//recibo la cabecera y la guardo en msgHeader
+	{
+		uint16_t len = 0;
+		memcpy(&len,msgHeader+1,2);							//copio el len en un int para poder usarlo
+		char* msgIn = malloc(len+3);						//alojo memoria para recibir el payload del mensaje
+		recvReturn += recv(currFD,msgIn+3,len,0);			//recibo el mensaje y lo guardo en msgIn +3
+		memcpy(msgIn,msgHeader,3);
+		COMM_handleReceive(msgIn,currFD);
+		free(msgIn);
+	}
+
+	free(msgHeader);
+	return recvReturn;
 }
 
