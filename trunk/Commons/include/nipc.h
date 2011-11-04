@@ -24,13 +24,11 @@ nipcMsg_t NIPC_createMsg(NIPC_type type,uint32_t len, char* payload);
 
 void NIPC_cleanMsg(nipcMsg_t* msg);
 
-
 nipcMsg_t NIPC_toMsg(char* msg);
 
 char* NIPC_toBytes(nipcMsg_t msg);
 
-
-char* NIPC_createCharMsg(NIPC_type type,uint32_t payload_bytes_len,char* payload_bytes);
+void NIPC_createCharMsg(char*,NIPC_type type,uint16_t payload_bytes_len,char* payload_bytes);
 
 
 #endif /* NIPC_H_ */

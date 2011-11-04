@@ -55,14 +55,13 @@ nipcMsg_t NIPC_toMsg(char* msg)
 
 
 
-char* NIPC_createCharMsg(NIPC_type type,uint32_t payload_bytes_len,char* payload_bytes)
+void NIPC_createCharMsg(char* msg,NIPC_type type,uint16_t payload_bytes_len,char* payload_bytes)
 {
-	char* msg = malloc(3 + payload_bytes_len);
+	//char* msg = malloc(3 + payload_bytes_len);
 	*msg = type;
 	memcpy(msg+1,&payload_bytes_len,2);
 	memset(msg+3,0,payload_bytes_len);
 	if (payload_bytes != NULL)
 		memcpy(msg+3,payload_bytes,payload_bytes_len);
-	return msg;
 }
 
