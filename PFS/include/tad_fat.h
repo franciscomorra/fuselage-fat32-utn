@@ -14,12 +14,14 @@
 
 //___STRUCT_FAT_TABLE
 typedef struct {
-	uint32_t *table;
+	char *table;
+	queue_t sectors;
 	size_t size;
 	uint32_t EOC;
 } fatTable_t;
 //___STRUCT_FAT_TABLE
 
+uint32_t FAT_read(fatTable_t *fat);
 //FAT_getClusterChain: Obtiene la cadena de clusters que le sigue al cluster pasado
 queue_t FAT_getClusterChain(fatTable_t *fat,uint32_t first_cluster);
 

@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
 	signal(SIGKILL,finish_him);
 	signal(SIGINT,finish_him);
 	signal(SIGTERM,finish_him);
+
 	args.argc = argc;
 	args.argv = argv;
 

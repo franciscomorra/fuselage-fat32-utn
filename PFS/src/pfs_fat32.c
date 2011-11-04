@@ -66,7 +66,7 @@ uint32_t fat32_readBootSector(bootSector_t *bs)
 }
 
 
-char* fat32_getClusterRawData(uint32_t cluster_no)
+char* fat32_readRawCluster(uint32_t cluster_no)
 {
 	uint32_t index = 0;
 	char* buf = malloc(boot_sector.sectors_perCluster*boot_sector.bytes_perSector);
@@ -76,7 +76,7 @@ char* fat32_getClusterRawData(uint32_t cluster_no)
 
 	for (sector_index = 0; sector_index < 8;sector_index++)
 	{
-		char* tmp_buf = PFS_sectorRead(*(sectors+sector_index));
+		char* tmp_buf = PPDINTERFACE_readSector(*(sectors+sector_index));
 		memcpy(buf+(sector_index*boot_sector.bytes_perSector),tmp_buf,boot_sector.bytes_perSector);
 		free(tmp_buf);
 	}
@@ -86,14 +86,14 @@ char* fat32_getClusterRawData(uint32_t cluster_no)
 }
 
 
-cluster_t fat32_getClusterData(uint32_t cluster_number)
+cluster_t fat32_readCluster(uint32_t cluster_number)
 {
 
 	cluster_t new_cluster;
 
 	new_cluster.number= cluster_number;
 	new_cluster.size = boot_sector.bytes_perSector*boot_sector.sectors_perCluster;
-	new_cluster.data = fat32_getClusterRawData(cluster_number);
+	new_cluster.data = fat32_readRawCluster(cluster_number);
 	uint32_t index_sector;
 	uint32_t *sectors = cluster_to_sectors(cluster_number);
 	queue_t sector_list;
@@ -116,7 +116,7 @@ cluster_t fat32_getClusterData(uint32_t cluster_number)
 }
 
 
-clusterChain_t fat32_getClusterChainData(uint32_t first_cluster)
+clusterChain_t fat32_readClusterChain(uint32_t first_cluster)
 {
 	queue_t clusterNumber_queue = FAT_getClusterChain(&fat,first_cluster);
 	queue_t cluster_list;
@@ -133,7 +133,7 @@ clusterChain_t fat32_getClusterChainData(uint32_t first_cluster)
 	while ((cur_clusterNumber_node = QUEUE_takeNode(&clusterNumber_queue)) != NULL)
 	{
 		uint32_t cluster_number = *((uint32_t*) cur_clusterNumber_node->data);
-		char* buf = fat32_getClusterRawData(cluster_number);
+		char* buf = fat32_readRawCluster(cluster_number);
 		memcpy(clusterChain_data+(cluster_index*bytes_perCluster),buf,bytes_perCluster);
 		free(buf);
 		cluster_t *new_cluster = CLUSTER_newCluster(clusterChain_data+(cluster_index*bytes_perCluster),cluster_number);
@@ -154,13 +154,19 @@ clusterChain_t fat32_getClusterChainData(uint32_t first_cluster)
 
 }
 
-queue_t fat32_readDirectory(const char* path,clusterChain_t *cluster_chain)
+queue_t fat32_readDirectory( char* path,clusterChain_t *cluster_chain)
 {
+
+	if (path[strlen(path)-1] == '/' && strlen(path) != 1)
+	{
+		path[strlen(path)-1] = '\0';
+	}
 
 	char *token;
 	bool dir_exists = false;
 
-	*cluster_chain = fat32_getClusterChainData(2);
+	if ((*cluster_chain).clusters.begin == NULL)
+	*cluster_chain = fat32_readClusterChain(2);
 	queue_t file_list = DIRENTRY_interpretTableData(*cluster_chain);
 
 
@@ -186,7 +192,7 @@ queue_t fat32_readDirectory(const char* path,clusterChain_t *cluster_chain)
 				CLUSTER_freeChain(cluster_chain);
 				FILE_freeQueue(&file_list);
 
-				*cluster_chain = fat32_getClusterChainData(first_cluster);
+				*cluster_chain = fat32_readClusterChain(first_cluster);
 				file_list = DIRENTRY_interpretTableData(*cluster_chain);
 
 				break;
@@ -224,7 +230,7 @@ dirEntry_t* fat32_getDirEntry(char* path,clusterChain_t *cluster_chain)
 	memcpy(location,path,location_size); 														//Copio el path (hasta donde empeiza el filename sin incluirlo) a location
 																								//TODO: Primero buscar en cache
 
-	log_debug(log_file,"PFS","fat32_getDirEntry() -> fat32_readDirectory(%s)",location);
+	//log_debug(log_file,"PFS","fat32_getDirEntry() -> fat32_readDirectory(%s)",location);
 	queue_t file_list = fat32_readDirectory(location,cluster_chain); 										//Obtengo una lista de los ficheros que hay en "location"
 
 	queueNode_t *curr_file_node; 																//Creo un puntero que apuntara al file_node en proceso
@@ -257,24 +263,13 @@ dirEntry_t* fat32_getDirEntry(char* path,clusterChain_t *cluster_chain)
 	return direntry_found;																		//Retorno el puntero a la direntry del archivo buscado
 }
 
-fat32file_t fat32_getFileStruct(const char* path)
+fat32file_t fat32_getFileStruct(const char* path,clusterChain_t* cluster_chain)
 {
-	size_t len = strlen(path); 																	//Obtengo el largo del path
-	char string[len]; 																			//Creo un array para la cadena
-	strcpy(string,path); 																		//Copio la cadena al array
-	char *tmp = strtok(string,"/"); 															//Obtengo el primer token de la cadena (separando por "/")
-	char *filename = tmp; 																		//Guardo el primer token en 'filename'
-	while ((tmp = strtok(NULL,"/")) != NULL) 													//Mientras la funcion devuelva un token != NULL guardo ese token en filename
-	{
-		filename = tmp ; 																		//Al final contendra el filename del archivo que se busca
-	}
+	char *location;
+	char *filename;
+	FILE_splitNameFromPath(path,&filename,&location);
 
-	size_t location_size = strlen(path) - strlen(filename);										//Calculo el largo del path al archivo (sin incluir el filename del archivo)
-	char* location = malloc(location_size+1); 													//Reservo la cantidad necesaria calculada +1 por el caracter '\0'
-	memset(location,0,location_size+1); 														//Seteo a 0 la cadena location
-	memcpy(location,path,location_size);
-
-	queue_t file_list; //= fat32_readDirectory(location);
+	queue_t file_list = fat32_readDirectory(location,cluster_chain);
 	queueNode_t* cur_node;
 	fat32file_t* cur_file;
 	fat32file_t ret_file;
@@ -290,13 +285,14 @@ fat32file_t fat32_getFileStruct(const char* path)
 			strcpy(ret_file.long_file_name,cur_file->long_file_name);
 		}
 		FILE_free(cur_file);
-		QUEUE_freeNode(cur_node,0);
+		free(cur_node);
 	}
-
+	free(filename);
+	free(location);
 	return ret_file;
 }
 
-void fat32_writeClusterData(cluster_t *cluster)
+void fat32_writeCluster(cluster_t *cluster)
 {
 	queueNode_t *cur_sector_node;
 	sector_t *cur_sector;
@@ -304,7 +300,22 @@ void fat32_writeClusterData(cluster_t *cluster)
 	while ((cur_sector_node = QUEUE_takeNode(&(cluster->sectors))) != NULL)
 	{
 		cur_sector = (sector_t*) cur_sector_node->data;
-		if (cur_sector->modified) PFS_sectorWrite(*cur_sector);
+		PPDINTERFACE_writeSector(*cur_sector);
+		QUEUE_freeNode(cur_sector_node);
+
 	}
 }
 
+void fat32_writeClusterChain(clusterChain_t* cluster_chain)
+{
+	queueNode_t *cur_cluster_node;
+	cluster_t *cur_cluster;
+
+	while ((cur_cluster_node = QUEUE_takeNode(&(cluster_chain->clusters))) != NULL)
+	{
+		cur_cluster = (cluster_t*) cur_cluster_node->data;
+		fat32_writeCluster(cur_cluster);
+		QUEUE_freeNode(cur_cluster_node);
+	}
+
+}
