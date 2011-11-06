@@ -7,10 +7,16 @@
 
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/un.h>
+#include <errno.h>
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
 #include "tad_sockets.h"
 
 socketInet_t SOCKET_inet_create(uint32_t style,char* address,uint32_t port,uint32_t mode)
@@ -79,18 +85,17 @@ socketUnix_t SOCKET_unix_create(uint32_t style,char* path,uint32_t mode)
 
 	sock_addr.sun_family = AF_UNIX;
 	strcpy(sock_addr.sun_path, path);
-	unlink(sock_addr.sun_path);
 	size_t len = strlen(sock_addr.sun_path) + sizeof(sock_addr.sun_family);
 
 	uint32_t sockfd = socket(sock_addr.sun_family, style, 0);
 
-	if (sockfd < 0)
+	if (sockfd == -1)
 	{
 		error("ERROR opening socket");
 
 	}
 
-
+/*
 	 if (mode == MODE_CONNECT)
 	 {
 	    if (connect(sockfd,(struct sockaddr *) &sock_addr,len) < 0)
@@ -99,8 +104,14 @@ socketUnix_t SOCKET_unix_create(uint32_t style,char* path,uint32_t mode)
 	    }
 
 	 }
-	 else if (mode == MODE_LISTEN)
-	 {
+*/
+	if(mode == MODE_CONNECT)
+
+		while(connect(sockfd,(struct sockaddr *) &sock_addr,len) == -1);
+
+	else if (mode == MODE_LISTEN)
+	{
+		unlink(sock_addr.sun_path);
 
 		   if (bind(sockfd, (struct sockaddr *) &sock_addr, len) < 0)
 		   {
@@ -112,7 +123,7 @@ socketUnix_t SOCKET_unix_create(uint32_t style,char* path,uint32_t mode)
 		   {
 		          perror("listen");
 		   }
-
+		   printf("Waiting for a connection...\n");
 		     /*clilen = sizeof(cli_addr);
 		     newsockfd = accept(sockfd,
 		                 (struct sockaddr *) &cli_addr,
@@ -123,6 +134,7 @@ socketUnix_t SOCKET_unix_create(uint32_t style,char* path,uint32_t mode)
 	 	 	socketUnix_t new_socket;
 	 	    new_socket.descriptor = sockfd;
 	 	    new_socket.style = style;
+	 	    new_socket.path = malloc(strlen(path));
 	 	    strcpy(new_socket.path,path);
 	 	    new_socket.address = (struct sockaddr*) &sock_addr;
 	 	    return new_socket;
