@@ -20,7 +20,7 @@ typedef struct praid_list_node{
 
 typedef struct praid_list_node_content{
 	uint32_t tid;
-	uint32_t ppdStatus; //0=Ready, 1=Sincronizando
+	uint32_t ppdStatus; //0=Ready, 1=Sincronizando, 2=WaitSynch
 	struct queue_t* colaSublista;
 	//SOCKET PPD
 }praid_list_node_content;
@@ -36,6 +36,11 @@ praid_list_node* PRAID_list_appendNode(uint32_t);
 uint32_t PRAID_add_READ_Request(praid_sl_content*);
 uint32_t PRAID_add_WRITE_Request(praid_sl_content*);
 uint32_t PRAID_clear_list_node(praid_list_node*);
+uint32_t PRAID_ppd_thread_count();
+uint32_t PRAID_hay_discos_sincronizandose();
+uint32_t PRAID_Start_Synch();
+uint32_t PRAID_actualizar_CurrentRead();
+
 
 
 #endif /* PRAID_QUEUE_H_ */
