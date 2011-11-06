@@ -149,3 +149,17 @@ time_bytes DIRENTRY_getTime()
 	cur_time.seconds = 31 & (systime->tm_sec/2);
 	return cur_time;
 }
+
+void DIRENTRY_setDosName(dirEntry_t *entry,char* filename)
+{
+	memset(entry->dos_name,0,8);
+	uppercase(filename);
+	memcpy(entry->dos_name,filename,8);
+
+	if (strlen(filename) > 8)
+	{
+		entry->dos_name[6] = '~';
+		entry->dos_name[7] = '1';
+	}
+	return;
+}
