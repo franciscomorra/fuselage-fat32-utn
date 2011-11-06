@@ -37,7 +37,7 @@ char* TRANSLATE_fromRequestToChar(request_t* request)
 	uint16_t len;
 	memcpy(&len,request->len,2);
 	len += 4;     //TODO cambiar esto ya
-	char* msg = malloc(len+ 7);
+	char* msg = malloc(len + 7);
 	msg[0] = request->type;
 	memcpy(msg+1,&len,2);
 	uint32_t sectorNum = TAKER_turnToSectorNum(request->CHS);

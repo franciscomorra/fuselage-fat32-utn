@@ -10,9 +10,7 @@
 
 #include <stdint.h>
 #include "nipc.h"
-
-//envia mensajes por sockets
-uint32_t COMM_send(char*,uint32_t);
+#include "tad_sockets.h"
 
 //recive mensajes y se fija de que tipo son
 uint32_t COMM_handleReceive(char*,uint32_t);
@@ -22,7 +20,8 @@ uint32_t COMM_connect(uint32_t*);
 //crea un string de la forma nipcMsg_t con un tamaño de payload de payload_bytes_len en cero
 char* COMM_createCharMessage(NIPC_type type,uint32_t payload_bytes_len);
 
-
-uint32_t COMM_recieve(uint32_t currFD);
+//acepta conexion proveniente del socket de escucha de la consola.
+//devuelve la estructura correspondiente al socket que transfiere datos
+socketUnix_t COMM_ConsoleAccept(socketUnix_t consoleListen);
 
 #endif /* PPD_COMM_H_ */
