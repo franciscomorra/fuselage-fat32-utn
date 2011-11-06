@@ -86,7 +86,7 @@ char* fat32_readRawCluster(uint32_t cluster_no)
 }
 
 
-/*cluster_t fat32_readCluster(uint32_t cluster_number)
+cluster_t fat32_readCluster(uint32_t cluster_number)
 {
 
 	cluster_t new_cluster;
@@ -113,7 +113,7 @@ char* fat32_readRawCluster(uint32_t cluster_no)
 	new_cluster.sectors = sector_list;
 
 	return new_cluster;
-}*/
+}
 
 
 clusterChain_t fat32_readClusterChain(uint32_t first_cluster)
@@ -153,7 +153,7 @@ clusterChain_t fat32_readClusterChain(uint32_t first_cluster)
 
 }
 
-queue_t fat32_readDirectory( char* path,clusterChain_t *cluster_chain)
+queue_t fat32_readDirectory(char* path,clusterChain_t *cluster_chain)
 {
 
 	if (path[strlen(path)-1] == '/' && strlen(path) != 1)
