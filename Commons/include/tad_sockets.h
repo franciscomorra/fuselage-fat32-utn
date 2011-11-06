@@ -34,4 +34,8 @@ typedef struct socketUnix_t
 
 } socketUnix_t;
 
+socketInet_t SOCKET_inet_create(uint32_t,char*,uint32_t,uint32_t);
+
+socketUnix_t SOCKET_unix_create(uint32_t,char*,uint32_t);
+
 #endif /* TAD_SOCKETS_H_ */
