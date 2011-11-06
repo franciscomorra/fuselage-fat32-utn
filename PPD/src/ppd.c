@@ -9,7 +9,6 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-//#include <poll.h> 		// poll
 #include <sys/time.h>		// select
 #include <unistd.h>			// select
 #include <netinet/in.h>
@@ -19,11 +18,13 @@
 #include "ppd_common.h"
 #include "ppd_comm.h"
 #include "ppd_taker.h"
-#include "ppd_cHandler.h"
 #include "ppd_translate.h"
 #include "tad_queue.h"
 #include "ppd_qManager.h"
+#include "comm.h"
+#include "tad_sockets.h"
 
+#define SOCK_PATH "/home/utn_so/CONSOLE_socket"
 
 uint32_t Cylinder;
 uint32_t Head;
@@ -35,10 +36,7 @@ uint32_t bytes_perSector;
 uint32_t file_descriptor;
 flag_t Algorithm;
 multiQueue_t* multiQueue;
-
 sem_t mainMutex;
-
-//struct pollfd pollFds[2];
 
 int main(int argc, char *argv[])
 {
@@ -46,25 +44,27 @@ int main(int argc, char *argv[])
 	bytes_perSector = 512;
 	multiQueue = malloc(sizeof(multiQueue_t));
 	pthread_t TAKERtid;					//thread taker
-	fd_set masterFDs;					//conjunto total de FDs que queremos administrar
-	fd_set readFDs;						//conjunto de FDs de los que deseamos recibir datos
 	uint32_t newFD;						//nuevo descriptor de socket de alguna nueva conexion
 	uint32_t FDmax;						//mayor descriptor de socket
-	uint32_t consoleFD;					//FD correspondiente a la consola
 	uint32_t listenFD;					//FD encargado de escuchar nuevas conexiones
-	struct sockaddr_in remoteaddr;		//struct correspondiente a una nueva conexion
 	uint32_t addrlen;
 	uint32_t currFD;					//current fd sirve para saber que fd tuvo cambios
 	uint32_t RPM;						//No es global ya que solo me interesa comunicar el SectorJumpTime
+	socketUnix_t consoleListen;			//estructura socket de escucha correspondiente a la consola
+	socketUnix_t newSocket;				//nueva estructura de socket que contendra datos de una nueva conexión
+	struct sockaddr_in remoteaddr;		//struct correspondiente a una nueva conexion
+	fd_set masterFDs;					//conjunto total de FDs que queremos administrar
+	fd_set readFDs;						//conjunto de FDs de los que deseamos recibir datos
 	sem_init(&(multiQueue->queueElemSem),0,0);
 	sem_init(&mainMutex,0,1);
 	multiQueue->flag = QUEUE2_ACTIVE;
 
 	int i;														// temporal
  	//uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};	// temporal
-	uint32_t vec[4] = {176,199,191,200};
+	//uint32_t vec[4] = {176,199,191,200};
+	uint32_t vec[1] = {0};
  	uint32_t* p = malloc(7*sizeof(uint32_t));					// temporal
- 	memcpy(p,vec,7*4);											// temporal
+ 	memcpy(p,vec,7*1);											// temporal
 
 	config_param *ppd_config;
 	CONFIG_read("config/ppd.config",&ppd_config);
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 	QUEUE_initialize(multiQueue->queue1);
 	if(Algorithm == SSTF){
 		multiQueue->flag = SSTF;
-		if(pthread_create(&TAKERtid,NULL,TAKER_main,SSTF_getNext)) 				//crea el thread correspondiente al TAKER
+		if(pthread_create(&TAKERtid,NULL,(void*)TAKER_main,SSTF_getNext)) 				//crea el thread correspondiente al TAKER
 					perror("error creacion de thread ");
 	} else {
 		multiQueue->queue2 = malloc(sizeof(queue_t));
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
 	SectorJumpTime = (RPM*Sector)/60000;// RPm/60 -> RPs/1000 -> RPms*Sector = tiempo entre sectores
 
 	char* msg;
-	for(i = 0; i < 4; i++){
+	for(i = 0; i < 1; i++){
 		msg = COMM_createCharMessage(READ_SECTORS,4);				// temporal
 		memcpy(msg+3,p+i,4);										// temporal
  		COMM_handleReceive(msg,1);
@@ -109,17 +109,18 @@ int main(int argc, char *argv[])
 			break;
 	}
 
-	CHANDLER_connect(&consoleFD);		//conecta la consola
-	COMM_connect(&listenFD);			//crea un descriptor de socket encargado de recibir conexiones entrantes
+	consoleListen = SOCKET_unix_create(SOCK_STREAM,SOCK_PATH,MODE_LISTEN);					//conecta la consola
+
+	COMM_connect(&listenFD);																//crea un descriptor de socket encargado de recibir conexiones entrantes
 
 	FD_ZERO(&masterFDs);
-	FD_SET(listenFD,&masterFDs); 		//agrego el descriptor que recibe conexiones al conjunto de FDs
-	FD_SET(consoleFD,&masterFDs);		//agrego el descriptor de la consola al conjunto de FDs
+	FD_SET(listenFD,&masterFDs); 						//agrego el descriptor que recibe conexiones al conjunto de FDs
+	FD_SET(consoleListen.descriptor,&masterFDs);		//agrego el descriptor de la consola al conjunto de FDs
 
-	if(listenFD > consoleFD)
+	if(listenFD > consoleListen.descriptor)
 		FDmax = listenFD;
 	else
-		FDmax = consoleFD;
+		FDmax = consoleListen.descriptor;
 
 	while(1){
 		FD_ZERO(&readFDs);
@@ -127,8 +128,8 @@ int main(int argc, char *argv[])
 		if(select(FDmax+1, &readFDs,NULL,NULL,NULL) == -1)
 			perror("select");
 		for(currFD = 0; currFD <= FDmax; currFD++){
-			if(FD_ISSET(currFD,&readFDs)){	//hay datos nuevos
-				if( currFD == listenFD){	//nueva conexion
+			if(FD_ISSET(currFD,&readFDs)){															//hay datos nuevos
+				if(currFD == listenFD){																//nueva conexion tipo INET
 					addrlen = sizeof(remoteaddr);
 					if((newFD = accept(listenFD,(struct sockaddr *)&remoteaddr,&addrlen))==-1)
 						perror("accept");
@@ -136,52 +137,30 @@ int main(int argc, char *argv[])
 						FD_SET(newFD,&masterFDs);
 						if(newFD > FDmax)
 							FDmax = newFD;
+						}
+				}
+				else if (currFD == consoleListen.descriptor){												//nueva conexion tipo UNIX
+					newSocket = COMM_ConsoleAccept(consoleListen);
+					FD_SET(newSocket.descriptor,&masterFDs);
+					if(newSocket.descriptor > FDmax)
+						FDmax = newSocket.descriptor;
 					}
-				} else { //datos de un cliente
-				/*	uint32_t recvReturn = 0;
-					char* msgIn = malloc(bytes_perSector + 7);
-					//TODO hacer dos recv uno que lea la cabecera y asi obtenga el payload del mensaje y otro que obtenga el mensaje en si
-					//TODO cambiar el valor de cantidad de bytes que recive
-					if((recvReturn = recv(currFD,msgIn,3,0)) == 0)
-					{
+				else { 																						//datos de un cliente
+					uint32_t dataRecieved = 0;
+					char* msgIn = COMM_recieve(currFD,&dataRecieved);
+					if(dataRecieved == 0){																	//si es igual a cero cierra la conexion
 						close(currFD);
 						FD_CLR(currFD,&masterFDs);
-					} else
+					} else {
 						COMM_handleReceive(msgIn,currFD);
-					free(msgIn);
-				*/
-					if(COMM_recieve(currFD) == 0){		//si es igual a cero cierra la conexion
-						close(currFD);
-						FD_CLR(currFD,&masterFDs);
+						free(msgIn);
 					}
 				}
 			}
 		}
+
 	}
-
-/*
- CHANDLER_connect(&pollFds[0].fd); //posicion 0 del pollFds siempre perteneciente a la consola del ppd
-
-sem_wait(&mainMutex);
-	while(1){
-		char* msgIn = malloc(bytes_perSector + 3);
-
-		pollFds[0].events = POLLIN;	 //seteo para que me avise cuando puedo recibir datos
-		pollReturn = poll(pollFds,2,-1);
-		if(pollReturn == -1){
-			perror("poll");
-		} else if(pollReturn == 0) {
-			printf("Timeout occurred! No data after 3.5 seconds \n");
-		} else { //se fija por eventos de la consola
-			if(pollFds[0].revents & POLLIN){
-				recv(pollFdTAKER_handleRequests[0].fd,msgIn,sizeof(msgIn),NULL);
-				ppd_recei65536ve(msgIn,0);
-			}
-			free(msgIn);
-		}
-	}
-*/
-return 0;
+	return 0;
 }
 
 void TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**)){

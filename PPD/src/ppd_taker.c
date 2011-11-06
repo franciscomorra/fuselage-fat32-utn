@@ -49,7 +49,7 @@ void TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t(*getNext)(q
 						nextSector = TAKER_turnToSectorNum(((request_t*)queueNext->data)->CHS);
 				}
 				memcpy(request->payload+12,&nextSector,4);
-			} else len = len - sizeof(uint32_t);
+			} else len -= sizeof(uint32_t);
 
 			memcpy(request->payload+4,&distance,4);
 			memcpy(request->payload+8,&delay,4);
@@ -122,11 +122,11 @@ uint32_t TAKER_distanceTime(CHS_t* CHSrequest){
 	CHS_t* CHSposition = malloc(sizeof(request_t));
 	 CHSposition = COMMON_turnToCHS(headPosition);
 
-	 uint32_t cDistance = abs(CHSposition->cylinder - CHSrequest->cylinder)*TrackJumpTime;
-	 uint32_t sDistance = TAKER_sectReachedDistance(CHSrequest,CHSposition)*SectorJumpTime;
+	 uint32_t cTimeDistance = abs(CHSposition->cylinder - CHSrequest->cylinder)*TrackJumpTime;
+	 uint32_t sTimeDistance = TAKER_sectReachedDistance(CHSrequest,CHSposition)*SectorJumpTime;
 
 	free(CHSposition);
-	return (cDistance + sDistance);
+	return (cTimeDistance + sTimeDistance);
 }
 
 uint32_t TAKER_sectReachedDistance(CHS_t* CHSrequest,CHS_t* CHSposition){
