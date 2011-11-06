@@ -14,6 +14,9 @@
 #include "praid_console.h"
 #include "praid_ppd_handler.h"
 #include "praid_queue.h"
+
+#include "log.h"
+
 #include <sys/types.h>
 #include <netinet/in.h>
 //datos para el select
@@ -32,10 +35,11 @@ uint32_t currFD;					//current fd sirve para saber que fd tuvo cambios
 
 uint32_t RAID_CONSOLE = 0; //0 DISABLE - 1 ENABLE
 uint32_t RAID_STATUS = 0; //0 INACTIVE - 1 ACTIVE - 2 WAIT_FIRST_PPD_REPLY
-uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
+uint32_t DISK_SECTORS_AMOUNT = 6; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
 
 praid_list_node* PRAID_LIST, CURRENT_READ;
 
+t_log *raid_log_file;
 
 pthread_mutex_t mutex_CONSOLE;
 pthread_mutex_t mutex_RAID_STATUS;
@@ -47,6 +51,7 @@ int main(int argc,char **argv){
 	config_param *praid_config;
 	CONFIG_read("config/praid.config",&praid_config);
 	RAID_CONSOLE  = atoi(CONFIG_getValue(praid_config,"Console"));
+	raid_log_file = log_create("PRAID","praid.log",DEBUG,M_CONSOLE_DISABLE);
 //Fin Leer archivo de Configuracion, seteada Variable Global raid_console
 
 //Inicio Seteo de Variables Iniciales
@@ -54,13 +59,15 @@ int main(int argc,char **argv){
 	pthread_mutex_init(&mutex_LIST, NULL);
 //Fin Seteo de Variables Iniciales
 
-	print_Console("Bienvenido Proceso RAID",(uint32_t)pthread_self());//CONSOLE WELCOME
-/*
+	print_Console("Inicio PRAID",(uint32_t)pthread_self());//CONSOLE WELCOME
+	log_debug(raid_log_file,"PRAID","Inicio PRAID");
+
+
 	pthread_t main_ppd_thread;
 	pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,NULL);
 	pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,NULL);
 	pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,NULL);
-*/
+
 	//creacion Sockets listen
 
 	Create_Sockets_INET(&listenFD);

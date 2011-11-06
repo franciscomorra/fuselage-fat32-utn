@@ -10,19 +10,22 @@
 #include <stdint.h>
 #include "praid_ppd_handler.h"
 #include "praid_console.h"
+#include "log.h"
 #include "praid_comm.h"
 #include "praid_queue.h"
 #include "tad_queue.h"
 
-
-extern uint32_t RAID_STATUS; //0 INACTIVE - 1 ACTIVE - 2 WAIT_FIRST_PPD_REPLY
 extern uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
 extern pthread_mutex_t mutex_LIST;
-extern pthread_mutex_t mutex_RAID_STATUS;
+extern t_log *raid_log_file;
+
 
 void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 {
-	uint32_t* sectorCount = 0x0;//Primer Sector del disco
+
+	//TODO Recibir cantidad de sectores en el HANDSHAKE
+
+	uint32_t sectorCount = 1;//Primer Sector del disco mas uno por el de synch
 	uint32_t self_tid = (uint32_t)pthread_self(); //TID del PPD
 
 	pthread_mutex_lock(&mutex_LIST);
@@ -30,92 +33,94 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 	queue_t* self_SL = self_list_node->info->colaSublista;
 	pthread_mutex_unlock(&mutex_LIST);
 
-	while (1){
-		uint32_t i=0;
-		i++;
-		if(RAID_STATUS == 0 || RAID_STATUS == 2){ //SI ME LO PASAN POR HANDSHAKE ESTE BARDO NO VA
-			//Si es el primer PPD que se conecta, pide informacion del disco (DISK_SECTORS_AMOUNT)
-			//Por si acaso se cae el primer disco antes de recibir el pedido de DISK_SECTORS_AMOUNT, pregunto estado 2
-			pthread_mutex_lock(&mutex_RAID_STATUS);
-			RAID_STATUS = 2; //RAID ESPERANDO DISK_SECTORS_AMOUNT
-			pthread_mutex_unlock(&mutex_RAID_STATUS);
-		/*
-			//TODO Enviar Pedido de informacion de Disco (DISK_SECTORS_AMOUNT)
-			//Esperar respuesta
-			//Decodificar respuesta
-		*/
-			if(RAID_STATUS != 1){//Si no lo activaron a ultimo momento
-				//Setear DISK_SECTORS_AMOUNT
-				pthread_mutex_lock(&mutex_RAID_STATUS);
-				RAID_STATUS = 1; //RAID ACTIVADO
-				pthread_mutex_unlock(&mutex_RAID_STATUS);
-				print_Console("RAID Activado",(uint32_t)pthread_self());//CONSOLE STATUS ACTIVE
+	uint32_t self_sl_accesses=0;
+	uint32_t self_sl_node_read=0;
 
+	while(1){
+		self_sl_accesses++;
+		pthread_mutex_lock(&mutex_LIST);
+		if (self_list_node->info->ppdStatus == 2){ //Si se conecto pero hay un disco sincronizandose, espera a sincronizarse
+			if(PRAID_hay_discos_sincronizandose() != 0){
+				self_list_node->info->ppdStatus = 1;
+				print_Console("Fin Espera Sincronizacion",self_tid);
+				log_debug(raid_log_file,"PRAID","Fin Espera Sincronizacion(%s)",self_tid);
+				PRAID_Start_Synch();
 			}
-			print_Console("Nuevo PPD",(uint32_t)pthread_self());//CONSOLE NEW PPD
-		}else{ //RAID tiene al menos un disco, estado ACTIVE
-			print_Console("Nuevo PPD",(uint32_t)pthread_self());//CONSOLE NEW PPD
-		}
-		print_Console("Iniciando Sincronizacion",(uint32_t)pthread_self());//CONSOLE INICIO_SYNCHRONIZE
-
-		uint32_t self_list_accesses=0;
-		while(1){
-			self_list_accesses++;
-			pthread_mutex_lock(&mutex_LIST);
-
-			while(QUEUE_length(self_SL) > 0){
+		}else{
+			//INICIO MIRAR LA COLA
+			if(QUEUE_length(self_SL) > 0){
 				queueNode_t* current_SL_node = QUEUE_takeNode(self_SL);
-/*
-				praid_sl_content current_SL_content;
-				memcpy(&current_SL_content,current_SL_node->data,sizeof(praid_sl_content));
-			Para acceder al contenido, en vez del memcpy, usar esto
-				praid_sl_content current_SL_content = ((praid_sl_content*) current_SL_node->data);
-*/
+				self_sl_node_read++;
+				print_Console("Cantidad de pedidos tomados:",self_tid);
+				print_Console("Pedidos tomados por el thread:",self_sl_node_read);
+
 				//TODO	Envialo a PPD
+
 				if(((praid_sl_content*) current_SL_node->data)->msg.type == READ_SECTORS){
 					if(((praid_sl_content*) current_SL_node->data)->synch == 0){
-						print_Console("Request Sent To Disk for read",(uint32_t)pthread_self());//CONSOLE READ
-						//TODO Espera a que vuelva, Cuando vuelve, mandaselo al PFS directamente
+						print_Console("READ a DISCO de: ",self_tid);
+						log_debug(raid_log_file,"PRAID","Request Sent To Disk for read (%s)",self_tid);
 					}else{//El pedido es de SYNCH
-						//TODO Espera a que vuelva
+						print_Console("READ a DISCO (Sincronizacion) de:",self_tid);
 						praid_sl_content *data_sublist= malloc(sizeof(praid_sl_content));
 						data_sublist->synch = 1;
-						//SOCKET PPD
-						data_sublist->msg.type = WRITE_SECTORS;
-						//NIPC tyoe READ_SECTORS
+						uint32_t contenido_Leido = 0303456;
+						//TODO NIPC
+						data_sublist->msg = NIPC_createMsg(WRITE_SECTORS,sizeof(uint32_t),(char*) &contenido_Leido);
 						PRAID_add_WRITE_Request(data_sublist);
 					}
-				}else if (((praid_sl_content*) current_SL_node->data)->msg.type == WRITE_SECTORS){
+				}else{//WRITE_SECTORS
 					if(((praid_sl_content*) current_SL_node->data)->synch == 0){
-						print_Console("Request Sent To Disk for Write",(uint32_t)pthread_self());//CONSOLE WRITE
-						//TODO Cuando vuelve, mandaselo al PFS directamente
-
+						print_Console("WRITE a DISCO de:",self_tid);
+						log_debug(raid_log_file,"PRAID","Request Sent To Disk for Write (%s)",self_tid);
 					}else{//El pedido es de SYNCH
-						//TODO Espera a que vuelva
 						if(sectorCount<DISK_SECTORS_AMOUNT){//Si no es el ultimo
+							sectorCount++;
+							print_Console("WRITE a DISCO (Sincronizacion) de:",self_tid);
 							praid_sl_content *data_sublist= malloc(sizeof(praid_sl_content));
 							data_sublist->synch = 1;
 							//TODO SOCKET PPD
-							data_sublist->msg.type = READ_SECTORS;
-							//TODO NIPC tyoe READ_SECTORS
-							QUEUE_appendNode(self_SL,data_sublist);
-							sectorCount++;
+							data_sublist->msg = NIPC_createMsg(READ_SECTORS,sizeof(uint32_t),(char*) &sectorCount);
 							PRAID_add_READ_Request(data_sublist);
 						}else{//Si era el ultimo
-							pthread_mutex_lock(&mutex_RAID_STATUS);
 							self_list_node->info->ppdStatus = 0; //Cambia estado de PPD a ACTIVO
-							pthread_mutex_unlock(&mutex_RAID_STATUS);
+							print_Console("Fin Sincronizacion: ",self_tid);
+							log_debug(raid_log_file,"PRAID","Fin Sincronizacion (%s)",self_tid);
 						}
-
 					}
-
 				}
-				QUEUE_freeNode(current_SL_node,0);
+				free(current_SL_node->data);
+				free(current_SL_node);
+				print_Console("Nodo Liberado.",self_tid);//CONSOLE READ
 			}
-			pthread_mutex_unlock(&mutex_LIST);
-		}
+			//FIN MIRAR LA COLA
 
+		}
+		pthread_mutex_unlock(&mutex_LIST);
 	}
 return NULL;
 }
 
+
+/*
+if(RAID_STATUS == 0 || RAID_STATUS == 2){ //SI ME LO PASAN POR HANDSHAKE ESTE BARDO NO VA
+	//Si es el primer PPD que se conecta, pide informacion del disco (DISK_SECTORS_AMOUNT)
+	//Por si acaso se cae el primer disco antes de recibir el pedido de DISK_SECTORS_AMOUNT, pregunto estado 2
+	pthread_mutex_lock(&mutex_RAID_STATUS);
+	RAID_STATUS = 2; //RAID ESPERANDO DISK_SECTORS_AMOUNT
+	pthread_mutex_unlock(&mutex_RAID_STATUS);
+
+	//TODO Enviar Pedido de informacion de Disco (DISK_SECTORS_AMOUNT)
+	//Esperar respuesta
+	//Decodificar respuesta
+	if(RAID_STATUS != 1){//Si no lo activaron a ultimo momento
+		//Setear DISK_SECTORS_AMOUNT
+		pthread_mutex_lock(&mutex_RAID_STATUS);
+		RAID_STATUS = 1; //RAID ACTIVADO
+		pthread_mutex_unlock(&mutex_RAID_STATUS);
+		print_Console("RAID Activado",self_tid);//CONSOLE STATUS ACTIVE
+		log_debug(raid_log_file,"PRAID","RAID Activado(%s)",pthread_self());
+	}
+
+} ESTO IRIA ENCAPSULADO EN UN WHILE ANTES DE TOMAR PEDIDOS
+*/

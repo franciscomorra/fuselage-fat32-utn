@@ -21,7 +21,7 @@ uint32_t print_Console (char *message, uint32_t threadID)
 
 	if(RAID_CONSOLE == 1){
 		pthread_mutex_lock(&mutex_CONSOLE);
-		printf("%s - TID: %d \n",message,threadID);
+		printf("%s %d\n",message,threadID);
 		pthread_mutex_unlock(&mutex_CONSOLE);
 	}
 
