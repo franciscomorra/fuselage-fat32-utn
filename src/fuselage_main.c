@@ -22,6 +22,7 @@
 #include "tad_direntry.h"
 #include "tad_cluster.h"
 #include "tad_sector.h"
+#include "file_cache.h"
 
 #include "log.h"
 #include <signal.h>
@@ -29,6 +30,7 @@ bootSector_t boot_sector;
 fatTable_t fat;
 t_log *log_file;
 dirEntry_t *opened_file;
+queue_t file_caches;
 
 
 extern 	struct args
@@ -44,10 +46,6 @@ extern pthread_mutex_t signal_lock;
 
 void *fuselage_main (void *data)
 {
-
-
-
-
 	log_file = log_create("PFS","pfs.log",DEBUG,M_CONSOLE_DISABLE);
 	log_debug(log_file,"PFS","Inicio PFS");
 
@@ -55,7 +53,6 @@ void *fuselage_main (void *data)
 
 	fat32_readBootSector(&boot_sector);
 	FAT_read(&fat);
-
 
 	signal(SIGUSR2,cmd_signal);
 	uint32_t res = fuse_main(args.argc,args.argv, &fuselage_oper,NULL);
@@ -65,7 +62,6 @@ void *fuselage_main (void *data)
 
 int cmd_signal()
 {
-	//MUTEX, ARREGLAR!!!!!
 	char* token = (char*) strtok(cmd_received," ");
 
 	if (strcmp(token,"fsinfo") == 0)
@@ -265,28 +261,8 @@ static int fuselage_rename(const char *cur_name, const char *new_name)
 			cur_file_node = cur_file_node->next;
 		}
 
-		if (strlen(new_filename) > 13)
-		{
-			unicode_utf8_to_utf16_inbuffer(new_filename,13,(uint16_t*) utf16_filename,&utf16_filename_size);
-		}
-		else
-		{
-			unicode_utf8_to_utf16_inbuffer(new_filename,strlen(new_filename),(uint16_t*) utf16_filename,&utf16_filename_size);
-		}
-
-		memcpy(((lfnEntry_t*) cur_file->lfn_entries.begin->data)->name_chars1,utf16_filename,10);
-		memcpy(((lfnEntry_t*) cur_file->lfn_entries.begin->data)->name_chars2,utf16_filename+10,12);
-		memcpy(((lfnEntry_t*) cur_file->lfn_entries.begin->data)->name_chars3,utf16_filename+22,4);
-
-		memset(cur_file->dir_entry->dos_name,0,8);
-		uppercase(new_filename);
-		memcpy(cur_file->dir_entry->dos_name,new_filename,8);
-
-		if (strlen(new_filename) > 8)
-		{
-			cur_file->dir_entry->dos_name[6] = '~';
-			cur_file->dir_entry->dos_name[7] = '1';
-		}
+		LFNENTRY_setNameChars((lfnEntry_t*) cur_file->lfn_entries.begin->data,new_filename);
+		DIRENTRY_setDosName(cur_file->dir_entry,new_filename);
 
 		fat32_writeClusterChain(&DIRTABLE_cluster_chain);
 
@@ -320,6 +296,7 @@ static int fuselage_truncate(const char *fullpath, off_t new_size)
 		CLUSTER_freeChain(&cluster_chain);
 		return 0;
 	}
+
 	uint32_t first_cluster_no = DIRENTRY_getClusterNumber(dir_entry);
 
 	queue_t file_clusters = FAT_getClusterChain(&fat,first_cluster_no);
@@ -392,16 +369,16 @@ static int fuselage_write(const char *fullpath, const char *file_buff, size_t bu
 	fuselage_truncate(fullpath,buff_size);
 	clusterChain_t cluster_chain;
 	memset(&cluster_chain,0,sizeof(clusterChain_t));
-	dirEntry_t* file_entry = fat32_getDirEntry(fullpath,&cluster_chain);
 
-	clusterChain_t file_clusters = fat32_readClusterChain(DIRENTRY_getClusterNumber(file_entry));
+	dirEntry_t* dir_entry = fat32_getDirEntry(fullpath,&cluster_chain);
+	uint32_t cluster_no = DIRENTRY_getClusterNumber(dir_entry);
+	CLUSTER_freeChain(&cluster_chain);
 
+	clusterChain_t file_clusters = fat32_readClusterChain(cluster_no);
 	memcpy(file_clusters.data+off,file_buff,buff_size);
 
-	//fat32_writeClusterChain(&cluster_chain);
 	fat32_writeClusterChain(&file_clusters);
 
-	CLUSTER_freeChain(&cluster_chain);
 	CLUSTER_freeChain(&file_clusters);
 
 	return buff_size;
@@ -410,79 +387,6 @@ static int fuselage_write(const char *fullpath, const char *file_buff, size_t bu
 static int fuselage_create(const char *fullpath, mode_t mode, struct fuse_file_info *fi)
 {
 	return fat32_mk(fullpath,ARCHIVE_ATTR);
-	/*
-	char *filename;
-	char *path;
-	lfnEntry_t new_lfn;
-	dirEntry_t new_direntry;
-	FILE_splitNameFromPath(fullpath,&filename,&path);
-
-
-	clusterChain_t cluster_chain;
-	memset(&cluster_chain,0,sizeof(clusterChain_t));
-	uint32_t folderTableCluster;
-	if (strcmp(path,"/") != 0)
-	{
-		dirEntry_t *entryOfFolder = fat32_getDirEntry(path,&cluster_chain);
-		folderTableCluster = DIRENTRY_getClusterNumber(entryOfFolder);
-		CLUSTER_freeChain(&cluster_chain);
-	}
-	else
-	{
-		folderTableCluster = 2;
-	}
-	clusterChain_t dirtable = fat32_readClusterChain(folderTableCluster);
-
-
-	dirEntry_t *dirtable_index = (dirEntry_t*) dirtable.data;
-	dirEntry_t *lastPosForAnEntry = (dirEntry_t*) (dirtable.data+(dirtable.size*boot_sector.bytes_perSector*boot_sector.sectors_perCluster)-sizeof(dirEntry_t));
-	bool write = false, freeSpace = false;
-	uint32_t entry_offset = 0;
-
-
-	while (dirtable_index != lastPosForAnEntry)
-	{
-		if (*((char*) dirtable_index) == 0xE5 || *((char*) dirtable_index) == 0x00)
-		{
-			write = freeSpace = true;
-			break;
-		}
-		entry_offset++;
-		dirtable_index++;
-	}
-
-	if (freeSpace == false)
-	{
-		write = true;
-		CLUSTER_freeChain(&dirtable);
-		FAT_appendCluster(fat,folderTableCluster);
-		dirtable = fat32_readClusterChain(folderTableCluster);
-	}
-
-	queueNode_t *cluster_node = dirtable.clusters.begin;
-
-	while (cluster_node != NULL)
-	{
-		if (cluster_node->next == NULL) break;
-		cluster_node = cluster_node->next;
-	}
-	cluster_t* last_cluster = (cluster_t*) cluster_node->data;
-	uint32_t cluster_toAssign = FAT_getFreeCluster(&fat);
-	FAT_setUsed(&fat,cluster_toAssign);
-
-	new_lfn = LFNENTRY_create(filename);
-	new_direntry = DIRENTRY_create(filename,cluster_toAssign,ARCHIVE_ATTR);
-
-	memcpy(last_cluster->data+(entry_offset*sizeof(lfnEntry_t)),&new_lfn,sizeof(lfnEntry_t));
-	memcpy(last_cluster->data+(entry_offset+1*sizeof(lfnEntry_t)),&new_direntry,sizeof(dirEntry_t));
-
-	if (write)
-	{
-		fat32_writeClusterChain(&dirtable);
-		FAT_write(&fat);
-	}
-	CLUSTER_freeChain(&dirtable);
-	return 0;*/
 }
 
 static int fuselage_mkdir(const char *fullpath, mode_t mode)

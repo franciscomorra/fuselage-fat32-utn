@@ -196,8 +196,7 @@ uint32_t FAT_appendCluster(fatTable_t fat,uint32_t first_cluster_of_chain)
 
 uint32_t FAT_removeCluster(fatTable_t fat,uint32_t first_cluster_of_chain)
 {
-	uint32_t *casted_table = (uint32_t*) fat.table;
-
+		uint32_t *casted_table = (uint32_t*) fat.table;
 		queue_t cluster_chain = FAT_getClusterChain(&fat,first_cluster_of_chain);
 		queueNode_t *cur_free_cluster,*cur_cluster_node;
 		uint32_t last_cluster,before_lastcluster;
@@ -211,4 +210,22 @@ uint32_t FAT_removeCluster(fatTable_t fat,uint32_t first_cluster_of_chain)
 
 		casted_table[last_cluster] = 0;
 		casted_table[before_lastcluster] = fat.EOC;
+}
+
+uint32_t FAT_getNextAssociated(uint32_t cluster_no)
+{
+	if (cluster_no == fat.EOC) return fat.EOC;
+	uint32_t *casted_table = (uint32_t*) fat.table;
+	queue_t cluster_chain = FAT_getClusterChain(&fat,cluster_no);
+
+	queueNode_t *cur_free_cluster,*cur_cluster_node;
+	uint32_t cur_cluster,before_lastcluster;
+
+	while ((cur_cluster_node = QUEUE_takeNode(&cluster_chain)) != NULL)
+	{
+		cur_cluster = *((uint32_t*) cur_cluster_node->data);
+		if (cur_cluster == cluster_no) return *((uint32_t*) cur_cluster_node->next->data);
+		QUEUE_freeNode(cur_cluster_node);
+	}
+
 }

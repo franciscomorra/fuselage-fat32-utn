@@ -11,9 +11,11 @@
 typedef struct file_cache_node
 {
 	char* path;
-	dirEntry_t direntry;
-	struct file_cache_node *next;
-} file_cache_node_t;
+	lfnEntry_t *lfnentry;
+	dirEntry_t *direntry;
+	clusterChain_t file_clusters;
+	size_t cache_size;
+} file_cache_t;
 
 //TODO: Implementar algoritmos de reemplazo de datos en la cache
 //TODO: Implementar funciones de agregar, buscar y quitar nodos
