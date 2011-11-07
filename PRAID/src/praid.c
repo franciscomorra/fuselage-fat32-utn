@@ -99,17 +99,23 @@ int main(int argc,char **argv){
 						close(currFD);
 						FD_CLR(currFD,&masterFDs);
 					}
-/*
+/*					if((recvReturn = recv(currFD,msgIn,519,0)) == -1)//aca hubo un error de conexión
+					{
+						close(currFD);
+						FD_CLR(currFD,&masterFDs);
+						error_fd(currFD);
+					}
 					else{
 				   //aca tengo que preguntar el tipo del msj para saber si es PPD o PFS
 						if(msgIn[10]==1){
 						   //PFS=1  pongo 10 por poner un ejemplo
-
-					   //pfs_receive(msgIn,currFD);
+						   //fd_appendNode(*pfs_list,*currFD);
+					       //pfs_receive(msgIn,currFD);
 						   //memset(msgIn,0,sizeof(msgIn));
 						}
 						else if(msgIn[10]==2){
 					   //PPD=2   pongo 10 por poner un ejemplo
+					   fd_appendNode(*ppd_list,*currFD);
 					   //ppd_receive(msgIn,currFD);
 					   //memset(msgIn,0,sizeof(msgIn));
 						}
