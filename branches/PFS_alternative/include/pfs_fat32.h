@@ -31,13 +31,13 @@ uint32_t fat32_readBootSector(bootSector_t *bs);
 
 char* fat32_readRawCluster(uint32_t);
 
-clusterChain_t fat32_readClusterChain(uint32_t first_cluster);
+cluster_set_t fat32_readClusterChain(uint32_t first_cluster);
 
-queue_t fat32_readDirectory( char* path,clusterChain_t *cluster_chain);
+queue_t fat32_readDirectory( char* path,cluster_set_t *cluster_chain);
 
-dirEntry_t* fat32_getDirEntry(char* path,clusterChain_t* cluster_chain);
+dirEntry_t* fat32_getDirEntry(char* path,cluster_set_t* cluster_chain);
 
 void fat32_writeCluster(cluster_t *cluster);
-fat32file_t fat32_getFileStruct(const char* path,clusterChain_t* cluster_chain);
+fat32file_t fat32_getFileStruct(const char* path,cluster_set_t* cluster_chain);
 
 #endif /* PFS_FAT32_H_ */

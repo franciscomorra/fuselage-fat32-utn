@@ -32,7 +32,7 @@ uint32_t DIRENTRY_getClusterNumber(dirEntry_t *entry)
 }
 
 
-queue_t DIRENTRY_interpretTableData(clusterChain_t cluster_chain)
+queue_t DIRENTRY_interpretTableData(cluster_set_t cluster_chain)
 {
 	lfnEntry_t *lfn_entry = (lfnEntry_t*) cluster_chain.data; //Uso este puntero para recorrer el cluster_data de a 32 bytes cada vez que incremento en 1 este puntero
 

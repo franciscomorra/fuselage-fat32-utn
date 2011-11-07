@@ -73,7 +73,7 @@ cluster_t* CLUSTER_newCluster(char* startOfData,uint32_t numberOfCluster)
 
 }
 
-void CLUSTER_freeChain(clusterChain_t *cluster_chain)
+void CLUSTER_freeChain(cluster_set_t *cluster_chain)
 {
 	queue_t cluster_queue = cluster_chain->clusters;
 	queueNode_t *cluster_node;
@@ -92,7 +92,7 @@ void CLUSTER_freeChain(clusterChain_t *cluster_chain)
 	free(cluster_chain->data);
 }
 
-uint32_t CLUSTER_setModified2(char *addr,clusterChain_t *cluster_chain,size_t len_modified) // + CANTIDAD MODIFICADA
+uint32_t CLUSTER_setModified2(char *addr,cluster_set_t *cluster_chain,size_t len_modified) // + CANTIDAD MODIFICADA
 {
 		queue_t cluster_queue = cluster_chain->clusters;
 		queueNode_t *cluster_node = (queueNode_t*) cluster_queue.begin;

@@ -29,4 +29,8 @@ char* PFS_request(nipcMsg_t msg);
 
 socketPool_t create_connections_pool(uint32_t max_conn,char* address,uint32_t port);
 
+char* splitAndSort(char *sectors,uint32_t *indexes_array,size_t array_len);
+
+int32_t sendMsgToPPD(socketInet_t socket,nipcMsg_t *msg);
+
 #endif /* PFS_COMM_H_ */

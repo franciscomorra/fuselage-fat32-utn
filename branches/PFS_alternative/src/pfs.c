@@ -40,10 +40,10 @@ void finish_him()
 int main(int argc, char *argv[])
 {
 	//DIRENTRY_create("santi",5);
-	/*
+
 	sockets_toPPD = create_connections_pool(10,"127.0.0.1",9034);
 	if (sockets_toPPD.size == 0) return 1;
-	*/
+
 	signal(SIGKILL,finish_him);
 	signal(SIGINT,finish_him);
 	signal(SIGTERM,finish_him);

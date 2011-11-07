@@ -93,8 +93,8 @@ int cmd_signal()
 	{
 		token = strtok(NULL," ");
 
-		clusterChain_t cluster_chain;
-		memset(&cluster_chain,0,sizeof(clusterChain_t));
+		cluster_set_t cluster_chain;
+		memset(&cluster_chain,0,sizeof(cluster_set_t));
 		dirEntry_t *direntry = fat32_getDirEntry(token,&cluster_chain);
 		if (direntry != NULL)
 		{
@@ -134,8 +134,8 @@ int cmd_signal()
 
 int fuselage_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t offset, struct fuse_file_info *fi)
 {
-	clusterChain_t cluster_chain;
-	memset(&cluster_chain,0,sizeof(clusterChain_t));
+	cluster_set_t cluster_chain;
+	memset(&cluster_chain,0,sizeof(cluster_set_t));
 	queue_t file_list = fat32_readDirectory(path,&cluster_chain); //Obtengo una lista de los ficheros que hay en "path"
 
 	assert(&file_list != NULL); //Si falla es que fuselage_getattr no detecto que no era un directorio valido
@@ -166,8 +166,8 @@ static int fuselage_getattr(const char *path, struct stat *stbuf)
 	  return res;
 	}
 	//log_debug(log_file,"PFS","fuselage_getattr -> fat32_getDirEntry(%s)",path);
-	clusterChain_t cluster_chain;
-	memset(&cluster_chain,0,sizeof(clusterChain_t));
+	cluster_set_t cluster_chain;
+	memset(&cluster_chain,0,sizeof(cluster_set_t));
 	dirEntry_t *current_file =  fat32_getDirEntry(path,&cluster_chain); //Obtengo la dirEntry_t del fichero apuntado por path
 
 	if (current_file == NULL) //SI DEVOLVIO NULL, EL ARCHIVO O DIRECTORIO NO EXISTE
@@ -199,8 +199,8 @@ static int fuselage_getattr(const char *path, struct stat *stbuf)
 
 static int fuselage_open(const char *path, struct fuse_file_info *fi)
 {
-	clusterChain_t cluster_chain;
-	memset(&cluster_chain,0,sizeof(clusterChain_t));
+	cluster_set_t cluster_chain;
+	memset(&cluster_chain,0,sizeof(cluster_set_t));
 	dirEntry_t* opened_file = fat32_getDirEntry(path,&cluster_chain);
 	fi->fh = (uint64_t) DIRENTRY_getClusterNumber(opened_file);
 	CLUSTER_freeChain(&cluster_chain);
@@ -209,7 +209,7 @@ static int fuselage_open(const char *path, struct fuse_file_info *fi)
 
 static int fuselage_read(const char *path, char *file_buf, size_t sizeToRead, off_t offset, struct fuse_file_info *fi)
 {
-	clusterChain_t cluster_chain = fat32_readClusterChain(fi->fh);
+	cluster_set_t cluster_chain = fat32_readClusterChain(fi->fh);
 	memcpy(file_buf,cluster_chain.data+offset,sizeToRead);
 	CLUSTER_freeChain(&cluster_chain);
 	return strlen(file_buf);
@@ -233,8 +233,8 @@ static int fuselage_rename(const char *cur_name, const char *new_name)
 		char *utf16_filename = malloc(26);
 		memset(utf16_filename,0,26);
 
-		clusterChain_t DIRTABLE_cluster_chain;
-		memset(&DIRTABLE_cluster_chain,0,sizeof(clusterChain_t));
+		cluster_set_t DIRTABLE_cluster_chain;
+		memset(&DIRTABLE_cluster_chain,0,sizeof(cluster_set_t));
 
 		queue_t file_list;
 		queueNode_t *cur_file_node;
@@ -249,7 +249,7 @@ static int fuselage_rename(const char *cur_name, const char *new_name)
 		FILE_splitNameFromPath(cur_name,&filename,&path);
 
 		CLUSTER_freeChain(&DIRTABLE_cluster_chain);
-		memset(&DIRTABLE_cluster_chain,0,sizeof(clusterChain_t));
+		memset(&DIRTABLE_cluster_chain,0,sizeof(cluster_set_t));
 		file_list = fat32_readDirectory(path,&DIRTABLE_cluster_chain);
 
 		cur_file_node = file_list.begin;
@@ -285,8 +285,8 @@ static int fuselage_truncate(const char *fullpath, off_t new_size)
 	char *filename;
 	char *path;
 	uint32_t bytes_perCluster = boot_sector.bytes_perSector * boot_sector.sectors_perCluster;
-	clusterChain_t cluster_chain;
-	memset(&cluster_chain,0,sizeof(clusterChain_t));
+	cluster_set_t cluster_chain;
+	memset(&cluster_chain,0,sizeof(cluster_set_t));
 
 	dirEntry_t *dir_entry = fat32_getDirEntry(fullpath,&cluster_chain);
 	uint32_t original_size = dir_entry->file_size;
@@ -306,7 +306,7 @@ static int fuselage_truncate(const char *fullpath, off_t new_size)
 
 
 	size_t needed_clusters = ((new_size - 1) / bytes_perCluster) + 1;
-	clusterChain_t file_clustersChain;
+	cluster_set_t file_clustersChain;
 	char* last_byte;
 	if (needed_clusters < file_clusters_no)
 	{
@@ -367,14 +367,14 @@ static int fuselage_truncate(const char *fullpath, off_t new_size)
 static int fuselage_write(const char *fullpath, const char *file_buff, size_t buff_size, off_t off, struct fuse_file_info *fi)
 {
 	fuselage_truncate(fullpath,buff_size);
-	clusterChain_t cluster_chain;
-	memset(&cluster_chain,0,sizeof(clusterChain_t));
+	cluster_set_t cluster_chain;
+	memset(&cluster_chain,0,sizeof(cluster_set_t));
 
 	dirEntry_t* dir_entry = fat32_getDirEntry(fullpath,&cluster_chain);
 	uint32_t cluster_no = DIRENTRY_getClusterNumber(dir_entry);
 	CLUSTER_freeChain(&cluster_chain);
 
-	clusterChain_t file_clusters = fat32_readClusterChain(cluster_no);
+	cluster_set_t file_clusters = fat32_readClusterChain(cluster_no);
 	memcpy(file_clusters.data+off,file_buff,buff_size);
 
 	fat32_writeClusterChain(&file_clusters);
