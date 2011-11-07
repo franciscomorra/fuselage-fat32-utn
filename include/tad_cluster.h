@@ -20,20 +20,20 @@ typedef struct cluster_t
 	char* data;
 } cluster_t;
 
-typedef struct clusterChain_t
+typedef struct cluster_set_t
 {
 	size_t size;
 	queue_t clusters;
 	char* data;
-} clusterChain_t;
+} cluster_set_t;
 
 void CLUSTER_freeQueue(queue_t *cluster_queue);
 
 cluster_t* CLUSTER_newCluster(char* startOfData,uint32_t numberOfCluster);
 
-void CLUSTER_freeChain(clusterChain_t *cluster_chain);
+void CLUSTER_freeChain(cluster_set_t *cluster_chain);
 
-uint32_t CLUSTER_setModified(char *addr,clusterChain_t *cluster_chain,size_t len_modified);
+uint32_t CLUSTER_setModified(char *addr,cluster_set_t *cluster_chain,size_t len_modified);
 
 #endif /* TAD_CLUSTER_H_ */
 

@@ -40,7 +40,9 @@ char* PPDINTERFACE_readSectors(uint32_t* sectors, size_t len)
 {
 	uint32_t sock_index = 0;
 	uint32_t sector_index = 0;
-	size_t recvdata_len = (boot_sector.bytes_perSector + 7) * len;
+
+	size_t msg_len = boot_sector.bytes_perSector + 7;
+	size_t recvdata_len = msg_len * len;
 
 	sem_wait(&sockets_toPPD.free_sockets);
 	for (;sock_index < sockets_toPPD.size;sock_index++)
@@ -55,19 +57,30 @@ char* PPDINTERFACE_readSectors(uint32_t* sectors, size_t len)
 	for (;sector_index < len;sector_index++)
 	{
 		nipcMsg_t msg = NIPC_createMsg(READ_SECTORS,sizeof(uint32_t),(char*) sectors+sector_index);
-		sendMsgToPPD(msg);
+		sendMsgToPPD(sockets_toPPD.sockets[sock_index],&msg);
 		NIPC_cleanMsg(&msg);
 	}
 
-	char* buf = malloc(recvdata_len);
-	if (recv(sockets_toPPD.sockets[sock_index].descriptor,buf,recvdata_len,NULL) == -1)
+	char* buf;// = malloc(recvdata_len);
+	char* msgs_buf = malloc(516*len);
+	uint32_t recvd = 0;
+	uint32_t count = 0;
+	while (count != len)
 	{
+		buf = COMM_recieve(sockets_toPPD.sockets[sock_index].descriptor,&recvd);
+		memcpy(msgs_buf+(count*516),buf+3,516);
+		count++;
 		free(buf);
-		buf = NULL;
 	}
+
+	char *final_buf = malloc(512*len);
+	final_buf = splitAndSort(msgs_buf,sectors,len);
+	free(buf);
+
+
 	sockets_toPPD.sockets[sock_index].status = SOCK_FREE;
 	sem_post(&sockets_toPPD.free_sockets);
-	return buf;
+	return final_buf;
 }
 
 uint32_t PPDINTERFACE_writeSector(sector_t sector)
@@ -172,7 +185,7 @@ socketPool_t create_connections_pool(uint32_t max_conn,char* address,uint32_t po
 
 }
 
-int32_t sendMsgToPPD(socketInet_t socket,nipcMsg_t msg)
+int32_t sendMsgToPPD(socketInet_t socket,nipcMsg_t *msg)
 {
 	char* msg_inBytes = NIPC_toBytes(msg);
 	int32_t transmitted = 0;
@@ -186,3 +199,17 @@ int32_t sendMsgToPPD(socketInet_t socket,nipcMsg_t msg)
 	}
 }
 
+char* splitAndSort(char *sectors,uint32_t *indexes_array,size_t array_len)
+{
+	size_t msg_len = boot_sector.bytes_perSector + 4;
+	uint32_t index = 0;
+	char* buf = malloc(msg_len * array_len);
+	for (;index < array_len;index++)
+	{
+		if (indexes_array[index] == *((uint32_t*) sectors+(index*msg_len)))
+		{
+			memcpy(buf+(index*msg_len),sectors+(index*msg_len)+4,boot_sector.bytes_perSector);
+		}
+	}
+	return buf;
+}

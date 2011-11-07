@@ -126,20 +126,30 @@ uint32_t FAT_read(fatTable_t *fat)
 
 
 	fat->size = (boot_sector.bytes_perSector*boot_sector.sectors_perFat32) / bytes_perFATentry;
-	fat->table = malloc(fat->size * 4);
+	//fat->table = malloc(fat->size * 4);
+	uint32_t sector_array[boot_sector.sectors_perFat32];
+	for (cur_sector = first_sector; cur_sector <= last_sector; cur_sector++)
+	{
+		sector_array[cur_sector-32] = cur_sector;
+		 //TODO: ARMAR UN ARRAY DE SECTORES Y MANDARLO A LA FUNCION PPDINTERFACE_readSectorS
+
+	}
+
+	fat->table = PPDINTERFACE_readSectors(sector_array,boot_sector.sectors_perFat32);
 
 	for (cur_sector = first_sector; cur_sector <= last_sector; cur_sector++)
 	{
-		char *sector_buf = PPDINTERFACE_readSector(cur_sector); //TODO: ARMAR UN ARRAY DE SECTORES Y MANDARLO A LA FUNCION PPDINTERFACE_readSectorS
-		memcpy(fat->table+((cur_sector-32)*boot_sector.bytes_perSector),sector_buf,boot_sector.bytes_perSector);
-		free(sector_buf);
 		sector_t *new_sector = malloc(sizeof(sector_t));
 		new_sector->number = cur_sector;
 		new_sector->modified = false;
 		new_sector->size = boot_sector.bytes_perSector;
 		new_sector->data = fat->table+((cur_sector-32)*boot_sector.bytes_perSector);
 		QUEUE_appendNode(&sectors,new_sector);
+
 	}
+
+
+
 
 	fat->sectors = sectors;
 
@@ -212,7 +222,7 @@ uint32_t FAT_removeCluster(fatTable_t fat,uint32_t first_cluster_of_chain)
 		casted_table[before_lastcluster] = fat.EOC;
 }
 
-uint32_t FAT_getNextAssociated(uint32_t cluster_no)
+uint32_t FAT_getNextAssociated(fatTable_t fat,uint32_t cluster_no)
 {
 	if (cluster_no == fat.EOC) return fat.EOC;
 	uint32_t *casted_table = (uint32_t*) fat.table;

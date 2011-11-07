@@ -81,7 +81,7 @@ typedef struct directory_entry
 uint32_t DIRENTRY_getClusterNumber(dirEntry_t *dir_entry);
 
 //DIRENTRY_interpretTableData: Interpreta una tabla de directorio y devuelve una lista de todos los archivos/directorios que aparecen en ella
-queue_t DIRENTRY_interpretTableData(clusterChain_t cluster_chain);
+queue_t DIRENTRY_interpretTableData(cluster_set_t cluster_chain);
 
 dirEntry_t DIRENTRY_create(char* filename,uint32_t cluster,uint32_t attr);
 
