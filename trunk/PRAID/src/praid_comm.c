@@ -22,8 +22,8 @@
 #include <errno.h>
 #define PORT 9333
 extern uint32_t RAID_STATUS; //0 INACTIVE - 1 ACTIVE
-extern struct praid_list_node* PRAID_LIST;
-extern pthread_mutex_t mutex_LIST;
+//extern struct praid_list_node* PRAID_LIST;
+//extern pthread_mutex_t mutex_LIST;
 
 
 
@@ -62,45 +62,54 @@ Enviar Mensaje a Socket (a PPD o a PFS)
 
 //Decodificacion del NIPC
 
-uint32_t pfs_receive(char* msgIn,uint32_t fd)
+/*uint32_t pfs_receive(char* msgIn,uint32_t fd)
 {
-/*
-	Handshake:
+
+
+switch (msgIn[0])
+	//Handshake:
+	case HANDSHAKE:
 		if(RAID_STATUS!=1){
 			//Responde hanshake
-
-			 msgOut=NIPC_createCharMsg(0,0,0)  //si esta bien contestar type 0, payload 0
-			  bytes_sent = send(fd, msgOut, len, 0);
+			 uint32_t len, bytes_sent;
+			 char *msgOut=NIPC_createCharMsg(0,0,0);  //si esta bien contestar type 0, payload 0
+			 len = strlen(msgOut);
+			 bytes_sent = send(fd, msgOut, len, 0);
 		}else{
 			//Respoder hanshake:Error, no hay PPD asociado
 			 char *msgOut = "Error, no hay PPD asociado";
              uint32_t len, bytes_sent;
-
              len = strlen(msgOut);
              bytes_sent = send(fd, msgOut, len, 0);
 
 
 		}
-	Pedido de READ:
-		pthread_mutex_lock(&mutex_LIST);
-			Toma el primer nodo de la PRAID_LIST (variable global auxREAD)
-			A ese primer nodo le toma la SUBLISTA (Cola)
-			Crea un nuevo nodo SUBLISTA
-			Lo agrega al final.
-			Si el nodo PRAID_LIST que tomo tiene Estado SINCRONIZANDO
-				?????
-		pthread_mutex_unlock(&mutex_LIST);
-	Pedido de WRITE:
-		pthread_mutex_lock(&mutex_LIST);
-			Recorre toda la PRAID_LIST(variable local auxWrite)
-			Por cada nodo de la PRAID_LIST
-				Crea nodo SUBLISTA
-				Lo agrega al final de la cola SUBLISTA
-		pthread_mutex_unlock(&mutex_LIST);
-*/
+	break;
+	//Pedido de READ:
+	case WRITE_SECTORS:
+
+		praid_sl_content* data_sublist;
+		data_sublist.synch = 0;
+		data_sublist.msg = msgIn;
+		//data_sublist.socket = fd; falta agregarlo en el struct
+
+		PRAID_add_READ_Request(data_sublist);
+
+	break;
+	//Pedido de WRITE:
+	case WRITE_SECTORS:
+
+
+		praid_sl_content* data_sublist;
+		data_sublist.synch = 1;
+		data_sublist.msg = msgIn;
+		//data_sublist.socket = fd;   falta agregarlo en el struct
+
+		PRAID_add_WRITE_Request(data_sublist);
+	break;
 	return 0;
 }
-
+*/
 
 uint32_t ppd_receive(char* msgIn,uint32_t fd)
 {
@@ -108,12 +117,11 @@ uint32_t ppd_receive(char* msgIn,uint32_t fd)
 	Handshake:
 			//Responde hanshake
 
-			 msgOut=NIPC_createCharMsg(0,0,0)  //si esta bien contestar type 0, payload 0
+			 char *msgOut=NIPC_createCharMsg(0,0,0)  //si esta bien contestar type 0, payload 0
 			 uint32_t len, bytes_sent;
              len = strlen(msgOut);
              bytes_sent = send(sockfd, msgOut, len, 0);
 
-			 send(fd,msgOut,0);
 
 	Pedido de READ:
 		TODO
@@ -124,13 +132,30 @@ uint32_t ppd_receive(char* msgIn,uint32_t fd)
 }
 
 
+/*void fd_appendNode(queue_t *list, void *fd)
+{
+	QUEUE_initialize(list);
+	QUEUE_appendNode(list,fd);
+	return 0;
+}
+*/
+/*void error_fd(uint32_t fd)
+{
+	uint32_t cur;
+	cur = QUEUE_searchNode(pfs_list,fd,dataLength);
+	if(cur !=NULL){
+		//FINN!! no anda el PFS
+	}else{
+		cur = QUEUE_searchNode(ppd_list,fd,dataLength);
+		if(cur !=NULL){
+			//PRAID_clear_list_node(praid_list_node* nodo); primero hay que buscar el nodo que tenga este fd
+		}
+	}
+}
 
 
 
-
-
-
-
+*/
 
 
 
