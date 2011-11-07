@@ -1,17 +1,15 @@
-
 #include <string.h>
+#include <sys/socket.h>
 #include "ppdConsole_input.h"
 #include "ppdConsole_Command.h"
-#include "ppdConsole_connect.h"
 #include "config_manager.h"
+#include "tad_sockets.h"
 
 #define CANTMAX (7*5)+6+5									//TEMPORAL (va la cantidad maxima de letras q tiene lo ingresado por teclado)
 #define SOCK_PATH "/home/utn_so/CONSOLE_socket"
 
 uint32_t Head;
 uint32_t Sector;
-uint32_t TrackJumpTime;
-uint32_t SectorJumpTime;
 
 void main () {
 	char* input = malloc(CANTMAX);							//aloco memoria para el ingreso del teclado
@@ -19,19 +17,15 @@ void main () {
 	queue_t parameters;
 	QUEUE_initialize(&parameters);							//aloco memoria para guardar los parametros
 	uint32_t len;
-	uint32_t ppdFD;
 
 	config_param *ppd_config;
 	CONFIG_read("/home/utn_so/Desktop/trabajos/PPD/config/ppd.config",&ppd_config);
 
 	Head =  atoi(CONFIG_getValue(ppd_config,"Head"));					//
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));				//	leer archivo de configuración
-	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));	//
-	uint32_t RPM = atoi(CONFIG_getValue(ppd_config,"RPM"));
 
-	SectorJumpTime = (RPM*Sector)/ 60000;
-
-    CONNECT_toProcess(&ppdFD);
+	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,SOCK_PATH,MODE_CONNECT);		//se coneccta al proceso PPD
+	printf("Connected.\n");
 
 	printf("Ingrese un Comando\n");
 	if (fgets(input,CANTMAX,stdin) == 0 )
@@ -43,17 +37,17 @@ void main () {
 	while((strcmp(command,"exit")) != 0){
 
 		if ((strcmp(command,"info")) == 0)
-			console_info(ppdFD);									//funcion que hace el info
+			console_info(ppd_socket.descriptor);									//funcion que hace el info
 
 		if ((strcmp(command,"clean")) == 0){
 			if(len == 2)
-				console_clean(parameters,ppdFD);					//funcion que hace el clean
+				console_clean(parameters,ppd_socket.descriptor);					//funcion que hace el clean
 			else
 				printf("Cantidad de parametros erronea \n");
 		}
 
 		if ((strcmp(command,"trace")) == 0)
-			console_trace(parameters,len,ppdFD);					//funcion que hace el trace
+			console_trace(parameters,len,ppd_socket.descriptor);					//funcion que hace el trace
 
 
 		//TODO Si no reconoce el comando entonces lo informa.

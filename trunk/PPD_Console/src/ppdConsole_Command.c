@@ -6,6 +6,7 @@
 #include "tad_queue.h"
 #include "ppdConsole_Command.h"
 #include "nipc.h"
+#include "comm.h"
 
 extern uint32_t Head;
 extern uint32_t Sector;
@@ -13,16 +14,19 @@ extern uint32_t Sector;
 uint32_t console_info(uint32_t ppdFD) {
 
 	char* msg = malloc(12+3);
+	uint32_t recvLen = 0;
 	NIPC_createCharMsg(msg,PPDCONSOLE_INFO,12,NULL);
 
-    if (send(ppdFD, msg, 15, 0)== -1) {
+    if (COMM_send(msg,ppdFD) == -1) {
         perror("send");
         exit(1);
     }
-    if(recv(ppdFD,msg,15,0) == -1)  {
-    	perror("recv");
-    	exit(1);
-    }
+	msg = COMM_recieve(ppdFD,&recvLen);
+		if(recvLen == -1){
+			perror("recv");
+			exit(1);
+		}
+
     uint32_t C,H,S;
     memcpy(&C,msg+3,4);
     memcpy(&H,msg+7,4);
@@ -45,12 +49,21 @@ uint32_t console_clean(queue_t parameters,uint32_t ppdFD){
 		memcpy(payload,&i,sizeof(uint32_t));
 		memset(payload + sizeof(uint32_t),'\0',512);
 		NIPC_createCharMsg(msg,WRITE_SECTORS,516,payload);
-		uint32_t sendReturn;
-	    if ((sendReturn = send(ppdFD, msg, 519, 0)) == -1) {
+	    if (COMM_send(msg,ppdFD) == -1) {
 	        perror("send");
 	        exit(1);
 	    }
 	}
+	uint32_t recvLen=0;
+	for(i=firstSector;i<=lastSector;i++){
+		msg = COMM_recieve(ppdFD,&recvLen);
+			if(recvLen == -1){
+				perror("recv");
+				exit(1);
+			}
+	}
+
+	printf("Se borro desde el sector: %d hasta el: %d\n",firstSector,lastSector);
 	free(payload);
 	free(msg);
 	return 1;
@@ -69,8 +82,7 @@ uint32_t console_trace(queue_t parameters,uint32_t len,uint32_t ppdFD){
 		memcpy(payload,&requestSector,4);
 		NIPC_createCharMsg(msgOut,PPDCONSOLE_TRACE,sizeof(uint32_t),payload);
 
-		uint32_t sendReturn;
-	    if ((sendReturn = send(ppdFD, msgOut, 3+sizeof(uint32_t), 0)) == -1) {
+	    if (COMM_send(msgOut,ppdFD) == -1) {
 	        perror("send");
 	        exit(1);
 	    }
@@ -79,9 +91,10 @@ uint32_t console_trace(queue_t parameters,uint32_t len,uint32_t ppdFD){
 	uint32_t recvLen=0;
 	for(i=0;i<len;i++){
 		NIPC_createCharMsg(msgIn,PPDCONSOLE_TRACE,sizeof(uint32_t)*5,NULL);
-		if((recvLen=recv(ppdFD,msgIn,3+5*sizeof(uint32_t),0)) == -1)  {
-			    	perror("recv");
-			    	exit(1);
+		msgIn = COMM_recieve(ppdFD,&recvLen);
+		if(recvLen == -1){
+			perror("recv");
+			exit(1);
 		}
 		console_showTrace(msgIn);
 	}
@@ -120,7 +133,9 @@ void console_showTrace(char* msg){
 	for(i=0;i<=distance;i++)
 		printf("%d:%d:%d ",CHS.cylinder,CHS.head,(sector+i)%16);
 
-	printf("\nTiempo Consumido: %dms\n",(uint32_t)*(msg+15));
+	uint32_t delay;
+	memcpy(&delay,msg+15,4);
+	printf("\nTiempo Consumido: %dms\n",delay);
 
 	memcpy(&len,msg+1,2);
 	if(len == 20){
