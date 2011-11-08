@@ -32,16 +32,9 @@ praid_list_node* PRAID_list_appendNode(uint32_t tid)//TODO pasarle el socket!
 	log_debug(raid_log_file,"PRAID","Nuevo PPD(%s)",(uint32_t)pthread_self());
 
 	if(PRAID_ppd_thread_count() > 0){ //Hay mas de un disco
-		if(PRAID_hay_discos_sincronizandose() == 0){
-			data->ppdStatus = 2;//WaitSynch
-			print_Console("Esperando para Sincronizacion: ",(uint32_t)pthread_self());
-			log_debug(raid_log_file,"PRAID","Esperando para Sincronizacion(%s)",(uint32_t)pthread_self());
-
-		}else{
-			data->ppdStatus = 1;//Sincronizando
-
-			PRAID_Start_Synch();
-		}
+		data->ppdStatus = 2;//WaitSynch
+		print_Console("Esperando para Sincronizacion: ",(uint32_t)pthread_self());
+		log_debug(raid_log_file,"PRAID","Esperando para Sincronizacion(%s)",(uint32_t)pthread_self());
 	}else{ //Primer Disco
 		//TODO Handshake, que devuelva el tamaño de disco DISK_SECTORS_AMOUNT
 		data->ppdStatus = 0;//Ready
@@ -151,13 +144,14 @@ uint32_t PRAID_clear_list_node(praid_list_node* nodo)
 		free (sl_node);
 	}
 	praid_list_node* aux = PRAID_LIST;
-	while(aux!=nodo){
+	while(aux->next!=nodo){
 		if(aux->next == NULL){
 			return 1; //ERROR NODO NO ENCONTRADO!
 		}
 		aux = aux->next;
 	}
 	aux->next = nodo->next;
+	free(nodo->info->colaSublista);
 	free(nodo->info);
 	free(nodo);
 return 0;
@@ -194,8 +188,5 @@ return flag;
 
 
 /*
-Agregar nodo SUBLISTA Tipo Read (Usa un puntero que va recorriendo)
-Agregar nodo SUBLISTA Tipo Write (A todos los nodos)
-Destruir nodo PRAID_LIST (en caso de fallo de disco, tiene que repartir pedidos pendientes)
-Destruir nodo SUBLISTA
+TODO Destruir nodo PRAID_LIST (en caso de fallo de disco, tiene que repartir pedidos pendientes)
 */
