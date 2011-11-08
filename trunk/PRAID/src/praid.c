@@ -14,11 +14,15 @@
 #include "praid_console.h"
 #include "praid_ppd_handler.h"
 #include "praid_queue.h"
-
+#include "comm.h"
 #include "log.h"
-
+#include "tad_queue.h"
 #include <sys/types.h>
 #include <netinet/in.h>
+queue_t* pfs_list;
+queue_t* ppd_list;
+//QUEUE_initialize(pfs_list);
+//QUEUE_initialize(ppd_list);
 //datos para el select
 
 fd_set masterFDs;					//conjunto total de FDs que queremos administrar
@@ -109,13 +113,13 @@ int main(int argc,char **argv){
 				   //aca tengo que preguntar el tipo del msj para saber si es PPD o PFS
 						if(msgIn[10]==1){
 						   //PFS=1  pongo 10 por poner un ejemplo
-						   //fd_appendNode(*pfs_list,*currFD);
+						   //QUEUE_appendNode(pfs_list,fd);
 					       //pfs_receive(msgIn,currFD);
 						   //memset(msgIn,0,sizeof(msgIn));
 						}
 						else if(msgIn[10]==2){
 					   //PPD=2   pongo 10 por poner un ejemplo
-					   fd_appendNode(*ppd_list,*currFD);
+					   //QUEUE_appendNode(ppd_list,fd);
 					   //ppd_receive(msgIn,currFD);
 					   //memset(msgIn,0,sizeof(msgIn));
 						}

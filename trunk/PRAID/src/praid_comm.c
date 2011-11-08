@@ -22,9 +22,11 @@
 #include <errno.h>
 #define PORT 9333
 extern uint32_t RAID_STATUS; //0 INACTIVE - 1 ACTIVE
+#include "comm.h"
 //extern struct praid_list_node* PRAID_LIST;
 //extern pthread_mutex_t mutex_LIST;
-
+//extern queue_t* pfs_list;
+//extern queue_t* ppd_list;
 
 
 uint32_t Create_Sockets_INET(uint32_t* listenFD){
@@ -66,27 +68,26 @@ Enviar Mensaje a Socket (a PPD o a PFS)
 {
 
 
-switch (msgIn[0])
+switch (msgIn[0]){
+
+
 	//Handshake:
-	case HANDSHAKE:
-		if(RAID_STATUS!=1){
+	case HANDSHAKE:{
+			if(RAID_STATUS!=1){
 			//Responde hanshake
-			 uint32_t len, bytes_sent;
-			 char *msgOut=NIPC_createCharMsg(0,0,0);  //si esta bien contestar type 0, payload 0
-			 len = strlen(msgOut);
-			 bytes_sent = send(fd, msgOut, len, 0);
+
+			 NIPC_createCharMsg(msgOut,0,0,0);  //si esta bien contestar type 0, payload 0
+			 COMM_send(msgOut,fd);
 		}else{
 			//Respoder hanshake:Error, no hay PPD asociado
 			 char *msgOut = "Error, no hay PPD asociado";
-             uint32_t len, bytes_sent;
-             len = strlen(msgOut);
-             bytes_sent = send(fd, msgOut, len, 0);
-
-
+			 COMM_send(msgOut,fd);
 		}
+
 	break;
+	}
 	//Pedido de READ:
-	case WRITE_SECTORS:
+	case READ_SECTORS:{
 
 		praid_sl_content* data_sublist;
 		data_sublist.synch = 0;
@@ -96,8 +97,9 @@ switch (msgIn[0])
 		PRAID_add_READ_Request(data_sublist);
 
 	break;
+	}
 	//Pedido de WRITE:
-	case WRITE_SECTORS:
+	case WRITE_SECTORS:{
 
 
 		praid_sl_content* data_sublist;
@@ -107,20 +109,20 @@ switch (msgIn[0])
 
 		PRAID_add_WRITE_Request(data_sublist);
 	break;
+	}
+}
 	return 0;
 }
-*/
 
+*/
 uint32_t ppd_receive(char* msgIn,uint32_t fd)
 {
 /*
 	Handshake:
 			//Responde hanshake
 
-			 char *msgOut=NIPC_createCharMsg(0,0,0)  //si esta bien contestar type 0, payload 0
-			 uint32_t len, bytes_sent;
-             len = strlen(msgOut);
-             bytes_sent = send(sockfd, msgOut, len, 0);
+			 char *msgOut=NIPC_createCharMsg(0,0,0);  //si esta bien contestar type 0, payload 0
+			 COMM_send(msgOut,fd);
 
 
 	Pedido de READ:
@@ -132,13 +134,6 @@ uint32_t ppd_receive(char* msgIn,uint32_t fd)
 }
 
 
-/*void fd_appendNode(queue_t *list, void *fd)
-{
-	QUEUE_initialize(list);
-	QUEUE_appendNode(list,fd);
-	return 0;
-}
-*/
 /*void error_fd(uint32_t fd)
 {
 	uint32_t cur;
