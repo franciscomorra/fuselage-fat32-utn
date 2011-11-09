@@ -16,7 +16,7 @@
 extern uint32_t RAID_CONSOLE;
 extern pthread_mutex_t mutex_CONSOLE;
 
-uint32_t print_Console (char *message, uint32_t threadID)
+uint32_t print_Console (char *message, pthread_t threadID)
 {
 
 	if(RAID_CONSOLE == 1){

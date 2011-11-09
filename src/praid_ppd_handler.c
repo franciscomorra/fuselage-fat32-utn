@@ -26,7 +26,7 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 	//TODO Recibir cantidad de sectores en el HANDSHAKE
 
 	uint32_t sectorCount = 1;//Primer Sector del disco mas uno por el de synch
-	uint32_t self_tid = (uint32_t)pthread_self(); //TID del PPD
+	pthread_t self_tid = pthread_self(); //TID del PPD
 
 	pthread_mutex_lock(&mutex_LIST);
 	praid_list_node* self_list_node = PRAID_list_appendNode(self_tid);
@@ -40,13 +40,15 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 		self_sl_accesses++;
 		pthread_mutex_lock(&mutex_LIST);
 		if (self_list_node->info->ppdStatus == 2){ //Si se conecto pero hay un disco sincronizandose, espera a sincronizarse
-			if(PRAID_hay_discos_sincronizandose() != 0){
+			if(PRAID_hay_discos_sincronizandose() != 0)
+			{
 				self_list_node->info->ppdStatus = 1;
 				print_Console("Fin Espera Sincronizacion",self_tid);
 				log_debug(raid_log_file,"PRAID","Fin Espera Sincronizacion(%s)",self_tid);
 				PRAID_Start_Synch();
 			}
 		}else{
+
 			//INICIO MIRAR LA COLA
 			if(QUEUE_length(self_SL) > 0){
 				queueNode_t* current_SL_node = QUEUE_takeNode(self_SL);
@@ -56,11 +58,12 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 
 				//TODO	Envialo a PPD
 
+
 				if(((praid_sl_content*) current_SL_node->data)->msg.type == READ_SECTORS){
 					if(((praid_sl_content*) current_SL_node->data)->synch == 0){
 						print_Console("READ a DISCO de: ",self_tid);
 						log_debug(raid_log_file,"PRAID","Request Sent To Disk for read (%s)",self_tid);
-					}else{//El pedido es de SYNCH
+					}else{//El pedido es de SYNCH SISIIS
 						print_Console("READ a DISCO (Sincronizacion) de:",self_tid);
 						praid_sl_content *data_sublist= malloc(sizeof(praid_sl_content));
 						data_sublist->synch = 1;
@@ -69,11 +72,15 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 						data_sublist->msg = NIPC_createMsg(WRITE_SECTORS,sizeof(uint32_t),(char*) &contenido_Leido);
 						PRAID_add_WRITE_Request(data_sublist);
 					}
-				}else{//WRITE_SECTORS
+				}else
+				{//WRITE_SECTORS
+
 					if(((praid_sl_content*) current_SL_node->data)->synch == 0){
 						print_Console("WRITE a DISCO de:",self_tid);
 						log_debug(raid_log_file,"PRAID","Request Sent To Disk for Write (%s)",self_tid);
-					}else{//El pedido es de SYNCH
+					}
+					else
+					{//El pedido es de SYNCH
 						if(sectorCount<DISK_SECTORS_AMOUNT){//Si no es el ultimo
 							sectorCount++;
 							print_Console("WRITE a DISCO (Sincronizacion) de:",self_tid);

@@ -19,6 +19,8 @@
 #include "tad_queue.h"
 #include <sys/types.h>
 #include <netinet/in.h>
+
+#include "tad_sockets.h"
 queue_t* pfs_list;
 queue_t* ppd_list;
 //QUEUE_initialize(pfs_list);
@@ -66,15 +68,16 @@ int main(int argc,char **argv){
 	print_Console("Inicio PRAID",(uint32_t)pthread_self());//CONSOLE WELCOME
 	log_debug(raid_log_file,"PRAID","Inicio PRAID");
 
-
+/*
 	pthread_t main_ppd_thread;
 	pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,NULL);
 	pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,NULL);
-	pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,NULL);
+	pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,NULL);*/
 
 	//creacion Sockets listen
 
-	Create_Sockets_INET(&listenFD);
+	socketInet_t sock_listen = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",9034,MODE_LISTEN);
+	listenFD = sock_listen.descriptor;
 	// Escuchar Sockets (select)
     FD_ZERO(&masterFDs);
 	FD_SET(listenFD,&masterFDs);  //agrego el descriptor que recibe conexiones al conjunto de FDs
@@ -109,22 +112,24 @@ int main(int argc,char **argv){
 						FD_CLR(currFD,&masterFDs);
 						error_fd(currFD);
 					}
+					*/
 					else{
 				   //aca tengo que preguntar el tipo del msj para saber si es PPD o PFS
-						if(msgIn[10]==1){
+						if(msgIn[3]==1){
+
 						   //PFS=1  pongo 10 por poner un ejemplo
 						   //QUEUE_appendNode(pfs_list,fd);
-					       //pfs_receive(msgIn,currFD);
+					       pfs_receive(msgIn,currFD);
 						   //memset(msgIn,0,sizeof(msgIn));
 						}
-						else if(msgIn[10]==2){
+						else if(msgIn[3]==2){
 					   //PPD=2   pongo 10 por poner un ejemplo
 					   //QUEUE_appendNode(ppd_list,fd);
 					   //ppd_receive(msgIn,currFD);
 					   //memset(msgIn,0,sizeof(msgIn));
 						}
 					}
-*/
+
 					free(msgIn);
 				}
 			}

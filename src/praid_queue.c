@@ -19,8 +19,9 @@ extern struct praid_list_node* PRAID_LIST;
 extern struct praid_list_node* CURRENT_READ;
 extern t_log *raid_log_file;
 
-praid_list_node* PRAID_list_appendNode(uint32_t tid)//TODO pasarle el socket!
+praid_list_node* PRAID_list_appendNode(pthread_t tid)//TODO pasarle el socket!
 {
+
 	praid_list_node *nodoLISTA = malloc(sizeof(praid_list_node));
 	praid_list_node_content *data = malloc(sizeof(praid_list_node_content));
 	queue_t* subList = malloc(sizeof(queue_t));
@@ -28,20 +29,20 @@ praid_list_node* PRAID_list_appendNode(uint32_t tid)//TODO pasarle el socket!
 	data->tid = tid;
 	//TODO SOCKET PPD!
 
-	print_Console("Nuevo PPD: ",(uint32_t)pthread_self());//CONSOLE NEW PPD
-	log_debug(raid_log_file,"PRAID","Nuevo PPD(%s)",(uint32_t)pthread_self());
+	print_Console("Nuevo PPD: ",pthread_self());//CONSOLE NEW PPD
+	log_debug(raid_log_file,"PRAID","Nuevo PPD(%s)",pthread_self());
 
 	if(PRAID_ppd_thread_count() > 0){ //Hay mas de un disco
 		data->ppdStatus = 2;//WaitSynch
-		print_Console("Esperando para Sincronizacion: ",(uint32_t)pthread_self());
-		log_debug(raid_log_file,"PRAID","Esperando para Sincronizacion(%s)",(uint32_t)pthread_self());
+		print_Console("Esperando para Sincronizacion: ",pthread_self());
+		log_debug(raid_log_file,"PRAID","Esperando para Sincronizacion(%d)",pthread_self());
 	}else{ //Primer Disco
 		//TODO Handshake, que devuelva el tamaño de disco DISK_SECTORS_AMOUNT
 		data->ppdStatus = 0;//Ready
 		pthread_mutex_lock(&mutex_RAID_STATUS);
 		RAID_STATUS = 1; //RAID ACTIVADO
 		pthread_mutex_unlock(&mutex_RAID_STATUS);
-		print_Console("RAID Activado por: ",(uint32_t)pthread_self());
+		print_Console("RAID Activado por: ",pthread_self());
 		log_debug(raid_log_file,"PRAID","RAID Activado(%s)",pthread_self());
 	}
 	data->colaSublista = subList;
@@ -57,8 +58,8 @@ praid_list_node* PRAID_list_appendNode(uint32_t tid)//TODO pasarle el socket!
 uint32_t PRAID_Start_Synch()
 {
 	uint32_t first_sector = 0;
-	print_Console("Iniciando Sincronizacion",(uint32_t)pthread_self());
-	log_debug(raid_log_file,"PRAID","Iniciando Sincronizacion(%s)",(uint32_t)pthread_self());
+	print_Console("Iniciando Sincronizacion",pthread_self());
+	log_debug(raid_log_file,"PRAID","Iniciando Sincronizacion(%s)",pthread_self());
 
 	praid_sl_content *data_sublist= malloc(sizeof(praid_sl_content));
 	data_sublist->synch = 1;
