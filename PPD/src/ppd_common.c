@@ -14,3 +14,18 @@ CHS_t* COMMON_turnToCHS(uint32_t sectorNum){
 	CHS->sector = (sectorNum % (Sector * Head)) % Sector;
 	return CHS;
 }
+
+uint32_t COMMON_identity(CHS_t A,CHS_t B){
+	return 1;
+}
+
+uint32_t COMMON_lessThan(CHS_t A, CHS_t B){
+
+	return(A.cylinder <= B.cylinder);
+}
+
+uint32_t COMMON_greaterThan(CHS_t A,CHS_t B){
+
+	return(A.cylinder >= B.cylinder);
+}
+

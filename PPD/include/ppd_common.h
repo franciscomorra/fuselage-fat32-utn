@@ -32,17 +32,27 @@ typedef struct request_t {
 } __attribute__((__packed__)) request_t;
 
 typedef enum {
-	QUEUE1_ACTIVE=0x00, QUEUE2_ACTIVE=0x01, SSTF=0x02, FSCAN=0x03
+	QUEUE1_ACTIVE=0x00, QUEUE2_ACTIVE=0x01, SSTF=0x02, FSCAN=0x03,
+	UP=0x04, DOWN=0x5
 } flag_t;
 
 typedef struct multiQueue_t {
 	queue_t* queue1;
 	queue_t* queue2;
-	flag_t flag;
+	flag_t qflag;
+	flag_t direction;
 	sem_t queueElemSem;
 } __attribute__((__packed__)) multiQueue_t;
 
+typedef uint32_t(*conditionFunction_t)(CHS_t,CHS_t);
+
 // cambia de sectorNum a CHS para luego ser metido en la lista grande
 CHS_t* COMMON_turnToCHS(uint32_t);
+
+uint32_t COMMON_identity(CHS_t,CHS_t);
+
+uint32_t COMMON_lessThan(CHS_t,CHS_t);
+
+uint32_t COMMON_greaterThan(CHS_t,CHS_t);
 
 #endif /* PPD_COMMON_H_ */

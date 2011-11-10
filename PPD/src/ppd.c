@@ -12,6 +12,7 @@
 #include <sys/time.h>		// select
 #include <unistd.h>			// select
 #include <netinet/in.h>
+
 #include "nipc.h"
 #include "config_manager.h"
 #include "ppd_SSTF.h"
@@ -23,6 +24,7 @@
 #include "ppd_qManager.h"
 #include "comm.h"
 #include "tad_sockets.h"
+#include "ppd_FSCAN.h"
 
 #define SOCK_PATH "/home/utn_so/CONSOLE_socket"
 
@@ -57,14 +59,14 @@ int main(int argc, char *argv[])
 	fd_set readFDs;						//conjunto de FDs de los que deseamos recibir datos
 	sem_init(&(multiQueue->queueElemSem),0,0);
 	sem_init(&mainMutex,0,1);
-	multiQueue->flag = QUEUE2_ACTIVE;
+	multiQueue->qflag = QUEUE2_ACTIVE;
 
 	int i;														// temporal
  	//uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};	// temporal
-	//uint32_t vec[4] = {176,199,191,200};
-	uint32_t vec[1] = {0};
- 	uint32_t* p = malloc(7*sizeof(uint32_t));					// temporal
- 	memcpy(p,vec,7*1);											// temporal
+	uint32_t vec[6] = {176,199,191,200,300,50};
+	//uint32_t vec[1] = {0};
+ 	uint32_t* p = malloc(6*sizeof(uint32_t));					// temporal
+ 	memcpy(p,vec,6*4);											// temporal
 
 	config_param *ppd_config;
 	CONFIG_read("config/ppd.config",&ppd_config);
@@ -83,21 +85,26 @@ int main(int argc, char *argv[])
 	multiQueue->queue1 = malloc(sizeof(queue_t));
 	QUEUE_initialize(multiQueue->queue1);
 	if(Algorithm == SSTF){
-		multiQueue->flag = SSTF;
+		multiQueue->qflag = SSTF;
 		if(pthread_create(&TAKERtid,NULL,(void*)TAKER_main,SSTF_getNext)) 				//crea el thread correspondiente al TAKER
 					perror("error creacion de thread ");
 	} else {
+		multiQueue->qflag = QUEUE1_ACTIVE;
+		multiQueue->direction = UP;						//TODO hacerlo por configuracion?
 		multiQueue->queue2 = malloc(sizeof(queue_t));
-		QUEUE_initialize(multiQueue->queue1);
+		QUEUE_initialize(multiQueue->queue2);
+		if(pthread_create(&TAKERtid,NULL,(void*)TAKER_main,FSCAN_getNext))
+			perror("error creacion de thread ");
 	}
 
 	SectorJumpTime = (RPM*Sector)/60000;// RPm/60 -> RPs/1000 -> RPms*Sector = tiempo entre sectores
 
 	char* msg;
-	for(i = 0; i < 1; i++){
+	for(i = 0; i < 6; i++){
 		msg = COMM_createCharMessage(READ_SECTORS,4);				// temporal
 		memcpy(msg+3,p+i,4);										// temporal
  		COMM_handleReceive(msg,1);
+ 		free(msg);
 	}
 
 	switch(fork()){ 																	//ejecuta la consola
@@ -152,19 +159,19 @@ int main(int argc, char *argv[])
 						close(currFD);
 						FD_CLR(currFD,&masterFDs);
 					} else {
+
 						COMM_handleReceive(msgIn,currFD);
 						free(msgIn);
 					}
 				}
 			}
 		}
-
 	}
 	return 0;
 }
 
 void TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**)){
-
+	sleep(5);
 	while(1){
 		sem_wait(&multiQueue->queueElemSem);
 		queue_t* queue = QMANAGER_selectActiveQueue(multiQueue);
@@ -172,14 +179,12 @@ void TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**)){
 		queueNode_t* prevCandidate = NULL;
 
 		sem_wait(&mainMutex);
-		if(getNext(queue,&prevCandidate) == 1) //TODO cambiar a getNext
-			request = TAKER_takeRequest(queue,prevCandidate);
-		else {
-			//TODO aca viene la parte del FSCAN...
-		}
+		getNext(queue,&prevCandidate);
+		request = TAKER_takeRequest(queue,prevCandidate);
 		sem_post(&mainMutex);
 
-		TAKER_handleRequest(queue,request,getNext);		//TODO agregar puntero a funcion para saber calcular el TRACE
+		TAKER_handleRequest(queue,request,getNext);
+
 		char* msg = TRANSLATE_fromRequestToChar(request);
 		COMM_send(msg,request->sender);
 
@@ -189,6 +194,7 @@ void TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**)){
 		fflush(0);											//hace que no se acumulen datos y los largue de a tandas
 
 		free(msg);
+		free(request->payload);
 		free(request->CHS);
 		free(request);
 
