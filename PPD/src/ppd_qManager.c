@@ -29,13 +29,22 @@ queue_t* QMANAGER_selectActiveQueue(multiQueue_t* multiQueue){
 	}
 }
 
-conditionFunction_t QMANAGER_selectCondition(multiQueue_t* multiQueue){
-	if(multiQueue->direction == UP)
-		return &COMMON_greaterThan;
-	else
-		return &COMMON_lessThan;
+conditionFunction_t QMANAGER_selectCondition(flag_t direction){
+	switch(direction){
 
-	return 0;
+		case UP: {
+			return &COMMON_greaterThan;
+			break;
+		}
+		case DOWN: {
+			return &COMMON_lessThan;
+			break;
+		}
+		case SSTF: {
+			return &COMMON_identity;
+			break;
+		}
+	}
 }
 
 

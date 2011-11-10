@@ -3,12 +3,14 @@
 #include <string.h>
 #include <semaphore.h>
 #include <unistd.h>
+
 #include "ppd_common.h"
 #include "ppd_comm.h"
 #include "nipc.h"
 #include "ppd_io.h"
 #include "ppd_taker.h"
 #include "tad_queue.h"
+#include "ppd_qManager.h"
 #include "ppd_SSTF.h"
 
 extern uint32_t Sector;
@@ -16,37 +18,39 @@ extern uint32_t file_descriptor;
 extern uint32_t bytes_perSector;
 extern uint32_t TrackJumpTime;
 extern uint32_t SectorJumpTime;
+extern uint32_t NextDelay;
 extern multiQueue_t* multiQueue;
+
 
 uint32_t headPosition;
 uint32_t sectorNum;
 
-void TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t(*getNext)(queue_t*,queueNode_t**)){
+void TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint32_t(*getNext)(queue_t*,queueNode_t**)){
 	sectorNum = TAKER_turnToSectorNum(request->CHS);
+	CHS_t* headPosCHS = COMMON_turnToCHS(headPosition);
+	uint32_t distance = TAKER_sectReachedDistance(request->CHS,headPosCHS);				//Distancia entre el pedido solicitado y la headPosition
+
 	switch (request->type)
 	{
 		case PPDCONSOLE_TRACE:{
-			//payload = headPosition+distance+sleep+(queueHead)
+			//payload = headPosition+distance+sleep+(nextSector)+(cylinder-1 || 0)
 
 			queueNode_t* queueNext =NULL;												//Siguiente pedido en la cola en CHS
 			uint32_t nextSector;														//Siguiente pedido en la cola en Numero
-			uint32_t distance;															//Distancia entre el pedido solicitado y la headPosition
-			uint32_t delay;																//Tiempo que se tardara en leer el pedido solicitado
+
 			uint32_t len = sizeof(uint32_t)*4;											//Tamaño del payload
 			request->payload = malloc(len);
 			memset(request->payload,0,len);
-			TAKER_getTraceInfo(request->CHS,&distance,&delay);
-
 
 			memcpy(request->payload,&headPosition,4);									//Si no hay proximo sector en la cola no copio nada al payload y disminuyo el Len
-			if(multiQueue->queueElemSem.__align != 0){									//TODO pasar por parametro la funcion para conseguir el proximo sector
-				if(getNext(queue,&queueNext)>1)
-				{																		//Obtiene el proximo sector que mostrara segun la planificacion
-					if(queueNext == NULL)
-						nextSector = TAKER_turnToSectorNum(((request_t*)queue->begin->data)->CHS);
-					else
-						nextSector = TAKER_turnToSectorNum(((request_t*)queueNext->data)->CHS);
-				}
+			TAKER_updateHPos(sectorNum);
+			if(multiQueue->queueElemSem.__align != 0){
+				QMANAGER_selectActiveQueue(multiQueue);
+				NextDelay = getNext(queue,&queueNext);																						//Obtiene el proximo sector que mostrara segun la planificacion
+				if(queueNext == NULL)
+					nextSector = TAKER_turnToSectorNum(((request_t*)queue->begin->data)->CHS);
+				else
+					nextSector = TAKER_turnToSectorNum(((request_t*)queueNext->data)->CHS);
 				memcpy(request->payload+12,&nextSector,4);
 			} else len -= sizeof(uint32_t);
 
@@ -59,19 +63,22 @@ void TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t(*getNext)(q
 			request->payload = malloc(sizeof(char)*bytes_perSector);
 			read_sector(file_descriptor,sectorNum,request->payload);
 			memcpy(request->len, &bytes_perSector,2);
+			TAKER_updateHPos(sectorNum);
 			break;
 		}
 		case WRITE_SECTORS:{
 			write_sector(file_descriptor, sectorNum, request->payload);
+			TAKER_updateHPos(sectorNum);
 			break;
 		}
 		default:
 			break;
 	}
-	TAKER_updateHPos(sectorNum);
+
+	free(headPosCHS);
 }
 
-request_t* TAKER_takeRequest(queue_t* queue, queueNode_t* prevCandidate){
+request_t* TAKER_takeRequest(queue_t* queue, queueNode_t* prevCandidate,uint32_t* delay){
 	request_t* request;
 	queueNode_t* candidate;
 	if(prevCandidate == 0){
@@ -87,7 +94,9 @@ request_t* TAKER_takeRequest(queue_t* queue, queueNode_t* prevCandidate){
 		if(prevCandidate->next == NULL)
 			queue->end = prevCandidate;
 	}
-//	sleep(TAKER_distanceTime(request->CHS)/1000);
+	*delay += TAKER_distanceTime(request->CHS) + NextDelay;
+	NextDelay = 0;
+	//sleep(*delay/1000);
 	free(candidate);
 	return request;
 }

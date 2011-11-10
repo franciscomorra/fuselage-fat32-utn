@@ -36,6 +36,7 @@ uint32_t headPosition;
 uint32_t SectorJumpTime;
 uint32_t bytes_perSector;
 uint32_t file_descriptor;
+uint32_t NextDelay;
 flag_t Algorithm;
 multiQueue_t* multiQueue;
 sem_t mainMutex;
@@ -86,6 +87,7 @@ int main(int argc, char *argv[])
 	QUEUE_initialize(multiQueue->queue1);
 	if(Algorithm == SSTF){
 		multiQueue->qflag = SSTF;
+		multiQueue->direction = SSTF;
 		if(pthread_create(&TAKERtid,NULL,(void*)TAKER_main,SSTF_getNext)) 				//crea el thread correspondiente al TAKER
 					perror("error creacion de thread ");
 	} else {
@@ -109,7 +111,7 @@ int main(int argc, char *argv[])
 
 	switch(fork()){ 																	//ejecuta la consola
 		case 0: 																		//si crea un nuevo proceso entra por esta rama
-			execl("/home/utn_so/Desktop/trabajos/PPD_Console/Debug/PPD_Console",NULL); 	//ejecuta la consola en el nuevo proceso
+			execl("/home/utn_so/Desarrollo/Workspace/PPD_Console/Debug/PPD_Console",NULL); 	//ejecuta la consola en el nuevo proceso
 			break;
 		case -1:																		//se creo mal el proceso
 			perror("fork");
@@ -171,7 +173,7 @@ int main(int argc, char *argv[])
 }
 
 void TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**)){
-	sleep(5);
+
 	while(1){
 		sem_wait(&multiQueue->queueElemSem);
 		queue_t* queue = QMANAGER_selectActiveQueue(multiQueue);
@@ -179,11 +181,11 @@ void TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**)){
 		queueNode_t* prevCandidate = NULL;
 
 		sem_wait(&mainMutex);
-		getNext(queue,&prevCandidate);
-		request = TAKER_takeRequest(queue,prevCandidate);
+		uint32_t delay = getNext(queue,&prevCandidate);
+		request = TAKER_takeRequest(queue,prevCandidate,&delay);
 		sem_post(&mainMutex);
 
-		TAKER_handleRequest(queue,request,getNext);
+		TAKER_handleRequest(queue,request,delay,getNext);
 
 		char* msg = TRANSLATE_fromRequestToChar(request);
 		COMM_send(msg,request->sender);

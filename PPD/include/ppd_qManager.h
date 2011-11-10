@@ -17,7 +17,7 @@ queue_t* QMANAGER_selectPassiveQueue(multiQueue_t*);
 
 queue_t* QMANAGER_selectActiveQueue(multiQueue_t*);
 
-conditionFunction_t QMANAGER_selectCondition(multiQueue_t* multiQueue);
+conditionFunction_t QMANAGER_selectCondition(flag_t direction);
 
 uint32_t QMANAGER_toggleQFlag(flag_t*,queue_t*);
 
