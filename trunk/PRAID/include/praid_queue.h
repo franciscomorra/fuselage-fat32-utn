@@ -28,6 +28,7 @@ typedef struct praid_list_node_content{
 typedef struct praid_sl_content{
 	uint32_t synch;//0=False - 1=True
 	nipcMsg_t msg;
+	uint32_t socket;
 
 	//SOCKET PFS
 }praid_sl_content;

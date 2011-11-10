@@ -5,7 +5,6 @@
  *      Author: utn_so
  */
 
-
 #include <fcntl.h>
 #include <stdint.h>
 #include <string.h>
@@ -25,8 +24,7 @@ extern uint32_t RAID_STATUS; //0 INACTIVE - 1 ACTIVE
 #include "comm.h"
 //extern struct praid_list_node* PRAID_LIST;
 //extern pthread_mutex_t mutex_LIST;
-//extern queue_t* pfs_list;
-//extern queue_t* ppd_list;
+
 
 
 uint32_t Create_Sockets_INET(uint32_t* listenFD){
@@ -64,57 +62,56 @@ Enviar Mensaje a Socket (a PPD o a PFS)
 
 //Decodificacion del NIPC
 
-/*uint32_t pfs_receive(char* msgIn,uint32_t fd)
+uint32_t pfs_receive(char* msgIn,uint32_t fd)
 {
 
 
-switch (msgIn[0]){
+	switch (msgIn[0])
+	{
 
 
-	//Handshake:
-	case HANDSHAKE:{
-			if(RAID_STATUS!=1){
-			//Responde hanshake
+		//Handshake:
+		case HANDSHAKE:
+				if(RAID_STATUS!=1){
+				//Responde hanshake
+				 nipcMsg_t msgOut = NIPC_createMsg(HANDSHAKE,0,0);  //si esta bien contestar type 0, payload 0
+				 COMM_send(NIPC_toBytes(&msgOut),fd);
+			}else{
+				//Respoder hanshake:Error, no hay PPD asociado
+				char* error = malloc(1);
+				*error = PRAID_NOTREADY;
+				nipcMsg_t msgOut = NIPC_createMsg(HANDSHAKE,1,error);
+				COMM_send(NIPC_toBytes(&msgOut),fd);
+			}
+		break;
 
-			 NIPC_createCharMsg(msgOut,0,0,0);  //si esta bien contestar type 0, payload 0
-			 COMM_send(msgOut,fd);
-		}else{
-			//Respoder hanshake:Error, no hay PPD asociado
-			 char *msgOut = "Error, no hay PPD asociado";
-			 COMM_send(msgOut,fd);
+		//Pedido de READ:
+		case READ_SECTORS:{
+
+			praid_sl_content* data_sublist = malloc(sizeof(praid_sl_content));
+			data_sublist->synch = 0;
+			data_sublist->msg = NIPC_toMsg(msgIn);
+			data_sublist->socket = fd;
+			PRAID_add_READ_Request(data_sublist);
 		}
+		break;
 
-	break;
+		//Pedido de WRITE:
+		case WRITE_SECTORS:{
+
+			praid_sl_content* data_sublist = malloc(sizeof(praid_sl_content));
+			data_sublist->synch = 0;
+			data_sublist->msg = NIPC_toMsg(msgIn);
+			data_sublist->socket = fd;
+			PRAID_add_WRITE_Request(data_sublist);
+		}
+		break;
+
 	}
-	//Pedido de READ:
-	case READ_SECTORS:{
-
-		praid_sl_content* data_sublist;
-		data_sublist.synch = 0;
-		data_sublist.msg = msgIn;
-		//data_sublist.socket = fd; falta agregarlo en el struct
-
-		PRAID_add_READ_Request(data_sublist);
-
-	break;
-	}
-	//Pedido de WRITE:
-	case WRITE_SECTORS:{
-
-
-		praid_sl_content* data_sublist;
-		data_sublist.synch = 1;
-		data_sublist.msg = msgIn;
-		//data_sublist.socket = fd;   falta agregarlo en el struct
-
-		PRAID_add_WRITE_Request(data_sublist);
-	break;
-	}
-}
 	return 0;
 }
 
-*/
+
 uint32_t ppd_receive(char* msgIn,uint32_t fd)
 {
 /*
