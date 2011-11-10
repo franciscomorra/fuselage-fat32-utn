@@ -39,7 +39,11 @@ uint32_t TAKER_sectorDist(uint32_t,uint32_t);
 void TAKER_updateHPos(uint32_t sectorNum);
 
 //devuelve 1 si el nodo A esta mas cerca del headPosition que el B
-uint32_t TAKER_near(CHS_t* A,CHS_t* headPosition,CHS_t* B);
+uint32_t TAKER_near(CHS_t* curr, CHS_t* headP,CHS_t* candidate,uint32_t (condition)(CHS_t,CHS_t));
+
+uint32_t TAKER_getNextNode(queue_t* queue, queueNode_t** prevCandidate,uint32_t (condition)(CHS_t,CHS_t));
+
+uint32_t TAKER_reachedSector(uint32_t cylinder,CHS_t* headPosCHS);
 
 #endif /* PPD_TAKER_H_ */
 

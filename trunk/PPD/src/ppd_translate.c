@@ -24,7 +24,7 @@ request_t* TRANSLATE_fromCharToRequest(char* msg,uint32_t sockFD)
 	memcpy(request->len,&len,2);
 
 	request->sender = sockFD;
-
+	request->payload = NULL;
 	if(*msg == WRITE_SECTORS){
 		request->payload = malloc(len);			//sirve para grabar en el payload la cantidad de datos que se quieren escribir en el disco
 		memcpy(request->payload, msg+7,len);
@@ -36,12 +36,12 @@ char* TRANSLATE_fromRequestToChar(request_t* request)
 {
 	uint16_t len;
 	memcpy(&len,request->len,2);
-	len += 4;     //TODO cambiar esto ya
 	char* msg = malloc(len + 7);
 	msg[0] = request->type;
-	memcpy(msg+1,&len,2);
 	uint32_t sectorNum = TAKER_turnToSectorNum(request->CHS);
 	memcpy(msg+3,&sectorNum,4);
 	memcpy(msg+7,request->payload,len);
+	len += 4;
+	memcpy(msg+1,&len,2);
 	return msg;
 }

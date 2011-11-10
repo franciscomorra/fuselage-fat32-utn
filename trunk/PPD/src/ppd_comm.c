@@ -102,8 +102,8 @@ socketUnix_t COMM_ConsoleAccept(socketUnix_t connect){
 	socketUnix_t console_socket;
 
 	console_socket.style = SOCK_STREAM;
-	console_socket.path = malloc(strlen(connect.path));
-	strcpy(console_socket.path,connect.path);
+	console_socket.path = malloc(strlen(connect.path)+1);
+	strncpy(console_socket.path,connect.path,strlen(connect.path)+1);
 	uint32_t remoteAddrLen = sizeof(remote);
 
 	if ((console_socket.descriptor = accept(connect.descriptor,(struct sockaddr*)&remote,&remoteAddrLen)) == -1) {

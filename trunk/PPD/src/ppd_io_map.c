@@ -63,6 +63,7 @@ int32_t write_sector(uint32_t file_descriptor,uint32_t sector, char *buf)
 	 * Calculo el numero de sector (0-7) dentro de la pagina con la formula "sector-(sectors_perPage*page)"
 	 * y copio en él los datos de buf
 	 *  */
+
 	memcpy(map+(sector-(sectors_perPage*page))*bytes_perSector,buf,bytes_perSector);
 
 	munmap(map,page_size);
