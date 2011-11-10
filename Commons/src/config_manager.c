@@ -16,7 +16,7 @@
 uint32_t CONFIG_read(const char *path,config_param **first_param)
 {
 	int config_filed = open(path,O_RDONLY);
-	char *chr = malloc(1);
+	char* chr = malloc(2);
 	char* tmp = malloc(100);
 
 	config_param *last_param;
@@ -25,7 +25,7 @@ uint32_t CONFIG_read(const char *path,config_param **first_param)
 	int first = 1;
 	 while (read(config_filed,chr,1) != 0)
 	 {
-		 if (strcmp(chr,";") == 0)
+		 if (strncmp(chr,";",2) == 0)
 		 {
 			 char* p = strtok(tmp,"=");
 
@@ -50,12 +50,13 @@ uint32_t CONFIG_read(const char *path,config_param **first_param)
 			 	 memset(tmp,0,100);
 
 		 }
-		 else if (strcmp(chr,"\n") != 0)
+		 else if (strncmp(chr,"\n",1) != 0)
 		 {
-			 strcat(tmp,chr);
+			 strncat(tmp,chr,2);
 		 }
 	 }
-
+	 free(chr);
+	 free(tmp);
 	 last_param->nextParam=NULL;
 	 return 1;
 

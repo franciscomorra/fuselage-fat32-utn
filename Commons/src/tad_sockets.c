@@ -134,8 +134,8 @@ socketUnix_t SOCKET_unix_create(uint32_t style,char* path,uint32_t mode)
 	 	 	socketUnix_t new_socket;
 	 	    new_socket.descriptor = sockfd;
 	 	    new_socket.style = style;
-	 	    new_socket.path = malloc(strlen(path));
-	 	    strcpy(new_socket.path,path);
+	 	    new_socket.path = malloc(strlen(path)+1);
+	 	    strncpy(new_socket.path,path,strlen(path));
 	 	    new_socket.address = (struct sockaddr*) &sock_addr;
 	 	    return new_socket;
 }
