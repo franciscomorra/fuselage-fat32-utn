@@ -15,16 +15,16 @@ extern uint32_t TrackJumpTime;
 
 uint32_t FSCAN_getNext(queue_t* queue,queueNode_t** prevCandidate){
 	uint32_t takerReturn;
-	uint32_t delay = 0;
+	uint32_t changeDirDelay = 0;
 
-	takerReturn = TAKER_getNextNode(queue,prevCandidate,QMANAGER_selectCondition(multiQueue));
+	takerReturn = TAKER_getNextNode(queue,prevCandidate,QMANAGER_selectCondition(multiQueue->direction));
 	if(takerReturn == 0){
-		delay = FSCAN_moveHeadPos(multiQueue->direction);
+		changeDirDelay = FSCAN_moveHeadPos(multiQueue->direction);
 		QMANAGER_toggleDirection(&multiQueue->direction);
-		takerReturn = TAKER_getNextNode(queue,prevCandidate,QMANAGER_selectCondition(multiQueue));
+		takerReturn = TAKER_getNextNode(queue,prevCandidate,QMANAGER_selectCondition(multiQueue->direction));
 	}
 
-	return delay;
+	return changeDirDelay;
 }
 
 
@@ -34,15 +34,16 @@ uint32_t FSCAN_moveHeadPos(flag_t direction){
 		delay = FSCAN_moveToCylinder(Cylinder-1);			//Si esta en subida lo lleva al ultimo cilindro
 	else
 		delay = FSCAN_moveToCylinder(0);					//Si esta en bajada lo lleva al primer cilindro
-	//sleep(delay/1000);
 	return delay;
 }
 
 
 uint32_t FSCAN_moveToCylinder(uint32_t destCylinder){
+
 	CHS_t* headPosCHS = COMMON_turnToCHS(headPosition);							//Obtiene el CHS del Head Position
 	uint32_t delay = abs(headPosCHS->cylinder - destCylinder)*TrackJumpTime;	//Calcula el tiempo que tardara en llegar al cilindro
 	uint32_t reachedSector = TAKER_reachedSector(destCylinder,headPosCHS);		//Calcula el sector en el que caera despues de moverse
+
 	headPosCHS->cylinder = destCylinder;										//Modifica el cilindro para luego ser transformado a numero de sector
 	headPosCHS->sector = reachedSector;											//Modifica el sector para luego ser transformado a numero de sector
 	headPosition = TAKER_turnToSectorNum(headPosCHS);							//Devuelve el numero de sector que hay que asignarle al Head Position

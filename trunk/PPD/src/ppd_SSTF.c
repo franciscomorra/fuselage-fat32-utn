@@ -10,6 +10,8 @@
 #include "ppd_taker.h"		//funcion getTimeSleep()
 #include "tad_queue.h"
 
+extern multiQueue_t* multiQueue;
+
 uint32_t SSTF_getHead(queue_t* queue){			//TODO cambiar por getNext
 	queueNode_t* aux = queue->begin;
 	queueNode_t* prevAux = queue->begin;
@@ -28,8 +30,8 @@ uint32_t SSTF_getHead(queue_t* queue){			//TODO cambiar por getNext
 
 uint32_t SSTF_getNext(queue_t* queue, queueNode_t** prevCandidate){
 
-	uint32_t takerReturn = TAKER_getNextNode(queue,prevCandidate,COMMON_identity);
-	return takerReturn;
+	TAKER_getNextNode(queue,prevCandidate,QMANAGER_selectCondition(multiQueue->direction));
+	return 0;
 }
 
 
