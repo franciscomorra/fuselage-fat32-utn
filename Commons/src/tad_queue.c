@@ -57,14 +57,14 @@ void QUEUE_destroyQueue(queue_t *line,uint32_t var_type)
 	{
 		while (cur != NULL)
 		{
-			QUEUE_freeNode(cur,var_type);
+			QUEUE_freeNode(cur);
 			cur = cur->next;
 		}
 	}
 	free(line);
 }
 
-void QUEUE_freeNode(queueNode_t *node,uint32_t var_type)
+void QUEUE_freeNode(queueNode_t *node)
 {
 	assert(node != NULL);
 	free(node->data);
