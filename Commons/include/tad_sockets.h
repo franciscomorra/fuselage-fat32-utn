@@ -9,6 +9,7 @@
 #define TAD_SOCKETS_H_
 
 #include <stdint.h>
+#include <pthread.h>
 #define MODE_LISTEN 0
 #define MODE_CONNECT 1
 #define SOCK_OK 0
@@ -24,10 +25,7 @@ typedef struct socketInet_t
 	uint32_t status;
 	struct sockaddr * address;
 	uint32_t port;
-
-
-
-
+	pthread_mutex_t sock_mutex;
 } socketInet_t;
 
 typedef struct socketUnix_t
@@ -38,6 +36,7 @@ typedef struct socketUnix_t
 	uint32_t status;
 	struct sockaddr * address;
 	char* path;
+
 
 } socketUnix_t;
 
