@@ -170,3 +170,21 @@ uint32_t shiftbytes_left(char* buf,size_t size,size_t positions)
 	memcpy(buf,tmp,size);
 	return 1;
 }
+
+
+void uppercase(char *string)
+{
+	unsigned char chr;
+
+	while (*string)
+	{
+		chr = *string;
+		*string = toupper(chr);
+		string++;
+	}
+
+return;
+}
+
+
+
