@@ -39,6 +39,7 @@ void CLUSTER_free(cluster_t* cluster)
 		free(cur_sector);
 		free(cur_sector_node);
 	}
+	free(cluster->data);
 }
 
 cluster_t* CLUSTER_newCluster(char* startOfData,uint32_t numberOfCluster)
@@ -91,6 +92,8 @@ void CLUSTER_freeChain(cluster_set_t *cluster_chain)
 	}
 	free(cluster_chain->data);
 }
+
+
 
 uint32_t CLUSTER_setModified2(char *addr,cluster_set_t *cluster_chain,size_t len_modified) // + CANTIDAD MODIFICADA
 {

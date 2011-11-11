@@ -9,6 +9,7 @@
 #define TAD_FILE_H_
 
 #include "tad_direntry.h"
+#include "tad_lfnentry.h"
 #include "tad_queue.h"
 #include <stdbool.h>
 
@@ -20,6 +21,16 @@ typedef struct fat32file_t
 	queue_t lfn_entries;
 	dirEntry_t* dir_entry;
 } fat32file_t;
+
+typedef struct fat32file_2_t
+{
+	char *long_file_name;
+	bool deleted	:1;
+	uint32_t cluster;
+	uint32_t offset;
+	lfnEntry_t lfn_entry;
+	dirEntry_t dir_entry;
+} fat32file_2_t;
 
 fat32file_t* FILE_createStruct(char* filename,dirEntry_t *dirEntry);
 

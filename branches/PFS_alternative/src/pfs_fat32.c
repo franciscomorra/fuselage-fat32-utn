@@ -28,8 +28,9 @@
 extern bootSector_t boot_sector;
 extern fatTable_t fat;
 extern t_log *log_file;
-extern file_cache_t *current_cache;
+extern queue_t file_caches;
 
+/*
 uint32_t fat32_readFAT(fatTable_t *fat)
 {
 
@@ -51,13 +52,13 @@ uint32_t fat32_readFAT(fatTable_t *fat)
 	fat->EOC = *(fat->table + 1);
 	return 0;
 }
-
+*/
 
 uint32_t fat32_readBootSector(bootSector_t *bs)
 {
 	log_debug(log_file,"PFS","Leyendo Boot Sector");
 	uint32_t sectors[1] = {0} ;
-	char *bootsector_data = PFS_requestSectorsOperation(READ_SECTORS,sectors,1);
+	char *bootsector_data = PPDINTERFACE_readSectors(sectors,1);
 	assert(*bootsector_data != 0x00);
 	log_debug(log_file,"PFS","Boot Sector OK");
 	memcpy(bs,bootsector_data,512);
@@ -103,7 +104,7 @@ char* fat32_readRawCluster(uint32_t cluster_no)
 }
 
 
-/*cluster_t fat32_readCluster(uint32_t cluster_number)
+cluster_t fat32_readCluster(uint32_t cluster_number)
 {
 
 	cluster_t new_cluster;
@@ -130,7 +131,7 @@ char* fat32_readRawCluster(uint32_t cluster_no)
 	new_cluster.sectors = sector_list;
 
 	return new_cluster;
-}*/
+}
 
 
 cluster_set_t fat32_readClusterChain(uint32_t first_cluster)
@@ -228,42 +229,144 @@ queue_t fat32_readDirectory( char* path,cluster_set_t *cluster_chain)
 	return file_list;
 }
 
-dirEntry_t* fat32_getDirEntry(char* path,cluster_set_t *cluster_chain)
+queue_t fat32_readDirectory2(char* path)
+{
+	assert(strcmp(path,"") != 0);
+	if (path[strlen(path)-1] == '/' && strlen(path) != 1)
+	{
+		path[strlen(path)-1] = '\0';
+	}
+
+	char *token;
+	bool dir_exists = false;
+
+
+	queue_t cluster_list = FAT_getClusterChain(&fat,2);
+	queueNode_t *next_cluster,*cluster = cluster_list.begin;
+	cluster_t cluster_data;
+	queue_t partial_list;
+	QUEUE_initialize(&partial_list);
+	queue_t file_list;
+	QUEUE_initialize(&file_list);
+
+	while (cluster != NULL)
+	{
+		cluster_data = fat32_readCluster(*((uint32_t*) cluster->data));
+		partial_list = DIRTABLE_interpretFromCluster(cluster_data);
+		CLUSTER_free(&cluster_data);
+
+		if (file_list.begin == 0x0)
+		{
+			file_list.begin = partial_list.begin;
+			file_list.end = partial_list.end;
+		}
+		else
+		{
+			file_list.end->next = partial_list.begin;
+			file_list.end = partial_list.end;
+		}
+		next_cluster = cluster->next;
+		free(cluster->data);
+		free(cluster);
+		cluster = next_cluster;
+	}
+
+	if (strcmp(path,"/") == 0) return file_list;
+
+	token = strtok(path,"/");
+
+	queueNode_t* curr_file_node;
+
+	do
+	{
+		dir_exists = false;
+		while ((curr_file_node = QUEUE_takeNode(&file_list)) != NULL)
+		{
+			fat32file_2_t *curr_file = (fat32file_2_t*) curr_file_node->data;
+			if (strcmp(curr_file->long_file_name,token) == 0 && (curr_file->dir_entry.file_attribute.subdirectory) == true)
+			{
+				dir_exists=true;
+				log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyList(0x%x,FAT32FILE_T)",file_list);
+				uint32_t first_cluster = DIRENTRY_getClusterNumber(&curr_file->dir_entry);
+				FILE_freeQueue(&file_list);
+
+				cluster_list = FAT_getClusterChain(&fat,first_cluster);
+				cluster = cluster_list.begin;
+
+				while (cluster != NULL)
+				{
+					cluster_data = fat32_readCluster(*((uint32_t*) cluster->data));
+					partial_list = DIRTABLE_interpretFromCluster(cluster_data);
+					CLUSTER_free(&cluster_data);
+
+						if (file_list.begin == 0x0)
+						{
+							file_list.begin = partial_list.begin;
+							file_list.end = partial_list.end;
+						}
+						else
+						{
+							file_list.end->next = partial_list.begin;
+							file_list.end = partial_list.end;
+						}
+						next_cluster = cluster->next;
+						free(cluster->data);
+						free(cluster);
+						cluster = next_cluster;
+				}
+				break;
+			}
+			FILE_free(curr_file);
+			free(curr_file_node);
+		}
+
+		if (dir_exists == false)
+		{
+			log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyList(0x%x),FAT32FILE_T)",file_list);
+			return file_list;
+		}
+
+	} while((token = strtok( NULL, "/" )) != NULL && dir_exists == true);
+
+	return file_list;
+}
+
+fat32file_2_t* fat32_getFileEntry(char* path)
 {
 	char *location;
 	char *filename;																					//Copio el path (hasta donde empeiza el filename sin incluirlo) a location
 																								//TODO: Primero buscar en cache
 	FILE_splitNameFromPath(path,&filename,&location);
 	//log_debug(log_file,"PFS","fat32_getDirEntry() -> fat32_readDirectory(%s)",location);
-	queue_t file_list = fat32_readDirectory(location,cluster_chain); 										//Obtengo una lista de los ficheros que hay en "location"
+	queue_t file_list;
+	QUEUE_initialize(&file_list);
+	file_list = fat32_readDirectory2(location); 										//Obtengo una lista de los ficheros que hay en "location"
 
 	queueNode_t *curr_file_node; 																//Creo un puntero que apuntara al file_node en proceso
 	free(location); 																			//Libero la memoria de location
 
-	fat32file_t *curr_file;																		//Creo un puntero que apuntara al file struct en proceso
-	dirEntry_t *direntry_found = NULL;															/* Apunto direntry_found a NULL, si al final de la funcion
+	fat32file_2_t *curr_file;																		//Creo un puntero que apuntara al file struct en proceso
+	fat32file_2_t *fileentry_found = NULL;															/* Apunto direntry_found a NULL, si al final de la funcion
 																		 	 	 	 	 sigue en NULL es que no existe el archivo/carpeta */
 
 	while  ((curr_file_node = QUEUE_takeNode(&file_list)) != NULL)						//Mientras voy tomando los nodos de la cola
 	{
-		curr_file = (fat32file_t*) curr_file_node->data; 										//Casteo el puntero 'data' del nodo tomado a el puntero file en proceso
+		curr_file = (fat32file_2_t*) curr_file_node->data; 										//Casteo el puntero 'data' del nodo tomado a el puntero file en proceso
 
 		if (strcmp(curr_file->long_file_name,filename) == 0) 									//Si el nombre conicide con el nombre del archivo buscado es que existe
 		{
-			direntry_found = curr_file->dir_entry;
+			fileentry_found = curr_file;
 		}
-
-		log_debug(log_file,"PFS","fat32_getDirEntry() -> LIST_destroyNode(0x%x->data(0x%x)),FAT32FILE_T)",curr_file_node,curr_file_node->data);
 
 		FILE_free(curr_file);
 		free(curr_file_node);
 
-		if (direntry_found != NULL) break; 														//Si encontro algo, salgo del ciclo while
+		if (fileentry_found != NULL) break; 														//Si encontro algo, salgo del ciclo while
 	}
 
 	FILE_freeQueue(&file_list);
 
-	return direntry_found;																		//Retorno el puntero a la direntry del archivo buscado
+	return fileentry_found;																		//Retorno el puntero a la direntry del archivo buscado
 }
 
 uint32_t fat32_mk(char* fullpath,uint32_t dir_or_archive) //0 o 1
@@ -274,71 +377,65 @@ uint32_t fat32_mk(char* fullpath,uint32_t dir_or_archive) //0 o 1
 		dirEntry_t new_direntry;
 		FILE_splitNameFromPath(fullpath,&filename,&path);
 
-		cluster_set_t cluster_chain;
-		memset(&cluster_chain,0,sizeof(cluster_set_t));
+
 		uint32_t folderTableCluster;
 		if (strcmp(path,"/") != 0)
 		{
-			dirEntry_t *entryOfFolder = fat32_getDirEntry(path,&cluster_chain);
+			fat32file_2_t *entryOfFolder = fat32_getFileEntry(path);
 			folderTableCluster = DIRENTRY_getClusterNumber(entryOfFolder);
-			CLUSTER_freeChain(&cluster_chain);
+
 		}
 		else
 		{
 			folderTableCluster = 2;
 		}
-		cluster_set_t dirtable = fat32_readClusterChain(folderTableCluster);
 
-
-		dirEntry_t *dirtable_index = (dirEntry_t*) dirtable.data;
-		dirEntry_t *lastPosForAnEntry = (dirEntry_t*) (dirtable.data+(dirtable.size*boot_sector.bytes_perSector*boot_sector.sectors_perCluster)-sizeof(dirEntry_t));
-		bool write = false, freeSpace = false;
-		uint32_t entry_offset = 0;
-
-
-		while (dirtable_index != lastPosForAnEntry)
+		queue_t cluster_list = FAT_getClusterChain(&fat,folderTableCluster);
+		queueNode_t *cluster_node;
+		dirEntry_t* dirtable_index;
+		dirEntry_t* dirtable_lastentry;
+		bool write = false;
+		while ((cluster_node = QUEUE_takeNode(&cluster_list)) != NULL)
 		{
-			if (*((char*) dirtable_index) == 0xE5 || *((char*) dirtable_index) == 0x00)
+			cluster_t cluster = fat32_readCluster(*((uint32_t*) cluster_node->data));
+			dirtable_index = (dirEntry_t*) cluster.data;
+			dirtable_lastentry = (dirEntry_t*) (cluster.data + 4096 - sizeof(dirEntry_t));
+			while (dirtable_index != dirtable_lastentry)
 			{
-				write = freeSpace = true;
-				break;
-			}
-			entry_offset++;
-			dirtable_index++;
+				if (*((char*) dirtable_index) == 0xE5 || *((char*) dirtable_index) == 0x00)
+				{
+					write = true;
+					uint32_t cluster_toAssign = FAT_getFreeCluster(&fat);
+					FAT_setUsed(&fat,cluster_toAssign);
+					new_lfn = LFNENTRY_create(filename);
+					new_direntry = DIRENTRY_create(filename,cluster_toAssign,dir_or_archive);
+					memcpy(dirtable_index++,&new_lfn,sizeof(lfnEntry_t));
+					memcpy(dirtable_index,&new_direntry,sizeof(dirEntry_t));
+					fat32_writeCluster(&cluster);
+					FAT_write(&fat);
+					break;
+				}
+				dirtable_index++;
+			} //TODO LIBERAR LA LISTA
+			if (write) break;
 		}
 
-		if (freeSpace == false)
+		if (write != true)
 		{
-			write = true;
-			CLUSTER_freeChain(&dirtable);
-			FAT_appendCluster(fat,folderTableCluster);
-			dirtable = fat32_readClusterChain(folderTableCluster);
-		}
-
-		queueNode_t *cluster_node = dirtable.clusters.begin;
-
-		while (cluster_node != NULL)
-		{
-			if (cluster_node->next == NULL) break;
-			cluster_node = cluster_node->next;
-		}
-		cluster_t* last_cluster = (cluster_t*) cluster_node->data;
-		uint32_t cluster_toAssign = FAT_getFreeCluster(&fat);
-		FAT_setUsed(&fat,cluster_toAssign);
-
-		new_lfn = LFNENTRY_create(filename);
-		new_direntry = DIRENTRY_create(filename,cluster_toAssign,dir_or_archive);
-
-		memcpy(last_cluster->data+(entry_offset*sizeof(lfnEntry_t)),&new_lfn,sizeof(lfnEntry_t));
-		memcpy(last_cluster->data+((entry_offset+1)*sizeof(lfnEntry_t)),&new_direntry,sizeof(dirEntry_t));
-
-		if (write)
-		{
-			fat32_writeClusterChain(&dirtable);
+			uint32_t appended_cluster = FAT_appendCluster(fat,folderTableCluster);
+			cluster_t cluster = fat32_readCluster(appended_cluster);
+			uint32_t cluster_toAssign = FAT_getFreeCluster(&fat);
+			FAT_setUsed(&fat,cluster_toAssign);
+			new_lfn = LFNENTRY_create(filename);
+			new_direntry = DIRENTRY_create(filename,cluster_toAssign,dir_or_archive);
+			memcpy(cluster.data,&new_lfn,sizeof(lfnEntry_t));
+			memcpy(cluster.data+sizeof(dirEntry_t),&new_direntry,sizeof(dirEntry_t));
+			fat32_writeCluster(&cluster);
 			FAT_write(&fat);
 		}
-		CLUSTER_freeChain(&dirtable);
+
 		return 0;
+
 }
 /*fat32file_t fat32_getFileStruct(const char* path,clusterChain_t* cluster_chain)
 {
@@ -371,13 +468,13 @@ uint32_t fat32_mk(char* fullpath,uint32_t dir_or_archive) //0 o 1
 
 void fat32_writeCluster(cluster_t *cluster)
 {
-	queueNode_t *cur_sector_node;
-
-	while ((cur_sector_node = QUEUE_takeNode(&(cluster->sectors))) != NULL)
+	//queueNode_t *cur_sector_node;
+	PPDINTERFACE_writeSectors(cluster->sectors);
+	/*while ((cur_sector_node = QUEUE_takeNode(&(cluster->sectors))) != NULL)
 	{
 		PPDINTERFACE_writeSector(*((sector_t*) cur_sector_node->data));
 		QUEUE_freeNode(cur_sector_node);
-	}
+	}*/
 }
 
 void fat32_writeClusterChain(cluster_set_t* cluster_chain)
@@ -389,4 +486,26 @@ void fat32_writeClusterChain(cluster_set_t* cluster_chain)
 		fat32_writeCluster((cluster_t*) cur_cluster_node->data);
 		QUEUE_freeNode(cur_cluster_node);
 	}
+}
+
+void fat32_writeClusterChainOfFile(char* path,cluster_set_t* cluster_chain)
+{
+	queueNode_t *cur_cluster_node;
+
+	while ((cur_cluster_node = QUEUE_takeNode(&(cluster_chain->clusters))) != NULL)
+	{
+		cluster_t *cur_cluster = (cluster_t*) cur_cluster_node->data;
+
+		if ((cur_cluster = CACHE_writeFile(&file_caches,path,*cur_cluster)) != NULL)
+		{
+			fat32_writeCluster(cur_cluster);
+			QUEUE_freeNode(cur_cluster_node);
+		}
+	}
+}
+
+cluster_set_t fat32_readClusterChainOfFile(char* path)
+{
+
+
 }
