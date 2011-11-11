@@ -21,6 +21,7 @@
 #include "tad_sockets.h"
 #include <sys/socket.h>
 #include <errno.h>
+#include <pthread.h>
 
 //ACA SE HACE LA CONEXION POR SOCKET Y LA VARIABLE QUE LA REPRESENTE SERA static
 //PARA QUE SU SCOPE SEA SOLO DENTRO DE ESTE ARCHIVO QUE MANEJARA LAS CONEXIONES
@@ -54,6 +55,7 @@ char* PPDINTERFACE_readSectors(uint32_t* sectors, size_t len)
 		}
 	}
 
+	pthread_mutex_lock(&sockets_toPPD.sockets[sock_index].sock_mutex);
 	for (;sector_index < len;sector_index++)
 	{
 		nipcMsg_t msg = NIPC_createMsg(READ_SECTORS,sizeof(uint32_t),(char*) (sectors+sector_index));
@@ -82,6 +84,7 @@ char* PPDINTERFACE_readSectors(uint32_t* sectors, size_t len)
 
 
 	sockets_toPPD.sockets[sock_index].status = SOCK_FREE;
+	pthread_mutex_unlock(&sockets_toPPD.sockets[sock_index].sock_mutex);
 	sem_post(&sockets_toPPD.free_sockets);
 	return final_buf;
 }
@@ -108,6 +111,7 @@ char* PPDINTERFACE_writeSectors(queue_t sectors)
 	uint32_t count_sector = 0;
 	//char* msg_buffer_toSend = malloc(recvdata_len);
 	//uint16_t payload_len = 516;
+	pthread_mutex_lock(&sockets_toPPD.sockets[sock_index].sock_mutex);
 	while ((sector_node = QUEUE_takeNode(&sectors)) != NULL)
 	{
 		char* payload = malloc(4+boot_sector.bytes_perSector);
@@ -121,13 +125,15 @@ char* PPDINTERFACE_writeSectors(queue_t sectors)
 
 		sendMsgToPPD(sockets_toPPD.sockets[sock_index],&msg);
 		NIPC_cleanMsg(&msg);
-		/*uint32_t recvd = 0;
+
+
+		uint32_t recvd = 0;
 		char* buf = COMM_recieve(sockets_toPPD.sockets[sock_index].descriptor,&recvd);
-		free(buf);*/
+		free(buf);
 		count_sector++;
 	}
 
-	char* buf;// = malloc(recvdata_len);
+	/*char* buf;// = malloc(recvdata_len);
 	char* msgs_buf = malloc(7*len);
 	uint32_t recvd = 0;
 	uint32_t count = 0;
@@ -139,8 +145,8 @@ char* PPDINTERFACE_writeSectors(queue_t sectors)
 		/*buf = COMM_recieve(sockets_toPPD.sockets[sock_index].descriptor,&recvd);
 		memcpy(msgs_buf+(count*519),buf,519);
 		count++;
-		free(buf);*/
-	}
+		free(buf);
+	}*/
 	/*while (count != len)
 	{
 		buf = COMM_recieve(sockets_toPPD.sockets[sock_index].descriptor,&recvd);
@@ -151,10 +157,11 @@ char* PPDINTERFACE_writeSectors(queue_t sectors)
 	//uint32_t dataReceived = recv(sockets_toPPD.sockets[sock_index].descriptor,msgs_buf,519*len,MSG_WAITALL);
 	char *final_buf;// = malloc(512*len);
 	//final_buf = splitAndSort(msgs_buf,sectors,len);
-	free(msgs_buf);
+	//free(msgs_buf);
 
 
 	sockets_toPPD.sockets[sock_index].status = SOCK_FREE;
+	pthread_mutex_unlock(&sockets_toPPD.sockets[sock_index].sock_mutex);
 	sem_post(&sockets_toPPD.free_sockets);
 	return NULL;
 }
