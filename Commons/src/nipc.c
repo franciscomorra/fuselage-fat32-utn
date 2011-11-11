@@ -15,9 +15,19 @@ nipcMsg_t NIPC_createMsg(NIPC_type type,uint32_t payload_bytes_len, char* payloa
 	nipcMsg_t msg;
 	msg.type = type;
 	memcpy(msg.len,&payload_bytes_len,2);
-	msg.payload = malloc(payload_bytes_len);
-	memset(msg.payload,0,payload_bytes_len);
-	memcpy(msg.payload,payload_bytes,payload_bytes_len);
+
+	if (payload_bytes_len != 0)
+	{
+
+		msg.payload = malloc(payload_bytes_len);
+		memset(msg.payload,0,payload_bytes_len);
+		memcpy(msg.payload,payload_bytes,payload_bytes_len);
+	}
+	else
+	{
+
+		msg.payload = NULL;
+	}
 	return msg;
 }
 
@@ -28,15 +38,15 @@ void NIPC_cleanMsg(nipcMsg_t* msg)
 }
 
 
-char* NIPC_toBytes(nipcMsg_t msg)
+char* NIPC_toBytes(nipcMsg_t *msg)
 {
 	uint32_t len = 0;
-	memcpy(&len,msg.len,2);
+	memcpy(&len,msg->len,2);
 	char *buf = malloc(3+len);
 
-	memcpy(buf,&msg.type,1);
-	memcpy(buf+1,msg.len,2);
-	memcpy(buf+3,msg.payload,len);
+	memcpy(buf,&msg->type,1);
+	memcpy(buf+1,msg->len,2);
+	memcpy(buf+3,msg->payload,len);
 	return buf;
 }
 
@@ -45,8 +55,8 @@ nipcMsg_t NIPC_toMsg(char* msg)
 	uint32_t len = 0;
 	memcpy(&len,msg+1,2);
 	nipcMsg_t nipc_msg;
-	memcpy(&nipc_msg.type,msg,1);
-	memcpy(nipc_msg.len,msg+1,2);
+	nipc_msg.type = *msg;
+	memcpy(nipc_msg.len,&len,2);
 	nipc_msg.payload = malloc(len);
 	memcpy(nipc_msg.payload,msg+3,len);
 
