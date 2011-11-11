@@ -26,7 +26,7 @@ void NIPC_cleanMsg(nipcMsg_t* msg);
 
 nipcMsg_t NIPC_toMsg(char* msg);
 
-char* NIPC_toBytes(nipcMsg_t msg);
+char* NIPC_toBytes(nipcMsg_t *msg);
 
 void NIPC_createCharMsg(char*,NIPC_type type,uint16_t payload_bytes_len,char* payload_bytes);
 
