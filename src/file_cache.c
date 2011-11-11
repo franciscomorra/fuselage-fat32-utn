@@ -89,7 +89,6 @@ cluster_t* CACHE_writeFile(queue_t *file_caches,char* path,cluster_t cluster)
 }
 
 
-
 cache_block_t* CACHE_readFile(queue_t *file_caches,char* path,uint32_t cluster_no)
 {
 	queueNode_t *curr_cache_node = file_caches->begin;

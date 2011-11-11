@@ -43,6 +43,7 @@ fat32file_t fat32_getFileStruct(const char* path,cluster_set_t* cluster_chain);
 queue_t fat32_readDirectory2(char* path);
 fat32file_2_t* fat32_getFileEntry(char* path);
 cluster_t fat32_readCluster(uint32_t cluster_number);
-void fat32_writeClusterChainOfFile(char* path,cluster_set_t* cluster_chain);
+
+uint32_t fat32_truncate(char* fullpath,off_t new_size);
 
 #endif /* PFS_FAT32_H_ */

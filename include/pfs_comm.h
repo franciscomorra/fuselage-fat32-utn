@@ -18,6 +18,7 @@ typedef struct socketPool_t
 	uint32_t size;
 	socketInet_t *sockets;
 	sem_t free_sockets;
+
 } socketPool_t;
 
 

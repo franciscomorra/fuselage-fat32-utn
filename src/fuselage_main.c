@@ -182,6 +182,7 @@ static int fuselage_getattr(const char *path, struct stat *stbuf)
 		stbuf->st_ino = DIRENTRY_getClusterNumber(current_file);
 
 	}
+	//if (strcmp(path,"prueba") == 0) return 0;
 	return res;
 }
 
@@ -200,9 +201,17 @@ static int fuselage_read(const char *path, char *file_buf, size_t sizeToRead, of
 	char* tmp_buf = malloc(QUEUE_length(&cluster_list)*4096);
 	while (cluster != NULL)
 	{
-		char *cluster_data = fat32_readRawCluster(*((uint32_t*) cluster->data));
-		memcpy(tmp_buf+(cluster_count*4096),cluster_data,4096);
-		free(cluster_data);
+		cache_block_t* block;
+		if ((block =CACHE_readFile(&file_caches,path,*((uint32_t*) cluster->data))) != NULL)
+		{
+			memcpy(tmp_buf+(cluster_count*4096),block->data,4096);
+		}
+		else
+		{
+			char *cluster_data = fat32_readRawCluster(*((uint32_t*) cluster->data));
+			memcpy(tmp_buf+(cluster_count*4096),cluster_data,4096);
+			free(cluster_data);
+		}
 		cluster = cluster->next;
 	}
 
@@ -216,6 +225,7 @@ static int fuselage_flush(const char *path, struct fuse_file_info *fi)
 {
 	//Aca se van a grabar en disco los datos guardados en cache!
 	//Primero se graban en cache, cuando se necesita espacio en la cache se usa un algoritmo para ver cual eliminar de esta y sino fue grabado se graba y luego se guarda la nueva entrada
+
 
 
 	return 0;
@@ -263,102 +273,12 @@ static int fuselage_rename(const char *cur_name, const char *new_name)
 
 static int fuselage_truncate(const char *fullpath, off_t new_size)
 {
-	char *filename;
-	char *path;
-	uint32_t bytes_perCluster = boot_sector.bytes_perSector * boot_sector.sectors_perCluster;
-	//cluster_set_t cluster_chain;
-	//memset(&cluster_chain,0,sizeof(cluster_set_t));
-
-	fat32file_2_t *file_entry = fat32_getFileEntry(fullpath);
-	uint32_t original_size = file_entry->dir_entry.file_size;
-
-	if (original_size == new_size)
-	{
-		//CLUSTER_freeChain(&cluster_chain);
-		return 0;
-	}
-
-	uint32_t first_cluster_no = DIRENTRY_getClusterNumber(&file_entry->dir_entry);
-	queue_t file_clusters = FAT_getClusterChain(&fat,first_cluster_no);
-	uint32_t file_clusters_no = QUEUE_length(&file_clusters);
-	queueNode_t *file_cluster;
-
-	while((file_cluster = QUEUE_takeNode(&file_clusters)) != NULL) QUEUE_freeNode(file_cluster);
-
-	size_t needed_clusters = ((new_size - 1) / bytes_perCluster) + 1;
-	//cluster_set_t file_clustersChain;
-	char* last_byte;
-	cluster_t last_cluster;
-	if (needed_clusters < file_clusters_no)
-	{
-		uint32_t rest_to_remove = file_clusters_no - needed_clusters;
-		uint32_t index = 0;
-		for(index=0;index < rest_to_remove;index++)
-		{
-				FAT_removeCluster(fat,first_cluster_no);
-		}
-
-		//file_clustersChain = fat32_readClusterChain(first_cluster_no);}
-		queue_t cluster_chain = FAT_getClusterChain(&fat,first_cluster_no);
-		last_cluster = fat32_readCluster(*((uint32_t*) cluster_chain.end->data));
-		size_t file_truncated_clusters = QUEUE_length(&cluster_chain);
-
-		memset(last_cluster.data+new_size-((file_truncated_clusters-1)*4096),0,4096-new_size-((file_truncated_clusters-1)*4096));
-		fat32_writeCluster(&last_cluster);
-		CLUSTER_free(&last_cluster);
-	}
-	else if (needed_clusters > file_clusters_no)
-	{
-		uint32_t index;
-		uint32_t appended_cl = 0;
-		size_t clusters_to_append = needed_clusters - file_clusters_no;
-
-		for(index=0;index < clusters_to_append;index++)
-		{
-			appended_cl = FAT_appendCluster(fat,first_cluster_no);
-			cluster_t new_cluster = fat32_readCluster(appended_cl);
-			memset(new_cluster.data,0,4096);
-			fat32_writeCluster(&new_cluster);
-			CLUSTER_free(&new_cluster);
-		}
-	}
-	else
-	{
-		queue_t cluster_chain = FAT_getClusterChain(&fat,first_cluster_no);
-		last_cluster = fat32_readCluster(*((uint32_t*) cluster_chain.end->data));
-		size_t file_truncated_clusters = QUEUE_length(&cluster_chain);
-		//last_byte = last_cluster.data+original_size-((file_truncated_clusters-1)*4096);
-
-		if (original_size < new_size)
-		{
-			last_byte = last_cluster.data+original_size;
-		}
-		else if (original_size > new_size)
-		{
-			last_byte = last_cluster.data+new_size;
-		}
-
-		memset(last_byte,0,(uint32_t) (last_cluster.data+4096-last_byte));
-		fat32_writeCluster(&last_cluster);
-		CLUSTER_free(&last_cluster);
-	}
-
-		file_entry->dir_entry.file_size = new_size;
-
-		cluster_t dirtable = fat32_readCluster(file_entry->cluster);
-		memcpy(dirtable.data+file_entry->offset+sizeof(dirEntry_t),&file_entry->dir_entry,sizeof(dirEntry_t));
-		fat32_writeCluster(&dirtable);
-		CLUSTER_free(&dirtable);
-		FAT_write(&fat);
-
-	return 0;
+	return fat32_truncate(fullpath,new_size);
 }
 
 static int fuselage_write(const char *fullpath, const char *file_buff, size_t buff_size, off_t off, struct fuse_file_info *fi)
 {
-
-	fuselage_truncate(fullpath,off+buff_size);
-
+	fat32_truncate(fullpath,off+buff_size);
 	fat32file_2_t *file_entry = fat32_getFileEntry(fullpath);
 	uint32_t first_cluster_no = DIRENTRY_getClusterNumber(&file_entry->dir_entry);
 	queue_t file_clusters = FAT_getClusterChain(&fat,first_cluster_no);
@@ -382,9 +302,16 @@ static int fuselage_write(const char *fullpath, const char *file_buff, size_t bu
 	queueNode_t *cluster_node = QUEUE_takeNode(&file_clusters);
 	uint32_t cluster_no = *((uint32_t*) cluster_node->data);
 	cluster_t cluster = fat32_readCluster(cluster_no);
-
+	cluster_t *cl;
 	memcpy(cluster.data+offset_in_cluster,file_buff,buff_size);
-	fat32_writeCluster(&cluster);
+	if ((cl = CACHE_writeFile(&file_caches,fullpath,cluster)) != NULL)
+	{
+		fat32_writeCluster(cl);
+	}
+	else
+	{
+		fat32_writeCluster(&cluster);
+	}
 	return buff_size;
 	//LAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
@@ -419,7 +346,7 @@ static int fuselage_write(const char *fullpath, const char *file_buff, size_t bu
 	}
 */
 
-
+return buff_size;
 
 }
 
@@ -443,5 +370,28 @@ static int fuselage_rmdir(const char *path)
 	*((char*) entry_toDelete) = 0xE5;
 	*((char*) (entry_toDelete--)) = 0xE5;
 	fat32_writeClusterChain(&dir_table);*/
+	return 0;
+
+}
+
+static int fuselage_unlink(const char *path)
+{
+	fat32file_2_t* file_entry = fat32_getFileEntry(path);
+	cluster_t table_of_entry = fat32_readCluster(file_entry->cluster);
+	*(table_of_entry.data+file_entry->offset) = 0xE5;
+	*(table_of_entry.data+file_entry->offset+sizeof(dirEntry_t)) = 0xE5;
+
+	uint32_t first_data_cluster = DIRENTRY_getClusterNumber(&file_entry->dir_entry);
+	queue_t clusters = FAT_getClusterChain(&fat,first_data_cluster);
+
+	queueNode_t* cur_cluster;
+	uint32_t *casted_fat = (uint32_t*) fat.table;
+	while ((cur_cluster = QUEUE_takeNode(&clusters))!=NULL)
+	{
+		casted_fat[*((uint32_t*) cur_cluster->data)] = 0;
+	}
+
+	FAT_write(&fat);
+	fat32_writeCluster(&table_of_entry);
 
 }
