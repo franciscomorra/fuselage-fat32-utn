@@ -25,8 +25,12 @@
 #include "comm.h"
 #include "tad_sockets.h"
 #include "ppd_FSCAN.h"
+#include "ppd_pfslist.h"
 
 #define SOCK_PATH "/home/utn_so/CONSOLE_socket"
+
+queue_t pfslist;
+
 
 uint32_t Cylinder;
 uint32_t Head;
@@ -43,6 +47,7 @@ sem_t mainMutex;
 
 int main(int argc, char *argv[])
 {
+	QUEUE_initialize(&pfslist);
 	file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR);
 	bytes_perSector = 512;
 	multiQueue = malloc(sizeof(multiQueue_t));
@@ -62,12 +67,12 @@ int main(int argc, char *argv[])
 	sem_init(&mainMutex,0,1);
 	multiQueue->qflag = QUEUE2_ACTIVE;
 
-	int i;														// temporal
+	/*int i;														// temporal
  	//uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};	// temporal
 	uint32_t vec[6] = {176,199,191,200,300,50};
 	//uint32_t vec[1] = {0};
  	uint32_t* p = malloc(6*sizeof(uint32_t));					// temporal
- 	memcpy(p,vec,6*4);											// temporal
+ 	memcpy(p,vec,6*4);*/											// temporal
 
 	config_param *ppd_config;
 	CONFIG_read("config/ppd.config",&ppd_config);
@@ -101,7 +106,7 @@ int main(int argc, char *argv[])
 
 	SectorJumpTime = (RPM*Sector)/60000;// RPm/60 -> RPs/1000 -> RPms*Sector = tiempo entre sectores
 
-	char* msg;
+	/*char* msg;
 	for(i = 0; i < 6; i++){
 		msg = COMM_createCharMessage(READ_SECTORS,4);				// temporal
 		memcpy(msg+3,p+i,4);										// temporal
@@ -116,20 +121,20 @@ int main(int argc, char *argv[])
 		case -1:																		//se creo mal el proceso
 			perror("fork");
 			break;
-	}
+	}*/
 
-	consoleListen = SOCKET_unix_create(SOCK_STREAM,SOCK_PATH,MODE_LISTEN);					//conecta la consola
+	//consoleListen = SOCKET_unix_create(SOCK_STREAM,SOCK_PATH,MODE_LISTEN);					//conecta la consola
 
 	COMM_connect(&listenFD);																//crea un descriptor de socket encargado de recibir conexiones entrantes
 
 	FD_ZERO(&masterFDs);
 	FD_SET(listenFD,&masterFDs); 						//agrego el descriptor que recibe conexiones al conjunto de FDs
-	FD_SET(consoleListen.descriptor,&masterFDs);		//agrego el descriptor de la consola al conjunto de FDs
+	//FD_SET(consoleListen.descriptor,&masterFDs);		//agrego el descriptor de la consola al conjunto de FDs
 
-	if(listenFD > consoleListen.descriptor)
+	//if(listenFD > consoleListen.descriptor)
 		FDmax = listenFD;
-	else
-		FDmax = consoleListen.descriptor;
+	//else
+		//FDmax = consoleListen.descriptor;
 
 	while(1){
 		FD_ZERO(&readFDs);
@@ -147,6 +152,7 @@ int main(int argc, char *argv[])
 						if(newFD > FDmax)
 							FDmax = newFD;
 						}
+					PFSLIST_addNew(&pfslist,newFD);
 				}
 				else if (currFD == consoleListen.descriptor){												//nueva conexion tipo UNIX
 					newSocket = COMM_ConsoleAccept(consoleListen);
@@ -156,6 +162,8 @@ int main(int argc, char *argv[])
 					}
 				else { 																						//datos de un cliente
 					uint32_t dataRecieved = 0;
+					pfs_node_t *in_pfs = PFSLIST_getByFd(pfslist,currFD);
+					pthread_mutex_lock(&in_pfs->sock_mutex);
 					char* msgIn = COMM_recieve(currFD,&dataRecieved);
 					if(dataRecieved == 0){																	//si es igual a cero cierra la conexion
 						close(currFD);
@@ -165,6 +173,7 @@ int main(int argc, char *argv[])
 						COMM_handleReceive(msgIn,currFD);
 						free(msgIn);
 					}
+					pthread_mutex_unlock(&in_pfs->sock_mutex);
 				}
 			}
 		}
@@ -188,10 +197,21 @@ void TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**)){
 		TAKER_handleRequest(queue,request,delay,getNext);
 
 		char* msg = TRANSLATE_fromRequestToChar(request);
+		pfs_node_t *out_pfs = PFSLIST_getByFd(pfslist,request->sender);
+		pthread_mutex_lock(&out_pfs->sock_mutex);
 		COMM_send(msg,request->sender);
+		pthread_mutex_unlock(&out_pfs->sock_mutex);
 
 		uint32_t a;
 		memcpy(&a,msg+3,4);
+		if (*msg==0x01)
+		{
+			printf("R");
+		}
+		else if (*msg == 0x02)
+		{
+			printf("W");
+		}
 		printf("%d\n",a);									//temporal, muestra los sectores atendidos
 		fflush(0);											//hace que no se acumulen datos y los largue de a tandas
 
