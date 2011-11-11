@@ -120,7 +120,7 @@ uint32_t FAT_read(fatTable_t *fat)
 	queue_t sectors;
 	QUEUE_initialize(&sectors);
 	uint32_t first_sector = 32;
-	uint32_t last_sector =  32+boot_sector.sectors_perFat32;
+	uint32_t last_sector =  31+boot_sector.sectors_perFat32;
 	uint32_t cur_sector;
 	//uint32_t sectors[boot_sector.sectors_perFat32];
 
@@ -134,7 +134,7 @@ uint32_t FAT_read(fatTable_t *fat)
 		 //TODO: ARMAR UN ARRAY DE SECTORES Y MANDARLO A LA FUNCION PPDINTERFACE_readSectorS
 
 	}
-
+	uint32_t count = 0;
 	fat->table = PPDINTERFACE_readSectors(sector_array,boot_sector.sectors_perFat32);
 
 	for (cur_sector = first_sector; cur_sector <= last_sector; cur_sector++)
@@ -145,8 +145,10 @@ uint32_t FAT_read(fatTable_t *fat)
 		new_sector->size = boot_sector.bytes_perSector;
 		new_sector->data = fat->table+((cur_sector-32)*boot_sector.bytes_perSector);
 		QUEUE_appendNode(&sectors,new_sector);
+		count++;
 
 	}
+	uint32_t len = QUEUE_length(&sectors);
 
 
 
@@ -165,14 +167,14 @@ uint32_t FAT_read(fatTable_t *fat)
 void FAT_write(fatTable_t *fat)
 {
 	queueNode_t *cur_sector_node = fat->sectors.begin;
-
-	while (cur_sector_node != NULL)
+	PPDINTERFACE_writeSectors(fat->sectors);
+	/*while (cur_sector_node != NULL)
 	{
 		sector_t *cur_sector = (sector_t*) cur_sector_node->data;
 		//if (cur_sector->modified)
 		PPDINTERFACE_writeSector(*cur_sector);
 		cur_sector_node = cur_sector_node->next;
-	}
+	}*/
 }
 
 uint32_t FAT_appendCluster(fatTable_t fat,uint32_t first_cluster_of_chain)

@@ -38,12 +38,12 @@ fat32file_t* FILE_createStruct2(char* filename,dirEntry_t *dirEntry)
 void FILE_free(fat32file_t *file)
 {
 	free(file->long_file_name);
-	queueNode_t *lfn_node;
+	/*queueNode_t *lfn_node;
 	while ((lfn_node = QUEUE_takeNode(&file->lfn_entries)) != NULL)
 	{
 		free(lfn_node);
-	}
-	free(file);
+	}*/
+	//free(file);
 }
 
 
@@ -54,7 +54,7 @@ void FILE_freeQueue(queue_t* file_queue)
 	while((cur_file_node = QUEUE_takeNode(file_queue)) != NULL)
 	{
 		cur_file = (fat32file_t*) cur_file_node->data;
-		FILE_free(cur_file);
+		free(cur_file->long_file_name);
 		free(cur_file_node);
 	}
 }
@@ -65,9 +65,10 @@ void FILE_splitNameFromPath(char *path,char **ret_filename,char **ret_path_to_fi
 	char *aux = path + strlen(path) - 1;
 	uint32_t char_count = 0;
 
-	while (*(aux--) != '/')
+	while (*aux != '/')
 	{
 		char_count++;
+		aux--;
 	}
 
 	size_t filename_size = char_count;
