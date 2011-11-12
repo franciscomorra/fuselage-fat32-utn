@@ -112,10 +112,10 @@ void *ppd_handler_thread (void *thread_data)
 									log_debug(raid_log_file,"PRAID","Request Sent To Disk for Write (%s)",self_tid);
 									pthread_mutex_lock(&mutex_WRITE_QUEUE);
 									QUEUE_appendNode(WRITE_QUEUE,contenidoNodoWrite);
+									free(nodoWRITE->data);
+									//TODO Sacar de la COLA WRITE
 								}
 								pthread_mutex_unlock(&mutex_WRITE_QUEUE);
-
-
 
 							}
 						}else{//ES PARA SINCRONIZACION
