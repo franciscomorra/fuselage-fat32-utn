@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include "praid_comm.h"
 #include "nipc.h"
+#include "tad_queue.h"
 
 
 typedef struct praid_list_node{
@@ -19,29 +20,35 @@ typedef struct praid_list_node{
 }praid_list_node;
 
 typedef struct praid_list_node_content{
-	uint32_t tid;
+	pthread_t tid;
 	uint32_t ppdStatus; //0=Ready, 1=Sincronizando, 2=WaitSynch
 	struct queue_t* colaSublista;
-	//SOCKET PPD
+	uint32_t socketPPD;
 }praid_list_node_content;
 
 typedef struct praid_sl_content{
 	uint32_t synch;//0=False - 1=True
 	nipcMsg_t msg;
-	uint32_t socket;
-
-	//SOCKET PFS
+	uint32_t socketPFS;
+	uint32_t status;//0=Unread 1=Sent 2=Received
 }praid_sl_content;
 
-praid_list_node* PRAID_list_appendNode(uint32_t);
-uint32_t PRAID_add_READ_Request(praid_sl_content*);
-uint32_t PRAID_add_WRITE_Request(praid_sl_content*);
-uint32_t PRAID_clear_list_node(praid_list_node*);
-uint32_t PRAID_ppd_thread_count();
-uint32_t PRAID_hay_discos_sincronizandose();
-uint32_t PRAID_Start_Synch();
-uint32_t PRAID_actualizar_CurrentRead();
+typedef struct praid_read_content{
+	uint32_t threads_left;
+	uint32_t IDrequest;
+}praid_read_content;
 
+praid_list_node* PRAID_list_appendNode(pthread_t, uint32_t);
+uint32_t PRAID_ADD_READ(praid_sl_content*);
+uint32_t PRAID_ADD_WRITE(praid_sl_content*);
+uint32_t PRAID_clear_list_node(praid_list_node*);
+uint32_t PRAID_ActiveThreads_Amount(void);
+uint32_t PRAID_hay_discos_sincronizandose(void);
+uint32_t PRAID_Start_Synch(void);
+uint32_t PRAID_actualizar_CurrentRead(void);
+praid_list_node* PRAID_Search_by_socket(uint32_t);
+queueNode_t* PRAID_Search_WRITE(uint32_t);
+queueNode_t* PRAID_SearchSL(uint32_t,queue_t*);
 
 
 #endif /* PRAID_QUEUE_H_ */

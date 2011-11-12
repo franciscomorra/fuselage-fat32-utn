@@ -14,7 +14,7 @@
 #include <string.h>
 #include <pthread.h>
 
-uint32_t print_Console (char *message, uint32_t threadID);
+uint32_t print_Console (char *message, pthread_t threadID);
 
 /*
 uint32_t print_Console (char *);

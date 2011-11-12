@@ -39,8 +39,9 @@ uint32_t currFD;					//current fd sirve para saber que fd tuvo cambios
 
 
 uint32_t RAID_CONSOLE = 0; //0 DISABLE - 1 ENABLE
-uint32_t RAID_STATUS = 0; //0 INACTIVE - 1 ACTIVE - 2 WAIT_FIRST_PPD_REPLY
-uint32_t DISK_SECTORS_AMOUNT = 6; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
+uint32_t RAID_STATUS = 0; //0 INACTIVE - 1 ACTIVE
+uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
+queue_t* WRITE_QUEUE;
 
 praid_list_node* PRAID_LIST, CURRENT_READ;
 
@@ -49,6 +50,7 @@ t_log *raid_log_file;
 pthread_mutex_t mutex_CONSOLE;
 pthread_mutex_t mutex_RAID_STATUS;
 pthread_mutex_t mutex_LIST;
+pthread_mutex_t mutex_WRITE_QUEUE;
 
 int main(int argc,char **argv){
 
@@ -61,7 +63,10 @@ int main(int argc,char **argv){
 
 //Inicio Seteo de Variables Iniciales
 	pthread_mutex_init(&mutex_CONSOLE, NULL);
+	pthread_mutex_init(&mutex_WRITE_QUEUE, NULL);
 	pthread_mutex_init(&mutex_LIST, NULL);
+	WRITE_QUEUE = malloc(sizeof(queue_t));
+	QUEUE_initialize(WRITE_QUEUE);
 //Fin Seteo de Variables Iniciales
 
 	print_Console("Inicio PRAID",(uint32_t)pthread_self());//CONSOLE WELCOME
@@ -69,10 +74,14 @@ int main(int argc,char **argv){
 
 /*
 	pthread_t main_ppd_thread;
-	pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,NULL);
-	pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,NULL);
-	pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,NULL);*/
-
+	uint32_t socketPPD = 555;
+	pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,(void *)socketPPD);
+	pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,(void *)socketPPD);
+	pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,(void *)socketPPD);
+	pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,(void *)socketPPD);
+	int i;
+	while(1){i++;}
+*/
 	//creacion Sockets listen
 
 	socketInet_t sock_listen = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",9034,MODE_LISTEN);
