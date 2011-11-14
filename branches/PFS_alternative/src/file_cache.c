@@ -135,7 +135,7 @@ cache_block_t* CACHE_readFile(queue_t *file_caches,char* path,uint32_t cluster_n
 	return NULL;
 }
 
-cache_block_t *CACHE_getLRU(file_cache_t *cache)
+cache_block_t* CACHE_getLRU(file_cache_t *cache)
 {
 	uint32_t last_uses = 9999999;
 	queueNode_t *curr_block_node = cache->blocks.begin;

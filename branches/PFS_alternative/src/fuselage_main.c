@@ -227,9 +227,38 @@ static int fuselage_read(const char *path, char *file_buf, size_t sizeToRead, of
 static int fuselage_flush(const char *path, struct fuse_file_info *fi)
 {
 
+	queueNode_t *cur_cache_node;
+	queue_t aux_queue;
+	QUEUE_initialize(&aux_queue);
 
+	while ((cur_cache_node = QUEUE_takeNode(&file_caches)) != NULL)
+	{
+		file_cache_t *cur_cache = (file_cache_t*) cur_cache_node->data;
+		if (strcmp(cur_cache->path,path) == 0)
+		{
+			queueNode_t* cur_cache_block;
+			while((cur_cache_block = QUEUE_takeNode(&cur_cache->blocks)) != NULL)
+			{
+				cache_block_t *cur_block = (cache_block_t*) cur_cache_block->data;
+				cluster_t *write_cluster = CLUSTER_newCluster(cur_block->data,cur_block->cluster_no);
+				fat32_writeCluster(write_cluster);
+				CLUSTER_free(write_cluster);
+				free(write_cluster);
 
+				free(cur_block);
+				free(cur_cache_block);
+			}
+			free(cur_cache->path);
+			free(cur_cache);
+			free(cur_cache_node);
+		}
+		else
+		{
+			QUEUE_appendNode(&aux_queue,cur_cache);
+		}
+	}
 
+	file_caches = aux_queue;
 	return 0;
 }
 
@@ -243,27 +272,63 @@ static int fuselage_rename(const char *cur_name, const char *new_name)
 	/* FIN DEFINICION VARIABLES */
 
 	/* INICIO LOGICA DE LA FUNCION */
+
 	if (fat32_getFileEntry(new_name) == NULL) // SI NO EXISTE OTRO ARCHIVO CON EL MISMO NOMBRE
 	{
 		FILE_splitNameFromPath(new_name,&new_filename,&new_path);
 		FILE_splitNameFromPath(cur_name,&filename,&path);
 
-		fat32file_2_t *file_entry = fat32_getFileEntry(cur_name);
+		if (strcmp(path,new_path) == 0)
+		{
+			fat32file_2_t *file_entry = fat32_getFileEntry(cur_name);
 
-		LFNENTRY_setNameChars(&file_entry->lfn_entry,new_filename);
-		DIRENTRY_setDosName(&file_entry->dir_entry,new_filename);
+			LFNENTRY_setNameChars(&file_entry->lfn_entry,new_filename);
+			DIRENTRY_setDosName(&file_entry->dir_entry,new_filename);
 
-		cluster_t entry_cluster = fat32_readCluster(file_entry->cluster);
+			cluster_t entry_cluster = fat32_readCluster(file_entry->cluster);
 
-		memcpy(entry_cluster.data+file_entry->offset,&file_entry->lfn_entry,sizeof(lfnEntry_t));
-		memcpy(entry_cluster.data+file_entry->offset+sizeof(lfnEntry_t),&file_entry->dir_entry,sizeof(dirEntry_t));
+			memcpy(entry_cluster.data+file_entry->offset,&file_entry->lfn_entry,sizeof(lfnEntry_t));
+			memcpy(entry_cluster.data+file_entry->offset+sizeof(lfnEntry_t),&file_entry->dir_entry,sizeof(dirEntry_t));
 
-		free(new_filename);
-		free(new_path);
-		free(path);
-		free(filename);
+			free(new_filename);
+			free(new_path);
+			free(path);
+			free(filename);
 
-		fat32_writeCluster(&entry_cluster);
+			fat32_writeCluster(&entry_cluster);
+		}
+		else
+		{
+			fat32file_2_t *file_entry = fat32_getFileEntry(cur_name);
+
+			LFNENTRY_setNameChars(&file_entry->lfn_entry,new_filename);
+			DIRENTRY_setDosName(&file_entry->dir_entry,new_filename);
+
+			fat32file_2_t *newpath_entry = fat32_getFileEntry(new_path);
+
+			cluster_t path_cluster = fat32_readCluster(file_entry->cluster);
+			cluster_t newpath_cluster = fat32_readCluster(DIRENTRY_getClusterNumber(&newpath_entry->dir_entry));
+
+			*(path_cluster.data+file_entry->offset) = 0xE5;
+			*(path_cluster.data+file_entry->offset+sizeof(dirEntry_t)) = 0xE5;
+
+			fat32_writeCluster(&path_cluster);
+
+			dirEntry_t *dirtable_index = (dirEntry_t*) newpath_cluster.data;
+			dirEntry_t *dirtable_lastentry = (dirEntry_t*) (newpath_cluster.data + 4096 - sizeof(dirEntry_t));
+			while (dirtable_index != dirtable_lastentry)
+			{
+				if (*((char*) dirtable_index) == 0xE5 || *((char*) dirtable_index) == 0x00)
+				{
+					memcpy(dirtable_index,&file_entry->lfn_entry,sizeof(dirEntry_t));
+					memcpy(dirtable_index+sizeof(dirEntry_t),&file_entry->dir_entry,sizeof(dirEntry_t));
+					break;
+				}
+			}
+
+			fat32_writeCluster(&newpath_cluster);
+
+		}
 
 	}
 
