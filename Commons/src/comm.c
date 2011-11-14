@@ -31,3 +31,39 @@ uint32_t COMM_send(char* msg,uint32_t fd)
 
 	return dataSent;
 }
+
+char* COMM_receiveWithAdvise(uint32_t socket_fd,uint32_t* dataRecieved,size_t *msg_len)
+{
+	char *msg_len_buf = malloc(9);
+	uint32_t advise_length = recv(socket_fd,msg_len_buf,9,0);
+	char *msgIn;
+
+	if (advise_length != 0)
+	{
+		if (msg_len_buf[0] == -1)
+		{
+			msgIn = malloc(*((uint32_t*) (msg_len_buf+1)));
+			*msg_len = *((uint32_t*) (msg_len_buf+5));
+
+			int32_t left = 0;
+			left = *((uint32_t*) (msg_len_buf+1));
+			uint32_t received = 0;
+			uint32_t total = 0;
+
+			while (left > 0)
+			{
+				received = recv(socket_fd,msgIn+total,left,0);
+				total += received;
+				left -= received;
+			}
+			*dataRecieved = total;
+			return msgIn;
+		}
+		free(msg_len_buf);
+	}
+	else
+	{
+		free(msg_len_buf);
+		return NULL;
+	}
+}
