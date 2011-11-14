@@ -18,20 +18,126 @@
 #include "nipc.h"
 #include "praid_comm.h"
 #include "praid_queue.h"
+#include "praid_ppd_handler.h"
 
 #include <errno.h>
 #define PORT 9333
-extern uint32_t RAID_STATUS; //0 INACTIVE - 1 ACTIVE
+extern bool RAID_ACTIVE;
 extern uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
-
 extern queue_t* WRITE_QUEUE;
+
 extern pthread_mutex_t mutex_LIST;
-extern pthread_mutex_t mutex_RAID_STATUS;
 extern pthread_mutex_t mutex_WRITE_QUEUE;
 
 #include "comm.h"
 //extern struct praid_list_node* PRAID_LIST;
 //extern pthread_mutex_t mutex_LIST;
+
+uint32_t PRAID_pfs_receive(char* msgIn,uint32_t fd)
+{
+	praid_sl_content* data_sublist = malloc(sizeof(praid_sl_content));
+	data_sublist->synch = false;
+	data_sublist->msg = NIPC_toMsg(msgIn);
+	data_sublist->socketPFS = fd;
+
+	switch (msgIn[0])
+	{
+		//Pedido de READ:
+		case READ_SECTORS:{
+			pthread_mutex_lock(&mutex_LIST);
+			PRAID_ADD_READ(data_sublist);
+			pthread_mutex_unlock(&mutex_LIST);
+
+		}
+		break;
+		//Pedido de WRITE:
+		case WRITE_SECTORS:{
+			pthread_mutex_lock(&mutex_LIST);
+			PRAID_ADD_WRITE(data_sublist);
+			pthread_mutex_unlock(&mutex_LIST);
+
+			praid_read_content* nodoREAD = malloc(sizeof(praid_read_content));
+
+			uint32_t IDpedido = NIPC_getID(data_sublist->msg);
+
+			nodoREAD->IDrequest = IDpedido;
+			nodoREAD->threads_left = PRAID_ActiveThreads_Amount();
+			pthread_mutex_lock(&mutex_WRITE_QUEUE);
+			QUEUE_appendNode(WRITE_QUEUE,nodoREAD);
+			pthread_mutex_unlock(&mutex_WRITE_QUEUE);
+
+		}
+		break;
+	}
+	return 0;
+
+}
+
+
+uint32_t PRAID_ppd_receive(char*  msgIn,uint32_t fd)
+{
+
+	nipcMsg_t NIPCmsgIn = NIPC_toMsg(msgIn);
+
+	pthread_mutex_lock(&mutex_LIST);
+	uint32_t IDrequest= NIPC_getID(NIPCmsgIn);
+
+	praid_list_node* nodoBuscado = PRAID_SearchPPDBySocket(fd);
+	//Se fija que nodo de la lista tiene el socket del que proviene el pedido
+	queueNode_t* nodoSublista = PRAID_Search_Requests_SL(IDrequest,nodoBuscado->colaSublista);//Busca en la cola para el primer pedido que tenga el sector, y que este en estado ENVIADO
+	praid_sl_content* contenidoNodoSublista=((praid_sl_content*) nodoSublista->data);
+	contenidoNodoSublista->status = RECEIVED;
+	contenidoNodoSublista->msg = NIPCmsgIn;
+	pthread_mutex_unlock(&mutex_LIST);
+
+	return 0;
+}
+
+
+/*Del Switch de PFS
+		case HANDSHAKE:
+				if(RAID_ACTIVE == false){
+				//Responde hanshake
+				 nipcMsg_t msgOut = NIPC_createMsg(HANDSHAKE,0,0);  //si esta bien contestar type 0, payload 0
+				 COMM_send(NIPC_toBytes(&msgOut),fd);
+			}else{
+				//Respoder hanshake:Error, no hay PPD asociado
+				char* error = malloc(1);
+			//	*error = PRAID_NOTREADY;
+				nipcMsg_t msgOut = NIPC_createMsg(HANDSHAKE,1,error);
+				COMM_send(NIPC_toBytes(&msgOut),fd);
+			}
+		break;
+*/
+
+/* Del switch PPD
+	case HANDSHAKE:{
+		nipcMsg_t msgOut = NIPC_createMsg(HANDSHAKE,0,0);  //si esta bien contestar type 0, payload 0
+		COMM_send(NIPC_toBytes(&msgOut),fd);
+
+		//OBTENER CANTIDAD DE SECTORES DISK_SECTORS_AMOUNT;
+
+		pthread_t main_ppd_thread;
+		pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,(void *)fd);
+	}
+	break;
+*/
+
+
+/*
+void error_fd(uint32_t fd)
+{
+	uint32_t cur;
+	cur = QUEUE_searchNode(pfs_list,fd,dataLength);
+	if(cur !=NULL){
+		//FINN!! no anda el PFS
+	}else{
+		cur = QUEUE_searchNode(ppd_list,fd,dataLength);
+		if(cur !=NULL){
+			//PRAID_clear_list_node(praid_list_node* nodo); primero hay que buscar el nodo que tenga este fd
+		}
+	}
+}
 
 
 
@@ -62,151 +168,6 @@ uint32_t Create_Sockets_INET(uint32_t* listenFD){
 
 
 
-/*
-Manejar pedido de nuevo PPD
-Manejar pedido de PFS
-Enviar Mensaje a Socket (a PPD o a PFS)
-*/
-
-//Decodificacion del NIPC
-
-uint32_t pfs_receive(char* msgIn,uint32_t fd)
-{
-
-
-	switch (msgIn[0])
-	{
-
-
-		//Handshake:
-		case HANDSHAKE:
-				if(RAID_STATUS!=1){
-				//Responde hanshake
-				 nipcMsg_t msgOut = NIPC_createMsg(HANDSHAKE,0,0);  //si esta bien contestar type 0, payload 0
-				 COMM_send(NIPC_toBytes(&msgOut),fd);
-			}else{
-				//Respoder hanshake:Error, no hay PPD asociado
-				char* error = malloc(1);
-			//	*error = PRAID_NOTREADY;
-				nipcMsg_t msgOut = NIPC_createMsg(HANDSHAKE,1,error);
-				COMM_send(NIPC_toBytes(&msgOut),fd);
-			}
-		break;
-
-		//Pedido de READ:
-		case READ_SECTORS:{
-			pthread_mutex_lock(&mutex_LIST);
-
-			praid_sl_content* data_sublist = malloc(sizeof(praid_sl_content));
-			data_sublist->synch = 0;
-			data_sublist->msg = NIPC_toMsg(msgIn);
-			data_sublist->socketPFS = fd;
-			PRAID_ADD_READ(data_sublist);
-			pthread_mutex_unlock(&mutex_LIST);
-
-		}
-		break;
-
-		//Pedido de WRITE:
-		case WRITE_SECTORS:{
-			pthread_mutex_lock(&mutex_LIST);
-
-			praid_sl_content* data_sublist = malloc(sizeof(praid_sl_content));
-			data_sublist->synch = 0;
-			data_sublist->msg = NIPC_toMsg(msgIn);
-			data_sublist->socketPFS = fd;
-			PRAID_ADD_WRITE(data_sublist);
-
-			praid_read_content* nodoREAD = malloc(sizeof(praid_read_content));
-			//TODO Sacar ID Pedido del NIPC
-			uint32_t IDpedido;
-			nodoREAD->IDrequest = IDpedido;
-			nodoREAD->threads_left = PRAID_ActiveThreads_Amount();
-			QUEUE_appendNode(WRITE_QUEUE,nodoREAD);
-			pthread_mutex_unlock(&mutex_LIST);
-
-		}
-		break;
-
-	}
-	return 0;
-	/* TODO ERROR TERMINAR EL PROCESO	 */
-}
-
-
-uint32_t ppd_receive(char* msgIn,uint32_t fd)
-{
-	uint32_t IDrequest; //TODO Sacar el ID del pedido del NIPC
-
-
-	switch (msgIn[0])
-	{
-		//Handshake:
-		case HANDSHAKE:{
-			nipcMsg_t msgOut = NIPC_createMsg(HANDSHAKE,0,0);  //si esta bien contestar type 0, payload 0
-			COMM_send(NIPC_toBytes(&msgOut),fd);
-
-			pthread_mutex_lock(&mutex_RAID_STATUS);
-			if(RAID_STATUS == 0){
-				//TODO OBTENER CANTIDAD DE SECTORES DISK_SECTORS_AMOUNT;
-				RAID_STATUS = 1;
-			}
-			pthread_mutex_unlock(&mutex_RAID_STATUS);
-
-			pthread_t main_ppd_thread;
-			pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,(void *)fd);
-		}
-		break;
-		case READ_SECTORS:{
-			pthread_mutex_lock(&mutex_LIST);
-			praid_list_node* nodoBuscado = PRAID_SearchBySocket(fd);//Se fija que nodo de la lista tiene el socket del que proviene el pedido
-			queueNode_t* nodoSublista = PRAID_SearchSL(IDrequest,nodoBuscado->info->colaSublista);//Busca en la cola para el primer pedido que tenga el sector, y que este en estado ENVIADO
-			praid_sl_content* contenidoNodoSublista=((praid_sl_content*) nodoSublista->data);
-			contenidoNodoSublista->status = 2;
-			//TODO CAMBIAR NIPC DEL ACTUAL POR EL RECIBIDO
-			//No se si hay que volver a meter en la cola
-
-			pthread_mutex_unlock(&mutex_LIST);
-		}
-		break;
-		case WRITE_SECTORS:{
-			pthread_mutex_lock(&mutex_LIST);
-			praid_list_node* nodoBuscado = PRAID_SearchBySocket(fd);
-			queueNode_t* nodoSublista = PRAID_SearchSL(IDrequest,nodoBuscado->info->colaSublista);//Busca en la cola para el primer pedido que tenga el sector, y que este en estado ENVIADO
-			praid_sl_content* contenidoNodoSublista=((praid_sl_content*) nodoSublista->data);
-			contenidoNodoSublista->status = 2;
-			//TODO CAMBIAR NIPC DEL ACTUAL POR EL RECIBIDO
-			//No se si hay que volver a meter en la cola
-			pthread_mutex_unlock(&mutex_LIST);
-		}
-		break;
-
-	}
-	/*
-	TODO Error PPD
-		praid_list_node* nodoBuscado = PRAID_SearchBySocket(fd);
-		PRAID_clear_list_node(nodoBuscado);//TODO ver si anda bien PRAID_clear_list_node
-	*/
-
-		pthread_mutex_lock(&mutex_LIST);
-
-	return 0;
-}
-
-
-/*void error_fd(uint32_t fd)
-{
-	uint32_t cur;
-	cur = QUEUE_searchNode(pfs_list,fd,dataLength);
-	if(cur !=NULL){
-		//FINN!! no anda el PFS
-	}else{
-		cur = QUEUE_searchNode(ppd_list,fd,dataLength);
-		if(cur !=NULL){
-			//PRAID_clear_list_node(praid_list_node* nodo); primero hay que buscar el nodo que tenga este fd
-		}
-	}
-}
 
 
 
