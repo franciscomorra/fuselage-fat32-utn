@@ -569,3 +569,25 @@ uint32_t fat32_truncate(char* fullpath,off_t new_size)
 
 		return 0;
 }
+
+void fat32_remove(char* path)
+{
+	fat32file_2_t* file_entry = fat32_getFileEntry(path);
+		cluster_t table_of_entry = fat32_readCluster(file_entry->cluster);
+		*(table_of_entry.data+file_entry->offset) = 0xE5;
+		*(table_of_entry.data+file_entry->offset+sizeof(dirEntry_t)) = 0xE5;
+
+		uint32_t first_data_cluster = DIRENTRY_getClusterNumber(&file_entry->dir_entry);
+		queue_t clusters = FAT_getClusterChain(&fat,first_data_cluster);
+
+		queueNode_t* cur_cluster;
+		uint32_t *casted_fat = (uint32_t*) fat.table;
+		while ((cur_cluster = QUEUE_takeNode(&clusters))!=NULL)
+		{
+			casted_fat[*((uint32_t*) cur_cluster->data)] = 0;
+		}
+
+		FAT_write(&fat);
+		fat32_writeCluster(&table_of_entry);
+
+}

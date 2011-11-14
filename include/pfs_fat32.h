@@ -46,4 +46,5 @@ cluster_t fat32_readCluster(uint32_t cluster_number);
 
 uint32_t fat32_truncate(char* fullpath,off_t new_size);
 
+void fat32_remove(char* path);
 #endif /* PFS_FAT32_H_ */
