@@ -56,6 +56,13 @@ char* PPDINTERFACE_readSectors(uint32_t* sectors, size_t len)
 	}
 
 	pthread_mutex_lock(&sockets_toPPD.sockets[sock_index].sock_mutex);
+	char *msg = malloc(9);
+	*msg = 0xFF;
+
+	*((uint32_t*) (msg+1)) = 7*len;
+	*((uint32_t*) (msg+5)) = 7;
+	send(sockets_toPPD.sockets[sock_index].descriptor,msg,9,0);
+	free(msg);
 	for (;sector_index < len;sector_index++)
 	{
 		nipcMsg_t msg = NIPC_createMsg(READ_SECTORS,sizeof(uint32_t),(char*) (sectors+sector_index));
@@ -95,7 +102,7 @@ char* PPDINTERFACE_writeSectors(queue_t sectors)
 	uint32_t len = QUEUE_length(&sectors);
 
 	size_t msg_len = boot_sector.bytes_perSector + 7;
-	size_t recvdata_len = 7 * len;
+	size_t recvdata_len = 519 * len;
 
 	sem_wait(&sockets_toPPD.free_sockets);
 	for (;sock_index < sockets_toPPD.size;sock_index++)
@@ -112,6 +119,12 @@ char* PPDINTERFACE_writeSectors(queue_t sectors)
 	//char* msg_buffer_toSend = malloc(recvdata_len);
 	//uint16_t payload_len = 516;
 	pthread_mutex_lock(&sockets_toPPD.sockets[sock_index].sock_mutex);
+	char *msg = malloc(9);
+	*msg = 0xFF;
+	*((uint32_t*) (msg+1)) = recvdata_len;
+	*((uint32_t*) (msg+5)) = 519;
+	send(sockets_toPPD.sockets[sock_index].descriptor,msg,9,0);
+	free(msg);
 	while ((sector_node = QUEUE_takeNode(&sectors)) != NULL)
 	{
 		char* payload = malloc(4+boot_sector.bytes_perSector);
@@ -122,31 +135,35 @@ char* PPDINTERFACE_writeSectors(queue_t sectors)
 
 		nipcMsg_t msg = NIPC_createMsg(WRITE_SECTORS,sizeof(uint32_t)+boot_sector.bytes_perSector, payload);
 		free(payload);
-
-		sendMsgToPPD(sockets_toPPD.sockets[sock_index],&msg);
+		if (count_sector == 1023)
+		{
+			uint32_t se = 0;
+		}
+		uint32_t res = sendMsgToPPD(sockets_toPPD.sockets[sock_index],&msg);
 		NIPC_cleanMsg(&msg);
+		count_sector++;
 
 
-		uint32_t recvd = 0;
+	/*	uint32_t recvd = 0;
 		char* buf = COMM_recieve(sockets_toPPD.sockets[sock_index].descriptor,&recvd);
 		free(buf);
-		count_sector++;
+		count_sector++;*/
 	}
 
-	/*char* buf;// = malloc(recvdata_len);
-	char* msgs_buf = malloc(7*len);
+	char* buf;// = malloc(recvdata_len);
+	char* msgs_buf = malloc(519*len);
 	uint32_t recvd = 0;
 	uint32_t count = 0;
 	uint32_t received = 0;
-	while (recvdata_len != received)
-	{
+	/*while (recvdata_len != received)
+	{*/
 		uint32_t left = recvdata_len - received;
-		received += recv(sockets_toPPD.sockets[sock_index].descriptor,msgs_buf+received,left,NULL);
+		received += recv(sockets_toPPD.sockets[sock_index].descriptor,msgs_buf,recvdata_len,MSG_WAITALL);
 		/*buf = COMM_recieve(sockets_toPPD.sockets[sock_index].descriptor,&recvd);
 		memcpy(msgs_buf+(count*519),buf,519);
 		count++;
-		free(buf);
-	}*/
+		free(buf);*/
+	//}
 	/*while (count != len)
 	{
 		buf = COMM_recieve(sockets_toPPD.sockets[sock_index].descriptor,&recvd);

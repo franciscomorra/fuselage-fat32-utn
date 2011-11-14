@@ -98,6 +98,7 @@ cache_block_t* CACHE_readFile(queue_t *file_caches,char* path,uint32_t cluster_n
 		file_cache_t *cache = (file_cache_t*) curr_cache_node->data;
 		if (strcmp(cache->path,path) == 0)
 		{
+			cache_exists = true;
 			queueNode_t *curr_block_node = cache->blocks.begin;
 			bool block_exists = false;
 
@@ -119,6 +120,17 @@ cache_block_t* CACHE_readFile(queue_t *file_caches,char* path,uint32_t cluster_n
 			}
 		}
 		curr_cache_node = curr_cache_node->next;
+	}
+
+	if (cache_exists == false)
+	{
+		file_cache_t *new_cache = malloc(sizeof(file_cache_t));
+		new_cache->path = malloc(strlen(path));
+		strcpy(new_cache->path,path);
+		new_cache->blocks.begin = new_cache->blocks.end	= NULL;
+		new_cache->cache_size = 32768;
+		QUEUE_appendNode(file_caches,new_cache);
+		return CACHE_readFile(file_caches,path,cluster_no);
 	}
 	return NULL;
 }
