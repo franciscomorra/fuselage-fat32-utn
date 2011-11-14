@@ -164,14 +164,48 @@ int main(int argc, char *argv[])
 					uint32_t dataRecieved = 0;
 					pfs_node_t *in_pfs = PFSLIST_getByFd(pfslist,currFD);
 					pthread_mutex_lock(&in_pfs->sock_mutex);
-					char* msgIn = COMM_recieve(currFD,&dataRecieved);
+					//char* msgIn = COMM_recieve(currFD,&dataRecieved);
+/**************************************/
+					char *msg_len_buf = malloc(9);
+					recv(currFD,msg_len_buf,9,0);
+					char *msgIn;
+					uint32_t santi = 0;
+
+					if (msg_len_buf[0] == -1)
+					{
+						msgIn = malloc(*((uint32_t*) (msg_len_buf+1)));
+						int32_t left = 0;
+						left = *((uint32_t*) (msg_len_buf+1));
+						uint32_t msg_len = *((uint32_t*) (msg_len_buf+5));
+						uint32_t count_msg = left/msg_len;
+						uint32_t received = 0;
+						uint32_t total = 0;
+						while (left > 0)
+						{
+							received = recv(currFD,msgIn+total,left,0);
+							total += received;
+							left -= received;
+						}
+						dataRecieved = total;
+						uint32_t index = 0;
+						for(;index < count_msg;index++)
+						{
+							COMM_handleReceive(msgIn+(index*msg_len),currFD);
+						}
+						free(msgIn);
+					}
+					else
+					{
+						uint32_t stop = 0;
+					}
+					free(msg_len_buf);
+					/**************************/
 					if(dataRecieved == 0){																	//si es igual a cero cierra la conexion
-						close(currFD);
-						FD_CLR(currFD,&masterFDs);
+						//close(currFD);
+						//FD_CLR(currFD,&masterFDs);
 					} else {
 
-						COMM_handleReceive(msgIn,currFD);
-						free(msgIn);
+
 					}
 					pthread_mutex_unlock(&in_pfs->sock_mutex);
 				}
@@ -199,21 +233,19 @@ void TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**)){
 		char* msg = TRANSLATE_fromRequestToChar(request);
 		pfs_node_t *out_pfs = PFSLIST_getByFd(pfslist,request->sender);
 		pthread_mutex_lock(&out_pfs->sock_mutex);
+
+		if (*msg == 0x01)
+			printf("<-- R");
+		else
+		printf("<-- W");
+
+		printf("%d\n",*((uint32_t*) (msg+3)));
+
 		COMM_send(msg,request->sender);
 		pthread_mutex_unlock(&out_pfs->sock_mutex);
 
-		uint32_t a;
-		memcpy(&a,msg+3,4);
-		if (*msg==0x01)
-		{
-			printf("R");
-		}
-		else if (*msg == 0x02)
-		{
-			printf("W");
-		}
-		printf("%d\n",a);									//temporal, muestra los sectores atendidos
-		fflush(0);											//hace que no se acumulen datos y los largue de a tandas
+				//temporal, muestra los sectores atendidos
+
 
 		free(msg);
 		free(request->payload);
