@@ -4,17 +4,17 @@
 #include <string.h>
 #include "comm.h"
 
-char* COMM_recieve(uint32_t currFD,uint32_t* dataRecieved){
+char* COMM_receive(uint32_t currFD,uint32_t* dataReceived){
 
 	char* msgHeader = malloc(3);								//alojo memoria para recibir la cabecera del mensaje (tipo y len)
 	char* msgIn = NULL;
 
-	if((*dataRecieved = recv(currFD,msgHeader,3,0)) != 0)		//recibo la cabecera y la guardo en msgHeader
+	if((*dataReceived = recv(currFD,msgHeader,3,0)) != 0)		//recibo la cabecera y la guardo en msgHeader
 	{
 		uint16_t len = 0;
 		memcpy(&len,msgHeader+1,2);								//copio el len en un int para poder usarlo
 		msgIn = malloc(len+3);									//alojo memoria para recibir el payload del mensaje
-		*dataRecieved += recv(currFD,msgIn+3,len,0);				//recibo el mensaje y lo guardo en msgIn +3
+		*dataReceived += recv(currFD,msgIn+3,len,0);				//recibo el mensaje y lo guardo en msgIn +3
 		memcpy(msgIn,msgHeader,3);								//concateno la cabecera con el payload del mensaje
 	}
 
