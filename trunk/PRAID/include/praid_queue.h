@@ -9,7 +9,6 @@
 #define PRAID_QUEUE_H_
 
 #include <pthread.h>
-#include "praid_comm.h"
 #include "nipc.h"
 #include "tad_queue.h"
 #include <stdbool.h>
@@ -24,6 +23,7 @@ typedef struct praid_list_node{
 	uint32_t socketPPD;
 	struct queue_t* colaSublista;
 	struct praid_list_node* next;
+	uint32_t diskID;
 }praid_list_node;
 
 typedef enum {
@@ -42,12 +42,20 @@ typedef struct praid_read_content{
 	uint32_t IDrequest;
 }praid_read_content;
 
-praid_list_node* PRAID_list_appendNode(pthread_t, uint32_t);
+typedef struct praid_ppdThreadParam{
+	uint32_t socketPPD;
+	uint32_t diskID;
+}praid_ppdThreadParam;
+
+
+
+praid_list_node* PRAID_list_appendNode(pthread_t, praid_ppdThreadParam*);
 uint32_t PRAID_ADD_READ(praid_sl_content*);
 uint32_t PRAID_ADD_WRITE(praid_sl_content*);
 uint32_t PRAID_clear_list_node(praid_list_node*);
 uint32_t PRAID_ActiveThreads_Amount(void);
 bool PRAID_hay_discos_sincronizandose(void);
+bool PRAID_discoExiste(uint32_t);
 uint32_t PRAID_Start_Synch(void);
 uint32_t PRAID_actualizar_CurrentRead(void);
 praid_list_node* PRAID_SearchPPDBySocket(uint32_t);

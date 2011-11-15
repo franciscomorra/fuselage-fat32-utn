@@ -69,7 +69,8 @@ int main(int argc,char **argv){
 	config_param *praid_config;
 	CONFIG_read("config/praid.config",&praid_config);
 	RAID_CONSOLE  = atoi(CONFIG_getValue(praid_config,"Console"));
-
+	uint32_t PPD_Port = atoi(CONFIG_getValue(praid_config,"PpdPort"));
+	uint32_t PFS_Port = atoi(CONFIG_getValue(praid_config,"PfsPort"));
 	raid_log_file = log_create("PRAID","praid.log",DEBUG,M_CONSOLE_DISABLE);
 //Fin Leer archivo de Configuracion, seteada Variable Global raid_console
 
@@ -82,12 +83,13 @@ int main(int argc,char **argv){
 //Fin Seteo de Variables Iniciales
 
 	print_Console("Inicio PRAID",(uint32_t)pthread_self());//CONSOLE WELCOME
+
 	log_debug(raid_log_file,"PRAID","Inicio Proceso RAID");
 
 
-	socketInet_t listenPFS = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",9034,MODE_LISTEN);//TODO poner en Config (IP??)
+	socketInet_t listenPFS = SOCKET_inet_create(SOCK_STREAM,"NULL",PFS_Port,MODE_LISTEN);//TODO poner en Config (IP??)
 	sleep(1);//Porque el sleep?
-	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",9035,MODE_LISTEN);//TODO poner en Config
+	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,"NULL",PPD_Port,MODE_LISTEN);//TODO poner en Config
 	if (listenPPD.status != 0 || listenPFS.status != 0)
 	{
 		printf("ERROR AL ABRIR SOCKETS!");
@@ -136,23 +138,28 @@ int main(int argc,char **argv){
 					}else{//Nuevo PPD
 						uint32_t dataReceived;
 						char *msgIn = COMM_recieve(currFD,&dataReceived);
-
-						//TODO OBTENER CANTIDAD DE SECTORES DISK_SECTORS_AMOUNT QUE ESTA EN EL HANDSHAKE
+						praid_ppdThreadParam* ppdParam = PRAID_ValidatePPD(msgIn,newPPD_FD);
 
 						free(msgIn);
-
-						FD_SET(newPPD_FD,&masterFDs);
-						FD_SET(newPPD_FD,&PPD_FDs);
-						if(newPPD_FD > FDmax)
-							FDmax = newPPD_FD;
-
 						char* msgOut = malloc(4);
 						memset(msgOut,0,4);
 						msgOut[0] = HANDSHAKE;
-						send(newPPD_FD,msgOut,4,0);
 
-						pthread_t main_ppd_thread;
-						pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,(void *)newPPD_FD);
+						if(ppdParam!=NULL){
+							FD_SET(newPPD_FD,&masterFDs);
+							FD_SET(newPPD_FD,&PPD_FDs);
+							if(newPPD_FD > FDmax){
+								FDmax = newPPD_FD;
+							}
+							send(newPPD_FD,msgOut,4,0);
+							pthread_t main_ppd_thread;
+							pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,(void *)ppdParam);
+						}else{
+							msgOut[1] = 0x01;
+							msgOut[3] = 0xFF;
+							send(newPFS_FD,msgOut,4,0);
+							close(newPFS_FD);
+						}
 
 					}
 				}else{ //datos de cliente existente
@@ -164,7 +171,7 @@ int main(int argc,char **argv){
 						if (FD_ISSET(currFD,&PFS_FDs)){
 							FD_CLR(currFD,&PFS_FDs);//PFS de baja
 							print_Console("Adios Proceso RAID",pthread_self());
-							log_debug(raid_log_file,"PRAID","Apagado Proceso RAID");
+							log_debug(raid_log_file,"PRAID","Apagado Proceso RAID, PFS desconectado");
 
 							return 1;
 							//Se cae el raid, se tiene que apagar
@@ -172,9 +179,22 @@ int main(int argc,char **argv){
 							FD_CLR(currFD,&PPD_FDs); // PPD de baja
 
 							praid_list_node* nodoBuscado = PRAID_SearchPPDBySocket(currFD);
-							print_Console("PPD Desconectado",nodoBuscado->tid);
+							if(PRAID_ActiveThreads_Amount()==1){
+								print_Console("Adios Proceso RAID",pthread_self());
+								log_debug(raid_log_file,"PRAID","Apagado Proceso RAID, Unico PPD desconectado");
+								return 1;
 
+							}
+							if(nodoBuscado->ppdStatus == READY && PRAID_ActiveThreads_Amount()==2 && PRAID_hay_discos_sincronizandose()==true){
+								print_Console("Adios Proceso RAID",pthread_self());
+								log_debug(raid_log_file,"PRAID","Apagado Proceso RAID, Master desconectado mientras sincronizaba");
+								return 1;
+
+							}
+
+							print_Console("PPD Desconectado",nodoBuscado->tid);
 							nodoBuscado->ppdStatus = DISCONNECTED;
+
 						}
 					}else{
 						if (FD_ISSET(currFD,&PFS_FDs)){

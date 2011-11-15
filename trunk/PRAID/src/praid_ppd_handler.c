@@ -34,10 +34,10 @@ void *ppd_handler_thread (void *thread_data)
 
 	uint32_t sectorCount = 1;//Primer Sector del disco mas uno por el de synch
 	uint32_t self_tid = pthread_self(); //TID del PPD
-	uint32_t socketPPD = (uint32_t)thread_data;
+	praid_ppdThreadParam* handler_param = (praid_ppdThreadParam*)thread_data;
 
 	pthread_mutex_lock(&mutex_LIST);
-	praid_list_node* self_list_node = PRAID_list_appendNode(self_tid, socketPPD);
+	praid_list_node* self_list_node = PRAID_list_appendNode(self_tid, handler_param);
 	queue_t* self_SL = self_list_node->colaSublista;
 	pthread_mutex_unlock(&mutex_LIST);
 
@@ -46,16 +46,16 @@ void *ppd_handler_thread (void *thread_data)
 
 	while(1){
 		self_sl_accesses++;
-		if(self_list_node->ppdStatus == DISCONNECTED){
+		if(self_list_node->ppdStatus == DISCONNECTED){//Se desconecto y el main me actualizo el estado
 			pthread_mutex_lock(&mutex_LIST);
-			PRAID_clear_list_node(self_list_node);
+			return PRAID_clear_list_node(self_list_node);
 			pthread_mutex_unlock(&mutex_LIST);
 
 		}else{
 
 			if (self_list_node->ppdStatus == WAIT_SYNCH){ //Si se conecto pero hay un disco sincronizandose, espera a sincronizarse
 				pthread_mutex_lock(&mutex_LIST);
-				if(PRAID_hay_discos_sincronizandose() == false){
+				if(PRAID_hay_discos_sincronizandose() == false){//Se empieza a sincronizar
 					self_list_node->ppdStatus = SYNCHRONIZING;
 					print_Console("Fin Espera Sincronizacion",self_tid);
 					PRAID_Start_Synch();
@@ -64,7 +64,7 @@ void *ppd_handler_thread (void *thread_data)
 				}
 				pthread_mutex_unlock(&mutex_LIST);
 
-			}else{
+			}else{//Ya esta sincronizado
 				pthread_mutex_lock(&mutex_LIST);
 
 				//INICIO MIRAR LA COLA
