@@ -8,7 +8,7 @@
 #ifndef COMM_H_
 #define COMM_H_
 
-char* COMM_recieve(uint32_t currFD,uint32_t* dataRecieved);
+char* COMM_receive(uint32_t currFD,uint32_t* dataRecieved);
 
 uint32_t COMM_send(char* msg,uint32_t fd);
 
