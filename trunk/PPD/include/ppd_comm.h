@@ -24,4 +24,8 @@ char* COMM_createCharMessage(NIPC_type type,uint32_t payload_bytes_len);
 //devuelve la estructura correspondiente al socket que transfiere datos
 socketUnix_t COMM_ConsoleAccept(socketUnix_t consoleListen);
 
+//manda el mensaje de Handshake al Raid y espera su respuesta para luego loggear error si es que lo hay.
+void COMM_RaidHandshake(socketInet_t inetListen,uint32_t diskID);
+
+
 #endif /* PPD_COMM_H_ */

@@ -35,6 +35,7 @@
 
 	#define _XOPEN_SOURCE 500
 
+	#include <stdint.h>
 	#include <stdio.h>
 	#include <pthread.h>
 	#include <stdarg.h>
@@ -62,6 +63,12 @@
 		pthread_mutex_t mutex;
 	} t_log;
 
+	typedef struct t_CHS {
+		uint32_t cylinder;
+		uint32_t head;
+		uint32_t sector;
+	}__attribute__((__packed__)) t_CHS;
+
 	t_log* 	log_create(const char *program_name, const char* file_name, unsigned char log_levels, e_console_mode console_mode);
 	int 	log_info(t_log* log, const char *thread_name, const char *format, ... );
 	int 	log_warning(t_log* log, const char *thread_name, const char *format, ... );
@@ -69,5 +76,8 @@
 	int 	log_debug(t_log* log, const char *thread_name, const char *format, ... );
 	#define log_has_level(log, level)	((log->log_levels & level) == level)
 	void 	log_destroy(t_log *log);
+	void 	log_turnToCHS(uint32_t* sectorNum,t_CHS* CHS,uint32_t Sector,uint32_t Head);
+	void 	log_showTrace(char* msg,FILE* stream,uint32_t Sector,uint32_t Head,t_log* Log);
+
 
 #endif /*OLD_LOG_H_*/

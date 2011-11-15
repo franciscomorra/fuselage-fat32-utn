@@ -15,7 +15,7 @@
 uint32_t SSTF_getHead(queue_t*);
 
 //devuelve el nodo anterior al que hay que sacar segun el algoritmo SSTF
-uint32_t SSTF_getNext(queue_t*,queueNode_t**);
+uint32_t SSTF_getNext(queue_t*,queueNode_t**,uint32_t);
 
 //agrega un nuevo requestNode_t a la lista segun el algoritmo SSTF
 uint32_t SSTF_addRequest(request_t* new);

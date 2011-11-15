@@ -25,6 +25,7 @@ typedef struct CHS_t {
 
 typedef struct request_t {
 	NIPC_type type;
+	uint32_t ID;
 	struct CHS_t* CHS;
 	char len[2];
 	uint32_t sender;
@@ -54,5 +55,7 @@ uint32_t COMMON_identity(CHS_t,CHS_t);
 uint32_t COMMON_lessThan(CHS_t,CHS_t);
 
 uint32_t COMMON_greaterThan(CHS_t,CHS_t);
+
+char* COMMON_createLogChar(uint32_t sectorNum,request_t* request,queue_t* queue,uint32_t delay,uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t));
 
 #endif /* PPD_COMMON_H_ */

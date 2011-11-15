@@ -12,7 +12,7 @@
 
 #include "tad_queue.h"
 
-uint32_t FSCAN_getNext(queue_t* queue,queueNode_t** prevCandidate);
+uint32_t FSCAN_getNext(queue_t* queue,queueNode_t** prevCandidate,uint32_t initialPosition);
 
 uint32_t FSCAN_moveHeadPos(flag_t direction);
 

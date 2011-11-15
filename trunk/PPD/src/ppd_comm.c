@@ -19,22 +19,27 @@
 #include "ppd_qManager.h"
 #include "tad_sockets.h"
 #include "comm.h"
+#include "log.h"
 
 #define PORT 9034
 
+extern uint32_t Sector;
+extern uint32_t Head;
+extern uint32_t Cylinder;
 extern multiQueue_t* multiQueue;
 extern sem_t mainMutex;
-extern uint32_t headPosition;
+extern uint32_t HeadPosition;
+extern t_log* Log;
 
 uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 
 	switch (msgIn[0]) {
 		case HANDSHAKE:
-				//TODO Handshake
+			COMM_send(msgIn,fd);  // TODO completar con mensaje de error cuando corresponda
 			break;
 
 		case PPDCONSOLE_INFO:{
-			CHS_t* CHSPosition = COMMON_turnToCHS(headPosition);
+			CHS_t* CHSPosition = COMMON_turnToCHS(HeadPosition);
 
 			memcpy(msgIn+3,&CHSPosition->cylinder,4);
 			memcpy(msgIn+7,&CHSPosition->head,4);
@@ -113,4 +118,33 @@ socketUnix_t COMM_ConsoleAccept(socketUnix_t connect){
 	printf("Connected.\n");
 
 	return console_socket;
+}
+
+void COMM_RaidHandshake(socketInet_t inetListen,uint32_t diskID){
+	uint16_t handshakeLen = sizeof(uint32_t)*2;
+	char* handshakePayload = malloc(handshakeLen);
+	char* handshake = malloc(3 + handshakeLen);
+	uint32_t totalSectors = Cylinder * Sector * Head;
+
+	memcpy(handshakePayload,&diskID,4);
+	memcpy(handshakePayload+4,&totalSectors,4);
+	NIPC_createCharMsg(handshake,HANDSHAKE,handshakeLen,handshakePayload);
+
+	COMM_send(handshake,inetListen.descriptor);
+	free(handshakePayload);
+	free(handshake);
+
+	uint32_t dataReceived = 0;
+	char* msgIn = COMM_receive(inetListen.descriptor,&dataReceived);
+	if(dataReceived > 3){
+		uint16_t len;
+		memcpy(&len,msgIn,2);
+		char* errorMsg = malloc(len);
+		memcpy(&errorMsg,msgIn+3,len);
+		log_error(Log,"Main","%s",errorMsg);
+		free(msgIn);
+		free(errorMsg);
+		exit(1);
+	}
+
 }
