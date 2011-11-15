@@ -23,17 +23,19 @@ extern struct praid_list_node* PRAID_LIST;
 extern struct praid_list_node* CURRENT_READ;
 extern t_log *raid_log_file;
 
-praid_list_node* PRAID_list_appendNode(pthread_t tid, uint32_t self_socket)
+praid_list_node* PRAID_list_appendNode(pthread_t tid, praid_ppdThreadParam* mainParams)
 {
 	praid_list_node *nodoLISTA = malloc(sizeof(praid_list_node));
 	queue_t* subList = malloc(sizeof(queue_t));
 	QUEUE_initialize(subList);
 	nodoLISTA->tid = tid;
-	nodoLISTA->socketPPD = self_socket;
+	nodoLISTA->socketPPD = mainParams->socketPPD;
+	nodoLISTA->diskID = mainParams->diskID;
+	free(mainParams);
 
 	print_Console("Nuevo PPD: ",pthread_self());//CONSOLE NEW PPD
 	log_debug(raid_log_file,"PRAID","Nuevo PPD");
-	print_Console("El Socket Pasado como argumento es:",self_socket);
+	print_Console("El Socket Pasado como argumento es:",nodoLISTA->socketPPD);
 
 	if(PRAID_ActiveThreads_Amount() > 0){ //Hay mas de un disco
 		nodoLISTA->ppdStatus = WAIT_SYNCH;
@@ -246,6 +248,21 @@ bool PRAID_hay_discos_sincronizandose(void)
 return false;
 }
 
+bool PRAID_discoExiste(uint32_t diskID)
+{
+	praid_list_node* aux_list_node = PRAID_LIST;
+	while(aux_list_node->next != NULL){ //Recorre toda la lista
+		if(aux_list_node->diskID == diskID){//Se esta sincronizando
+			return true;
+		}
+		aux_list_node = aux_list_node->next;
+	}
+
+return false;
+}
+
+
+
 praid_list_node* PRAID_SearchPPDBySocket(uint32_t socketBuscado)
 {
 
@@ -291,6 +308,13 @@ queueNode_t* PRAID_Search_Requests_SL(uint32_t requestID,queue_t* line)
 
 uint32_t NIPC_getID(nipcMsg_t msg)
 {
+	nipcMsg_t* aux = malloc(sizeof(nipcMsg_t));
+	char* mensaje = NIPC_toBytes(aux);
+	free(aux);
+	uint32_t messageID;
+	memcpy(mensaje+3,&messageID,4);
+	free(mensaje);
+
 	//TODO Sacar ID Pedido del NIPC
 return 0;
 }

@@ -33,6 +33,48 @@ extern pthread_mutex_t mutex_WRITE_QUEUE;
 //extern struct praid_list_node* PRAID_LIST;
 //extern pthread_mutex_t mutex_LIST;
 
+
+
+praid_ppdThreadParam* PRAID_ValidatePPD(char* msgIn, uint32_t newPPD_FD)
+{
+	uint16_t len;
+	memcpy(msgIn+1,&len,2);
+	if(len == 8){
+		uint32_t disk_sectors_rcv;
+		memcpy(msgIn+7,&disk_sectors_rcv,4);
+
+		if(RAID_ACTIVE==true){
+			if(disk_sectors_rcv!=DISK_SECTORS_AMOUNT){
+				return NULL;
+			}
+
+		}else{
+			if(disk_sectors_rcv > 0){
+				DISK_SECTORS_AMOUNT = disk_sectors_rcv; //No hace falta un mutex, el select va a hacer de a un pedido
+			}else{
+				return NULL;
+			}
+		}
+		uint32_t diskID;
+		memcpy(msgIn+3,&diskID,4);
+		pthread_mutex_lock(&mutex_LIST);
+		if(PRAID_discoExiste(diskID)){
+			return NULL;
+		}
+		pthread_mutex_unlock(&mutex_LIST);
+
+		praid_ppdThreadParam* parameters = malloc(sizeof(praid_ppdThreadParam));
+		parameters->diskID = diskID;
+		parameters->socketPPD = newPPD_FD;
+		return parameters;
+
+	}
+return NULL;
+
+}
+
+
+
 uint32_t PRAID_pfs_receive(char* msgIn,uint32_t fd)
 {
 	praid_sl_content* data_sublist = malloc(sizeof(praid_sl_content));
