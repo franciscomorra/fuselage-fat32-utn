@@ -10,12 +10,13 @@
 #define PPD_TAKER_H_
 
 #include "tad_queue.h"
+#include "ppd_common.h"
 
 // definida en el ppd_main por un tema de threads
-void TAKER_main(uint32_t (*getNext)(queue_t*,queueNode_t**));
+void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t));
 
 // atiende al pedido que el algoritmo saca de la cola
-void TAKER_handleRequest(queue_t*,request_t*,uint32_t,uint32_t (*getNext)(queue_t*,queueNode_t**));
+char* TAKER_handleRequest(queue_t*,request_t*,uint32_t,uint32_t (*getNext)(queue_t*,queueNode_t**,uint32_t));
 
 //saca el primer nodo de la cola y lo transforma de tipo queueNode a requestNode
 request_t* TAKER_takeRequest(queue_t*,queueNode_t*,uint32_t*);
@@ -41,7 +42,7 @@ void TAKER_updateHPos(uint32_t sectorNum);
 //devuelve 1 si el nodo A esta mas cerca del headPosition que el B
 uint32_t TAKER_near(CHS_t* curr, CHS_t* headP,CHS_t* candidate,uint32_t (condition)(CHS_t,CHS_t));
 
-uint32_t TAKER_getNextNode(queue_t* queue, queueNode_t** prevCandidate,uint32_t (condition)(CHS_t,CHS_t));
+uint32_t TAKER_getNextNode(queue_t* queue,uint32_t headPosition, queueNode_t** prevCandidate,uint32_t (condition)(CHS_t,CHS_t));
 
 uint32_t TAKER_reachedSector(uint32_t cylinder,CHS_t* headPosCHS);
 

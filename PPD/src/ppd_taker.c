@@ -6,35 +6,86 @@
 
 #include "ppd_common.h"
 #include "ppd_comm.h"
+#include "comm.h"
 #include "nipc.h"
 #include "ppd_io.h"
 #include "ppd_taker.h"
 #include "tad_queue.h"
 #include "ppd_qManager.h"
 #include "ppd_SSTF.h"
+#include "log.h"
+#include "ppd_translate.h"
+#include "ppd_pfsList.h"
 
 extern uint32_t Sector;
+extern uint32_t Head;
 extern uint32_t file_descriptor;
 extern uint32_t bytes_perSector;
 extern uint32_t TrackJumpTime;
+extern uint32_t TracePosition;
 extern uint32_t SectorJumpTime;
-extern uint32_t NextDelay;
+extern t_log* Log;
 extern multiQueue_t* multiQueue;
+extern sem_t mainMutex;
+extern queue_t pfsList;
 
-
-uint32_t headPosition;
+uint32_t HeadPosition;
 uint32_t sectorNum;
 
-void TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint32_t(*getNext)(queue_t*,queueNode_t**)){
+void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
+{
+
+	while(1){
+		sem_wait(&multiQueue->queueElemSem);
+		TracePosition = HeadPosition;
+		queue_t* queue = QMANAGER_selectActiveQueue(multiQueue);
+		request_t* request;
+		queueNode_t* prevCandidate = NULL;
+
+		sem_wait(&mainMutex);
+		uint32_t delay = getNext(queue,&prevCandidate,HeadPosition);
+		request = TAKER_takeRequest(queue,prevCandidate,&delay);
+		sem_post(&mainMutex);
+
+		char* msg = TAKER_handleRequest(queue,request,delay,getNext);
+
+		pfs_node_t* out_pfs = PFSLIST_getByFd(pfsList,request->sender);			//antes de devolver el pedido, busca su respectivo semaforo para que no hayan sobrescrituras
+		sem_wait(&out_pfs->sock_mutex);
+		COMM_send(msg,request->sender);
+		sem_post(&out_pfs->sock_mutex);
+
+		uint32_t a;											//
+		if(request->type != PPDCONSOLE_TRACE)				//
+			memcpy(&a,msg+7,4);								//
+		else												//temporal, muestra los sectores atendidos
+			memcpy(&a,msg+3,4);								//
+		printf("%d\n",a);									//
+		fflush(0);											//hace que no se acumulen datos y los largue de a tandas
+
+		free(msg);
+		free(request->payload);
+		free(request->CHS);
+		free(request);
+
+	}
+}
+
+char* TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t)){
 	sectorNum = TAKER_turnToSectorNum(request->CHS);
-	CHS_t* headPosCHS = COMMON_turnToCHS(headPosition);
-	uint32_t distance = TAKER_sectReachedDistance(request->CHS,headPosCHS);				//Distancia entre el pedido solicitado y la headPosition
+	char* msg;
+	char* logMsg;
+//	CHS_t* tracePosCHS = COMMON_turnToCHS(TracePosition);
+//	uint32_t distance = TAKER_sectReachedDistance(request->CHS,tracePosCHS);				//Distancia entre el pedido solicitado y la headPosition
 
 	switch (request->type)
 	{
 		case PPDCONSOLE_TRACE:{
-			//payload = headPosition+distance+sleep+(nextSector)+(cylinder-1 || 0)
 
+			msg = COMMON_createLogChar(sectorNum,request,queue,delay,getNext);
+			log_showTrace(msg,Log->file,Sector,Head,Log);
+
+			break;
+/*
 			queueNode_t* queueNext =NULL;												//Siguiente pedido en la cola en CHS
 			uint32_t nextSector;														//Siguiente pedido en la cola en Numero
 
@@ -42,40 +93,49 @@ void TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint3
 			request->payload = malloc(len);
 			memset(request->payload,0,len);
 
-			memcpy(request->payload,&headPosition,4);									//Si no hay proximo sector en la cola no copio nada al payload y disminuyo el Len
+			memcpy(request->payload,&HeadPosition,4);									//Si no hay proximo sector en la cola no copio nada al payload y disminuyo el Len
 			TAKER_updateHPos(sectorNum);
 			if(multiQueue->queueElemSem.__align != 0){
+				flag_t previousDirection = multiQueue->direction;						//guardamos la direccion del cabezal por si la busqueda del proximo sector nos cambia la direccion del mismo
 				QMANAGER_selectActiveQueue(multiQueue);
-				NextDelay = getNext(queue,&queueNext);																						//Obtiene el proximo sector que mostrara segun la planificacion
+				getNext(queue,&queueNext);												//Obtiene el proximo sector que mostrara segun la planificacion
 				if(queueNext == NULL)
 					nextSector = TAKER_turnToSectorNum(((request_t*)queue->begin->data)->CHS);
 				else
 					nextSector = TAKER_turnToSectorNum(((request_t*)queueNext->data)->CHS);
 				memcpy(request->payload+12,&nextSector,4);
+				multiQueue->direction = previousDirection;
 			} else len -= sizeof(uint32_t);
 
 			memcpy(request->payload+4,&distance,4);
 			memcpy(request->payload+8,&delay,4);
-			memcpy(request->len,&len,2);												//actualiza el LEN del nodo
-			break;
+			memcpy(request->len,&len,2);
+*/
 		}
 		case READ_SECTORS:{
 			request->payload = malloc(sizeof(char)*bytes_perSector);
 			read_sector(file_descriptor,sectorNum,request->payload);
 			memcpy(request->len, &bytes_perSector,2);
-			TAKER_updateHPos(sectorNum);
+			msg = TRANSLATE_fromRequestToChar(request);
+			logMsg = COMMON_createLogChar(sectorNum,request,queue,delay,getNext);
+			log_showTrace(logMsg,Log->file,Sector,Head,Log);
+			free(logMsg);
 			break;
 		}
 		case WRITE_SECTORS:{
 			write_sector(file_descriptor, sectorNum, request->payload);
-			TAKER_updateHPos(sectorNum);
+			msg = TRANSLATE_fromRequestToChar(request);
+			logMsg = COMMON_createLogChar(sectorNum,request,queue,delay,getNext);
+			log_showTrace(logMsg,Log->file,Sector,Head,Log);
+			free(logMsg);
 			break;
 		}
 		default:
 			break;
 	}
 
-	free(headPosCHS);
+	TAKER_updateHPos(sectorNum);
+	return msg;
 }
 
 request_t* TAKER_takeRequest(queue_t* queue, queueNode_t* prevCandidate,uint32_t* delay){
@@ -94,8 +154,7 @@ request_t* TAKER_takeRequest(queue_t* queue, queueNode_t* prevCandidate,uint32_t
 		if(prevCandidate->next == NULL)
 			queue->end = prevCandidate;
 	}
-	*delay += TAKER_distanceTime(request->CHS) + NextDelay;
-	NextDelay = 0;
+	*delay += TAKER_distanceTime(request->CHS);
 	//sleep(*delay/1000);
 	free(candidate);
 	return request;
@@ -104,7 +163,7 @@ request_t* TAKER_takeRequest(queue_t* queue, queueNode_t* prevCandidate,uint32_t
 
 void TAKER_getTraceInfo(CHS_t* CHSrequest,uint32_t* distance,uint32_t* delay){
 
-	CHS_t* headPosCHS = COMMON_turnToCHS(headPosition);
+	CHS_t* headPosCHS = COMMON_turnToCHS(HeadPosition);
 	*distance = TAKER_sectReachedDistance(CHSrequest,headPosCHS);
 	*delay = TAKER_distanceTime(CHSrequest);							//calcula el tiempo que va a tardar dicho pedido
 
@@ -122,7 +181,7 @@ uint32_t TAKER_turnToSectorNum(CHS_t* CHS){
 
 uint32_t TAKER_distanceTime(CHS_t* CHSrequest){
 
-	CHS_t*  headPosCHS = COMMON_turnToCHS(headPosition);
+	CHS_t*  headPosCHS = COMMON_turnToCHS(TracePosition);
 
 	uint32_t cTimeDistance = abs(headPosCHS->cylinder - CHSrequest->cylinder)*TrackJumpTime;
 	uint32_t sTimeDistance = TAKER_sectReachedDistance(CHSrequest,headPosCHS)*SectorJumpTime;
@@ -149,9 +208,9 @@ uint32_t TAKER_sectorDist(uint32_t fstSector, uint32_t lstSector){
 }
 
 void TAKER_updateHPos(uint32_t sectorNum){
-	headPosition = sectorNum + 1;
-	if((headPosition % Sector) == 0)
-		headPosition = headPosition - Sector;
+	HeadPosition = sectorNum + 1;
+	if((HeadPosition % Sector) == 0)
+		HeadPosition = HeadPosition - Sector;
 }
 
 uint32_t TAKER_near(CHS_t* curr, CHS_t* headP,CHS_t* candidate,uint32_t (condition)(CHS_t,CHS_t)){
@@ -179,7 +238,7 @@ uint32_t TAKER_near(CHS_t* curr, CHS_t* headP,CHS_t* candidate,uint32_t (conditi
 	return 0;
 }
 
-uint32_t TAKER_getNextNode(queue_t* queue, queueNode_t** prevCandidate,conditionFunction_t condition){
+uint32_t TAKER_getNextNode(queue_t* queue,uint32_t headPosition, queueNode_t** prevCandidate,conditionFunction_t condition){
 	queueNode_t* currNode = queue->begin;
 	CHS_t* headPCHS = COMMON_turnToCHS(headPosition);
 
@@ -198,9 +257,10 @@ uint32_t TAKER_getNextNode(queue_t* queue, queueNode_t** prevCandidate,condition
 					currNode = currNode->next;																											//si no es conveniente solo avanza el auxiliar
 		}
 	}
-	if((*prevCandidate == NULL) && ((condition(*((request_t*)queue->begin->data)->CHS,*headPCHS)) == 0))
+	if((*prevCandidate == NULL) && ((condition(*((request_t*)queue->begin->data)->CHS,*headPCHS)) == 0)){
+		free(headPCHS);
 		return 0;
-
+	}
 
 	free(headPCHS);
 	return 1;	//Si devuelve NULL en prevCandidate quiere decir que hay q sacar el nodo que esta en begin de la queue
@@ -218,5 +278,6 @@ uint32_t TAKER_reachedSector(uint32_t cylinder,CHS_t* headPosCHS){
 
 	return reachedSector;
 }
+
 
 

@@ -11,6 +11,7 @@
 #include "tad_queue.h"
 
 extern multiQueue_t* multiQueue;
+extern uint32_t HeadPosition;
 
 uint32_t SSTF_getHead(queue_t* queue){			//TODO cambiar por getNext
 	queueNode_t* aux = queue->begin;
@@ -28,9 +29,9 @@ uint32_t SSTF_getHead(queue_t* queue){			//TODO cambiar por getNext
 	 return 1;
 }
 
-uint32_t SSTF_getNext(queue_t* queue, queueNode_t** prevCandidate){
+uint32_t SSTF_getNext(queue_t* queue, queueNode_t** prevCandidate,uint32_t initialPosition){
 
-	TAKER_getNextNode(queue,prevCandidate,QMANAGER_selectCondition(multiQueue->direction));
+	TAKER_getNextNode(queue,initialPosition,prevCandidate,QMANAGER_selectCondition(multiQueue->direction));
 	return 0;
 }
 
