@@ -68,9 +68,9 @@ uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 		default:{ // puede ser tanto de lectura, escritura o de tipo trace
 
 			request_t* request = TRANSLATE_fromCharToRequest(msgIn,fd);
-			queue_t* queue = QMANAGER_selectPassiveQueue(multiQueue);
 
 			sem_wait(&mainMutex);
+			queue_t* queue = QMANAGER_selectPassiveQueue(multiQueue);
 			QUEUE_appendNode(queue,request);
 			sem_post(&mainMutex);
 
