@@ -17,7 +17,7 @@ uint32_t CONFIG_read(const char *path,config_param **first_param)
 {
 	int config_filed = open(path,O_RDONLY);
 	char* chr = malloc(1);
-	char* tmp = malloc(100);
+	char* tmp = malloc(200);
 
 	config_param *last_param;
 	config_param *new_param;
@@ -47,7 +47,7 @@ uint32_t CONFIG_read(const char *path,config_param **first_param)
 			 }
 
 			 	 last_param = new_param;
-			 	 memset(tmp,0,100);
+			 	 memset(tmp,0,200);
 
 		 }
 		 else if (strncmp(chr,"\n",1) != 0)
@@ -89,4 +89,14 @@ char* CONFIG_getValue(config_param *first_param, const char* key)
 
 		}
 		return NULL;
+}
+
+void CONFIG_destroyList(config_param *first_param){
+	config_param* aux = first_param;
+	config_param* ant = first_param;
+	while(aux != NULL){
+		ant = aux;
+		aux = aux->nextParam;
+		free(ant);
+	}
 }
