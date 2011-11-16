@@ -51,7 +51,8 @@
 		ERROR 		= 1,
 		WARNING 	= 2,
 		INFO 		= 4,
-		DEBUG 		= 8
+		DEBUG 		= 8,
+		OFF			= 10
 	} e_message_level;
 
 	typedef struct {

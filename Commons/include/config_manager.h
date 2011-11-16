@@ -13,12 +13,13 @@
 
 typedef struct config_param
 {
-	char key[50];
-	char value[50];
+	char key[100];
+	char value[100];
 	struct config_param *nextParam;
 } config_param;
 
 uint32_t CONFIG_read(const char *path,config_param **first_param);
 char* CONFIG_getValue(config_param *first_param, const char* key);
+void CONFIG_destroyList(config_param *first_param);
 
 #endif /* CONFIG_MANAGER_H_ */
