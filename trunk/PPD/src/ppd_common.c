@@ -9,11 +9,19 @@
 #include "ppd_qManager.h"
 #include "ppd_common.h"
 #include "log.h"
+#include "tad_sockets.h"
+#include "config_manager.h"
 
-extern uint32_t Sector;
+extern uint32_t Cylinder;
 extern uint32_t Head;
+extern uint32_t Sector;
 extern uint32_t HeadPosition;
 extern uint32_t TracePosition;
+extern uint32_t TrackJumpTime;
+extern uint32_t ReadTime;
+extern uint32_t WriteTime;
+extern flag_t Algorithm;
+extern e_message_level LogFlag;
 extern multiQueue_t* multiQueue;
 extern t_log* Log;
 
@@ -103,4 +111,58 @@ void COMMON_writeInLog(queue_t* queue,char* msg){
 		log_showTrace(msg,Log->file,Sector,Head,Log);
 	}
 	//pthread_mutex_unlock(&Log->mutex);
+}
+
+void COMMON_readPPDConfig(uint32_t* RPM, uint32_t* port, uint32_t* diskID,uint32_t* startingMode, char** IP,
+		char** sockUnixPath,char** diskFilePath,char** consolePath,flag_t* initialDirection){
+	config_param *ppd_config;
+	CONFIG_read("config/ppd.config",&ppd_config);
+
+	Cylinder   = atoi(CONFIG_getValue(ppd_config,"Cylinder"));			//
+	Head =  atoi(CONFIG_getValue(ppd_config,"Head"));					//
+	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));				//
+	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));	//	leer archivo de configuración
+	HeadPosition = atoi(CONFIG_getValue(ppd_config,"HeadPosition"));	//
+	*RPM = atoi(CONFIG_getValue(ppd_config,"RPM"));						//
+	*port = atoi(CONFIG_getValue(ppd_config,"Port"));
+	*diskID = atoi(CONFIG_getValue(ppd_config,"DiskID"));
+	ReadTime = atoi(CONFIG_getValue(ppd_config,"ReadTime"));
+	WriteTime = atoi(CONFIG_getValue(ppd_config,"WriteTime"));
+
+	*IP = malloc(strlen(CONFIG_getValue(ppd_config,"IP")));
+	strncpy(*IP,CONFIG_getValue(ppd_config,"IP"),strlen(CONFIG_getValue(ppd_config,"IP")));
+
+	*sockUnixPath = malloc(strlen(CONFIG_getValue(ppd_config,"SockUnixPath")));
+	strncpy(*sockUnixPath,CONFIG_getValue(ppd_config,"SockUnixPath"),strlen(CONFIG_getValue(ppd_config,"SockUnixPath")));
+
+	*diskFilePath = malloc(strlen(CONFIG_getValue(ppd_config,"DiskFilePath")));
+	strncpy(*diskFilePath,CONFIG_getValue(ppd_config,"DiskFilePath"),strlen(CONFIG_getValue(ppd_config,"DiskFilePath")));
+
+	*consolePath = malloc(strlen(CONFIG_getValue(ppd_config,"ConsolePath")));
+	strncpy(*consolePath,CONFIG_getValue(ppd_config,"ConsolePath"),strlen(CONFIG_getValue(ppd_config,"ConsolePath")));
+
+	if(strcmp("SSTF",CONFIG_getValue(ppd_config,"Algorithm")) == 0)		//
+		Algorithm = SSTF;
+	else
+		Algorithm = FSCAN;
+	if(strcmp("LISTEN",CONFIG_getValue(ppd_config,"StartingMode")) == 0)		//
+		*startingMode = MODE_LISTEN;
+	else
+		*startingMode = MODE_CONNECT;
+
+	if(strcmp("UP",CONFIG_getValue(ppd_config,"Direction")) == 0)
+		*initialDirection = UP;
+	else
+		*initialDirection = DOWN;
+
+	if(strcmp("INFO",CONFIG_getValue(ppd_config,"LogFlag"))==0)
+		LogFlag = INFO;
+	else
+		if(strcmp("ERROR",CONFIG_getValue(ppd_config,"LogFlag"))==0)
+			LogFlag = ERROR;
+		else
+			LogFlag = OFF;
+
+	CONFIG_destroyList(ppd_config);
+
 }
