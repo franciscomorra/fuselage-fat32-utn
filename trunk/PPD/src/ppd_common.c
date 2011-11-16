@@ -114,7 +114,7 @@ void COMMON_writeInLog(queue_t* queue,char* msg){
 }
 
 void COMMON_readPPDConfig(uint32_t* RPM, uint32_t* port, uint32_t* diskID,uint32_t* startingMode, char** IP,
-		char** sockUnixPath,char** diskFilePath,char** consolePath,flag_t* initialDirection){
+		char** sockUnixPath,char** diskFilePath,char** consolePath,char** logPath,flag_t* initialDirection){
 	config_param *ppd_config;
 	CONFIG_read("config/ppd.config",&ppd_config);
 
@@ -130,16 +130,19 @@ void COMMON_readPPDConfig(uint32_t* RPM, uint32_t* port, uint32_t* diskID,uint32
 	WriteTime = atoi(CONFIG_getValue(ppd_config,"WriteTime"));
 
 	*IP = malloc(strlen(CONFIG_getValue(ppd_config,"IP")));
-	strncpy(*IP,CONFIG_getValue(ppd_config,"IP"),strlen(CONFIG_getValue(ppd_config,"IP")));
+	strcpy(*IP,CONFIG_getValue(ppd_config,"IP"));
 
 	*sockUnixPath = malloc(strlen(CONFIG_getValue(ppd_config,"SockUnixPath")));
-	strncpy(*sockUnixPath,CONFIG_getValue(ppd_config,"SockUnixPath"),strlen(CONFIG_getValue(ppd_config,"SockUnixPath")));
+	strcpy(*sockUnixPath,CONFIG_getValue(ppd_config,"SockUnixPath"));
 
 	*diskFilePath = malloc(strlen(CONFIG_getValue(ppd_config,"DiskFilePath")));
-	strncpy(*diskFilePath,CONFIG_getValue(ppd_config,"DiskFilePath"),strlen(CONFIG_getValue(ppd_config,"DiskFilePath")));
+	strcpy(*diskFilePath,CONFIG_getValue(ppd_config,"DiskFilePath"));
 
 	*consolePath = malloc(strlen(CONFIG_getValue(ppd_config,"ConsolePath")));
-	strncpy(*consolePath,CONFIG_getValue(ppd_config,"ConsolePath"),strlen(CONFIG_getValue(ppd_config,"ConsolePath")));
+	strcpy(*consolePath,CONFIG_getValue(ppd_config,"ConsolePath"));
+
+	*logPath = malloc(strlen(CONFIG_getValue(ppd_config,"LogPath")));
+	strcpy(*logPath,CONFIG_getValue(ppd_config,"LogPath"));
 
 	if(strcmp("SSTF",CONFIG_getValue(ppd_config,"Algorithm")) == 0)		//
 		Algorithm = SSTF;

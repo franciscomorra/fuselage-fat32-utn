@@ -9,6 +9,8 @@
 #include <sys/mman.h>
 
 extern uint32_t bytes_perSector;
+extern uint32_t ReadTime;
+extern uint32_t WriteTime;
 uint32_t  page_size = 4096;
 uint32_t sectors_perPage = 8;
 
@@ -41,6 +43,9 @@ int32_t read_sector(uint32_t file_descriptor,uint32_t sector, char* buf)
 		perror("Error un-mmapping the file");
 		/* Decide here whether to close(fd) and exit() or not. Depends... */
 	    }
+
+	sleep(ReadTime/1000);
+
 	return 0;
 
 }
@@ -67,6 +72,8 @@ int32_t write_sector(uint32_t file_descriptor,uint32_t sector, char *buf)
 	memcpy(map+(sector-(sectors_perPage*page))*bytes_perSector,buf,bytes_perSector);
 
 	munmap(map,page_size);
+
+	sleep(WriteTime/1000);
 
 	return 0;
 }

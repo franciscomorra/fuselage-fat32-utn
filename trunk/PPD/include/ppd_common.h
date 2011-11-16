@@ -63,6 +63,6 @@ void COMMON_queueStatus(queue_t* queue);
 void COMMON_writeInLog(queue_t* queue,char* msg);
 
 void COMMON_readPPDConfig(uint32_t* RPM, uint32_t* port, uint32_t* diskID,uint32_t* startingMode, char** IP,
-		char** sockUnixPath,char** diskFilePath,char** consolePath,flag_t* initialDirection);
+		char** sockUnixPath,char** diskFilePath,char** consolePath,char** logPath,flag_t* initialDirection);
 
 #endif /* PPD_COMMON_H_ */

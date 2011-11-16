@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
 	char* sockUnixPath;
 	char* diskFilePath;
 	char* consolePath;
+	char* logPath;
 	flag_t initialDirection;
 	socketUnix_t consoleListen;			//estructura socket de escucha correspondiente a la consola
 	socketInet_t inetListen;			//estructura socket de escucha correspondiente a la consola
@@ -106,9 +107,9 @@ int main(int argc, char *argv[])
 		StartingMode = MODE_CONNECT;
 */
 	COMMON_readPPDConfig(&RPM,&port,&diskID,&startingMode,&IP,
-		&sockUnixPath,&diskFilePath,&consolePath,&initialDirection);
+		&sockUnixPath,&diskFilePath,&consolePath,&logPath,&initialDirection);
 
-	Log = log_create("PPD","/home/utn_so/Escritorio/logPPD",LogFlag,M_CONSOLE_DISABLE);
+	Log = log_create("PPD",logPath,LogFlag,M_CONSOLE_DISABLE);
 
 	multiQueue->queue1 = malloc(sizeof(queue_t));
 	QUEUE_initialize(multiQueue->queue1);

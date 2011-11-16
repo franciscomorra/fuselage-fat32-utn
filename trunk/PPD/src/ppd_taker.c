@@ -27,9 +27,8 @@ extern t_log* Log;
 extern multiQueue_t* multiQueue;
 extern sem_t mainMutex;
 extern queue_t pfsList;
+extern uint32_t HeadPosition;
 
-uint32_t HeadPosition;
-uint32_t sectorNum;
 
 void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 {
@@ -70,7 +69,7 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 }
 
 char* TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t)){
-	sectorNum = TAKER_turnToSectorNum(request->CHS);
+	uint32_t sectorNum = TAKER_turnToSectorNum(request->CHS);
 	char* msg;
 	char* logMsg;
 //	CHS_t* tracePosCHS = COMMON_turnToCHS(TracePosition);
