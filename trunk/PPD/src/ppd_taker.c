@@ -18,7 +18,6 @@
 #include "ppd_pfsList.h"
 
 extern uint32_t Sector;
-extern uint32_t Head;
 extern uint32_t file_descriptor;
 extern uint32_t bytes_perSector;
 extern uint32_t TrackJumpTime;
@@ -81,8 +80,8 @@ char* TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint
 	{
 		case PPDCONSOLE_TRACE:{
 
-			msg = COMMON_createLogChar(sectorNum,request,queue,delay,getNext);
-			log_showTrace(msg,Log->file,Sector,Head,Log);
+			msg = COMMON_createLogChar(sectorNum,request,delay,getNext);
+			COMMON_writeInLog(queue,msg);
 
 			break;
 /*
@@ -117,16 +116,16 @@ char* TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint
 			read_sector(file_descriptor,sectorNum,request->payload);
 			memcpy(request->len, &bytes_perSector,2);
 			msg = TRANSLATE_fromRequestToChar(request);
-			logMsg = COMMON_createLogChar(sectorNum,request,queue,delay,getNext);
-			log_showTrace(logMsg,Log->file,Sector,Head,Log);
+			logMsg = COMMON_createLogChar(sectorNum,request,delay,getNext);
+			COMMON_writeInLog(queue,msg);
 			free(logMsg);
 			break;
 		}
 		case WRITE_SECTORS:{
 			write_sector(file_descriptor, sectorNum, request->payload);
 			msg = TRANSLATE_fromRequestToChar(request);
-			logMsg = COMMON_createLogChar(sectorNum,request,queue,delay,getNext);
-			log_showTrace(logMsg,Log->file,Sector,Head,Log);
+			logMsg = COMMON_createLogChar(sectorNum,request,delay,getNext);
+			COMMON_writeInLog(queue,msg);
 			free(logMsg);
 			break;
 		}
@@ -278,6 +277,3 @@ uint32_t TAKER_reachedSector(uint32_t cylinder,CHS_t* headPosCHS){
 
 	return reachedSector;
 }
-
-
-

@@ -56,6 +56,10 @@ uint32_t COMMON_lessThan(CHS_t,CHS_t);
 
 uint32_t COMMON_greaterThan(CHS_t,CHS_t);
 
-char* COMMON_createLogChar(uint32_t sectorNum,request_t* request,queue_t* queue,uint32_t delay,uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t));
+char* COMMON_createLogChar(uint32_t sectorNum,request_t* request,uint32_t delay,uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t));
+
+void COMMON_queueStatus(queue_t* queue);
+
+void COMMON_writeInLog(queue_t* queue,char* msg);
 
 #endif /* PPD_COMMON_H_ */

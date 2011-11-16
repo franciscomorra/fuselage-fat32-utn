@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 	sem_init(&mainMutex,0,1);
 	multiQueue->qflag = QUEUE2_ACTIVE;
 
-	Log = log_create("PPD","/home/utn_so/Desktop/logPPD",DEBUG,M_CONSOLE_DISABLE);
+	Log = log_create("PPD","/home/utn_so/Desktop/logPPD",INFO,M_CONSOLE_DISABLE);
 /*
 	int i;														// temporal
  	//uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};	// temporal
