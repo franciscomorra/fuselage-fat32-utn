@@ -137,7 +137,7 @@ int main(int argc,char **argv){
 						perror("accept");
 					}else{//Nuevo PPD
 						uint32_t dataReceived;
-						char *msgIn = COMM_recieve(currFD,&dataReceived);
+						char *msgIn = COMM_receive(currFD,&dataReceived);
 						praid_ppdThreadParam* ppdParam = PRAID_ValidatePPD(msgIn,newPPD_FD);
 
 						free(msgIn);
@@ -164,7 +164,8 @@ int main(int argc,char **argv){
 					}
 				}else{ //datos de cliente existente
 					uint32_t dataReceived;
-					char *msgIn = COMM_recieve(currFD,&dataReceived);
+					char *msgIn = COMM_receive(currFD,&dataReceived);
+
 					if (dataReceived == 0){
 						close(currFD);
 						FD_CLR(currFD,&masterFDs);
