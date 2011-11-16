@@ -223,42 +223,42 @@ void log_showTrace(char* msg,FILE* stream,uint32_t Sector,uint32_t Head,t_log* l
 	uint32_t distance;
 	uint16_t len;
 
-	if( stream == stdout || log->log_levels == DEBUG) {
-		memcpy(&headPosition,msg+7,4);
-		memcpy(&tracePosition,msg+19,4);
-		log_turnToCHS(&headPosition,&headPosCHS,Sector,Head);
-		fprintf(stream,"Posición Actual: %d:%d:%d\n",headPosCHS.cylinder,headPosCHS.head,headPosCHS.sector);
 
-		log_turnToCHS((uint32_t*)(msg+3),&CHS,Sector,Head);
-		fprintf(stream,"Sector Solicitado: %d:%d:%d\n",CHS.cylinder,CHS.head,CHS.sector);
+	memcpy(&headPosition,msg+7,4);
+	memcpy(&tracePosition,msg+19,4);
+	log_turnToCHS(&headPosition,&headPosCHS,Sector,Head);
+	fprintf(stream,"Posición Actual: %d:%d:%d\n",headPosCHS.cylinder,headPosCHS.head,headPosCHS.sector);
 
-		if(headPosCHS.cylinder != CHS.cylinder){
-			if(headPosition == tracePosition) {
-				fprintf(stream,"Pistas Recorridas Desde: %d Hasta: %d\n",headPosCHS.cylinder,CHS.cylinder);
-			}
-			else {
-				log_turnToCHS(&tracePosition,&tracePosCHS,Sector,Head);
-				fprintf(stream,"Pistas Recorridas Desde: %d Hasta: %d & ",headPosCHS.cylinder,tracePosCHS.cylinder);
-				fprintf(stream,"Desde: %d Hasta: %d\n",tracePosCHS.cylinder,CHS.cylinder);
-			}
+	log_turnToCHS((uint32_t*)(msg+3),&CHS,Sector,Head);
+	fprintf(stream,"Sector Solicitado: %d:%d:%d\n",CHS.cylinder,CHS.head,CHS.sector);
+
+	if(headPosCHS.cylinder != CHS.cylinder){
+		if(headPosition == tracePosition) {
+			fprintf(stream,"Pistas Recorridas Desde: %d Hasta: %d\n",headPosCHS.cylinder,CHS.cylinder);
 		}
-		memcpy(&distance,msg+11,4);
-		uint32_t sector = (Sector-distance+CHS.sector)%Sector;
-		uint32_t i;
-		fprintf(stream,"Sectores Recorridos: ");
-		for(i=0;i<=distance;i++)
-			fprintf(stream,"%d:%d:%d ",CHS.cylinder,CHS.head,(sector+i)%16);
-
-		uint32_t delay;
-		memcpy(&delay,msg+15,4);
-		fprintf(stream,"\nTiempo Consumido: %dms\n",delay);
-
-		memcpy(&len,msg+1,2);
-		if(len == 27){
-		log_turnToCHS((uint32_t*)(msg+23),&CHS,Sector,Head);
-		fprintf(stream,"Proximo Sector: %d:%d:%d\n",CHS.cylinder,CHS.head,CHS.sector);
-		} else
-			fprintf(stream,"Proximo Sector: -\n");
-		fprintf(stream,"\n");
+		else {
+			log_turnToCHS(&tracePosition,&tracePosCHS,Sector,Head);
+			fprintf(stream,"Pistas Recorridas Desde: %d Hasta: %d & ",headPosCHS.cylinder,tracePosCHS.cylinder);
+			fprintf(stream,"Desde: %d Hasta: %d\n",tracePosCHS.cylinder,CHS.cylinder);
+		}
 	}
+	memcpy(&distance,msg+11,4);
+	uint32_t sector = (Sector-distance+CHS.sector)%Sector;
+	uint32_t i;
+	fprintf(stream,"Sectores Recorridos: ");
+	for(i=0;i<=distance;i++)
+		fprintf(stream,"%d:%d:%d ",CHS.cylinder,CHS.head,(sector+i)%16);
+
+	uint32_t delay;
+	memcpy(&delay,msg+15,4);
+	fprintf(stream,"\nTiempo Consumido: %dms\n",delay);
+
+	memcpy(&len,msg+1,2);
+	if(len == 27){
+	log_turnToCHS((uint32_t*)(msg+23),&CHS,Sector,Head);
+	fprintf(stream,"Proximo Sector: %d:%d:%d\n",CHS.cylinder,CHS.head,CHS.sector);
+	} else
+		fprintf(stream,"Proximo Sector: -\n");
+	fprintf(stream,"\n");
+
 }
