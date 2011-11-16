@@ -2,17 +2,20 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <semaphore.h>
 
 #include "ppd_taker.h"
 #include "tad_queue.h"
 #include "ppd_qManager.h"
 #include "ppd_common.h"
+#include "log.h"
 
 extern uint32_t Sector;
 extern uint32_t Head;
 extern uint32_t HeadPosition;
 extern uint32_t TracePosition;
 extern multiQueue_t* multiQueue;
+extern t_log* Log;
 
 CHS_t* COMMON_turnToCHS(uint32_t sectorNum){
 	CHS_t* CHS = malloc(sizeof(CHS_t));
@@ -37,7 +40,7 @@ uint32_t COMMON_greaterThan(CHS_t A,CHS_t B){
 	return(A.cylinder >= B.cylinder);
 }
 
-char* COMMON_createLogChar(uint32_t sectorNum,request_t* request,queue_t* queue,uint32_t delay,uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t)){
+char* COMMON_createLogChar(uint32_t sectorNum,request_t* request,uint32_t delay,uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t)){
 	//msg = type + len + sectorNum + headPosition + distance + delay + TracePosition + (nextSector)
 
 	uint16_t len = 3 + 6*sizeof(uint32_t); 																//cantidad de bytes alojados para el msg
@@ -56,7 +59,7 @@ char* COMMON_createLogChar(uint32_t sectorNum,request_t* request,queue_t* queue,
 
 	if(multiQueue->queueElemSem.__align != 0){
 		flag_t previousDirection = multiQueue->direction;									//guardamos la direccion del cabezal por si la busqueda del proximo sector nos cambia la direccion del mismo
-		queue = QMANAGER_selectActiveQueue(multiQueue);
+		queue_t* queue = QMANAGER_selectActiveQueue(multiQueue);
 		getNext(queue,&queueNext,sectorNum + 1);															//Obtiene el proximo sector que mostrara segun la planificacion
 		if(queueNext == NULL)
 			nextSector = TAKER_turnToSectorNum(((request_t*)queue->begin->data)->CHS);
@@ -71,4 +74,33 @@ char* COMMON_createLogChar(uint32_t sectorNum,request_t* request,queue_t* queue,
 	free(tracePosCHS);
 
 	return msg;
+}
+
+void COMMON_queueStatus(queue_t* queue){
+	queueNode_t* queueNode = queue->begin;
+	fprintf(Log->file,"Cola de Pedidos Activa: [");
+	while(queueNode != NULL){
+		fprintf(Log->file,"(%d;%d;%d),",((request_t*)queueNode->data)->CHS->cylinder,((request_t*)queueNode->data)->CHS->head,((request_t*)queueNode->data)->CHS->sector);
+		queueNode = queueNode->next;
+	}
+	fprintf(Log->file,"]\n");
+	if(multiQueue->qflag != SSTF){
+		fprintf(Log->file,"Cola de Pedidos Pasiva: [");
+		queueNode = (QMANAGER_selectPassiveQueue(multiQueue))->begin;
+		while(queueNode != NULL){
+			fprintf(Log->file,"(%d;%d;%d),",((request_t*)queueNode->data)->CHS->cylinder,((request_t*)queueNode->data)->CHS->head,((request_t*)queueNode->data)->CHS->sector);
+			queueNode = queueNode->next;
+		}
+		fprintf(Log->file,"]\n");
+	}
+}
+
+void COMMON_writeInLog(queue_t* queue,char* msg){
+	pthread_mutex_lock(&Log->mutex);
+	log_info(Log,"TAKER",NULL);
+	if(Log->log_levels == INFO){
+		COMMON_queueStatus(queue);
+		log_showTrace(msg,Log->file,Sector,Head,Log);
+	}
+	pthread_mutex_unlock(&Log->mutex);
 }

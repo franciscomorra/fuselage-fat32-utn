@@ -34,10 +34,25 @@ extern t_log* Log;
 uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 
 	switch (msgIn[0]) {
-		case HANDSHAKE:
-			COMM_send(msgIn,fd);  // TODO completar con mensaje de error cuando corresponda
+		case HANDSHAKE:{
+			uint16_t msgLen;
+			memcpy(&msgLen,msgIn,2);
+			if(msgLen == 0)
+				COMM_send(msgIn,fd);  // TODO completar con mensaje de error cuando corresponda
+			else {
+				uint16_t payloadLen = (strlen("El mensaje de Handshake es incorrecto")+1);
+				char* errorMsg = malloc(payloadLen);
+				strcpy(errorMsg,"El mensaje de Handshake es incorrecto");
+				char* msgOut = malloc(3+payloadLen);
+				NIPC_createCharMsg(msgOut,HANDSHAKE,payloadLen,errorMsg);
+				COMM_send(msgOut,fd);
+				log_error(Log,"Main","%s",errorMsg);
+				free(errorMsg);
+				free(msgOut);
+				exit(1);
+			}
 			break;
-
+		}
 		case PPDCONSOLE_INFO:{
 			CHS_t* CHSPosition = COMMON_turnToCHS(HeadPosition);
 
