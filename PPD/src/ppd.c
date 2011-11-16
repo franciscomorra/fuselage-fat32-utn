@@ -28,8 +28,6 @@
 #include "ppd_FSCAN.h"
 #include "ppd_pfsList.h"
 
-#define SOCK_PATH "/home/utn_so/CONSOLE_socket"
-
 uint32_t Cylinder;
 uint32_t Head;
 uint32_t Sector;
@@ -39,15 +37,17 @@ uint32_t SectorJumpTime;
 uint32_t bytes_perSector;
 uint32_t file_descriptor;
 uint32_t TracePosition;
+uint32_t ReadTime;
+uint32_t WriteTime;
 flag_t Algorithm;
 multiQueue_t* multiQueue;
 sem_t mainMutex;
 t_log* Log;
+e_message_level LogFlag;
 queue_t pfsList;
 
 int main(int argc, char *argv[])
 {
-	file_descriptor = open("/home/utn_so/FUSELAGE/fat32.disk",O_RDWR);
 	bytes_perSector = 512;
 	multiQueue = malloc(sizeof(multiQueue_t));
 	QUEUE_initialize(&pfsList);
@@ -55,23 +55,27 @@ int main(int argc, char *argv[])
 	uint32_t newFD;						//nuevo descriptor de socket de alguna nueva conexion
 	uint32_t FDmax;						//mayor descriptor de socket
 	uint32_t addrlen;
-	uint32_t StartingMode;
+	uint32_t startingMode;
 	uint32_t currFD;					//current fd sirve para saber que fd tuvo cambios
 	uint32_t RPM;						//No es global ya que solo me interesa comunicar el SectorJumpTime
 	uint32_t port;
 	uint32_t diskID;
-	char* IP = malloc(sizeof(char)*15);
+	char* IP;
+	char* sockUnixPath;
+	char* diskFilePath;
+	char* consolePath;
+	flag_t initialDirection;
 	socketUnix_t consoleListen;			//estructura socket de escucha correspondiente a la consola
 	socketInet_t inetListen;			//estructura socket de escucha correspondiente a la consola
 	socketUnix_t newSocket;				//nueva estructura de socket que contendra datos de una nueva conexión
 	struct sockaddr_in remoteaddr;		//struct correspondiente a una nueva conexion
 	fd_set masterFDs;					//conjunto total de FDs que queremos administrar
 	fd_set readFDs;						//conjunto de FDs de los que deseamos recibir datos
+
 	sem_init(&(multiQueue->queueElemSem),0,0);
 	sem_init(&mainMutex,0,1);
 	multiQueue->qflag = QUEUE2_ACTIVE;
 
-	Log = log_create("PPD","/home/utn_so/Desktop/logPPD",INFO,M_CONSOLE_DISABLE);
 /*
 	int i;														// temporal
  	//uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};	// temporal
@@ -79,7 +83,7 @@ int main(int argc, char *argv[])
 	//uint32_t vec[1] = {0};
  	uint32_t* p = malloc(6*sizeof(uint32_t));					// temporal
  	memcpy(p,vec,6*4);											// temporal
-*/
+
 	config_param *ppd_config;
 	CONFIG_read("config/ppd.config",&ppd_config);
 
@@ -100,6 +104,11 @@ int main(int argc, char *argv[])
 		StartingMode = MODE_LISTEN;
 	else
 		StartingMode = MODE_CONNECT;
+*/
+	COMMON_readPPDConfig(&RPM,&port,&diskID,&startingMode,&IP,
+		&sockUnixPath,&diskFilePath,&consolePath,&initialDirection);
+
+	Log = log_create("PPD","/home/utn_so/Escritorio/logPPD",LogFlag,M_CONSOLE_DISABLE);
 
 	multiQueue->queue1 = malloc(sizeof(queue_t));
 	QUEUE_initialize(multiQueue->queue1);
@@ -110,7 +119,7 @@ int main(int argc, char *argv[])
 					perror("error creacion de thread ");
 	} else {
 		multiQueue->qflag = QUEUE1_ACTIVE;
-		multiQueue->direction = UP;											//TODO hacerlo por configuracion?
+		multiQueue->direction = initialDirection;											//TODO hacerlo por configuracion?
 		multiQueue->queue2 = malloc(sizeof(queue_t));
 		QUEUE_initialize(multiQueue->queue2);
 		if(pthread_create(&TAKERtid,NULL,(void*)TAKER_main,FSCAN_getNext))
@@ -129,17 +138,19 @@ int main(int argc, char *argv[])
 */
 	switch(fork()){ 																	//ejecuta la consola
 		case 0: 																		//si crea un nuevo proceso entra por esta rama
-			execl("/home/utn_so/Desktop/trabajos/PPD_Console/Debug/PPD_Console",NULL); 	//ejecuta la consola en el nuevo proceso
+			execl(consolePath,NULL); 	//ejecuta la consola en el nuevo proceso
 			break;
 		case -1:																		//se creo mal el proceso
 			perror("fork");
 			break;
 	}
 
-	consoleListen = SOCKET_unix_create(SOCK_STREAM,SOCK_PATH,MODE_LISTEN);							//conecta la consola
+	file_descriptor = open(diskFilePath,O_RDWR);
 
-	inetListen = SOCKET_inet_create(SOCK_STREAM,IP,port,StartingMode);										//crea un descriptor de socket encargado de recibir conexiones entrantes
-	if(StartingMode == MODE_CONNECT)
+	consoleListen = SOCKET_unix_create(SOCK_STREAM,sockUnixPath,MODE_LISTEN);							//conecta la consola
+
+	inetListen = SOCKET_inet_create(SOCK_STREAM,IP,port,startingMode);										//crea un descriptor de socket encargado de recibir conexiones entrantes
+	if(startingMode == MODE_CONNECT)
 		COMM_RaidHandshake(inetListen,diskID);
 
 	FD_ZERO(&masterFDs);
@@ -158,7 +169,7 @@ int main(int argc, char *argv[])
 			perror("select");
 		for(currFD = 0; currFD <= FDmax; currFD++){
 			if(FD_ISSET(currFD,&readFDs)){															//hay datos nuevos
-				if((currFD == inetListen.descriptor) && (StartingMode == MODE_LISTEN)){																//nueva conexion tipo INET
+				if((currFD == inetListen.descriptor) && (startingMode == MODE_LISTEN)){																//nueva conexion tipo INET
 					addrlen = sizeof(remoteaddr);
 					if((newFD = accept(inetListen.descriptor,(struct sockaddr *)&remoteaddr,&addrlen))==-1)
 						perror("accept");
