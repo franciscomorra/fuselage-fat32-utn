@@ -96,11 +96,11 @@ void COMMON_queueStatus(queue_t* queue){
 }
 
 void COMMON_writeInLog(queue_t* queue,char* msg){
-	pthread_mutex_lock(&Log->mutex);
+	//pthread_mutex_lock(&Log->mutex);
 	log_info(Log,"TAKER",NULL);
 	if(Log->log_levels == INFO){
 		COMMON_queueStatus(queue);
 		log_showTrace(msg,Log->file,Sector,Head,Log);
 	}
-	pthread_mutex_unlock(&Log->mutex);
+	//pthread_mutex_unlock(&Log->mutex);
 }

@@ -37,11 +37,11 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 	while(1){
 		sem_wait(&multiQueue->queueElemSem);
 		TracePosition = HeadPosition;
-		queue_t* queue = QMANAGER_selectActiveQueue(multiQueue);
 		request_t* request;
 		queueNode_t* prevCandidate = NULL;
 
 		sem_wait(&mainMutex);
+		queue_t* queue = QMANAGER_selectActiveQueue(multiQueue);
 		uint32_t delay = getNext(queue,&prevCandidate,HeadPosition);
 		request = TAKER_takeRequest(queue,prevCandidate,&delay);
 		sem_post(&mainMutex);
@@ -125,7 +125,7 @@ char* TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint
 			write_sector(file_descriptor, sectorNum, request->payload);
 			msg = TRANSLATE_fromRequestToChar(request);
 			logMsg = COMMON_createLogChar(sectorNum,request,delay,getNext);
-			COMMON_writeInLog(queue,msg);
+			COMMON_writeInLog(queue,logMsg);
 			free(logMsg);
 			break;
 		}
