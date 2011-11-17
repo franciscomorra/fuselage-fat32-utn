@@ -5,7 +5,7 @@
 #include "nipc.h"
 #include "comm.h"
 
-char* COMM_receive(uint32_t currFD,uint32_t* dataRecieved){
+char* COMM_receive(uint32_t currFD,uint32_t* dataReceived){
 
 	char* msgHeader = malloc(3);								//alojo memoria para recibir la cabecera del mensaje (tipo y len)
 	char* msgIn = NULL;
@@ -35,7 +35,7 @@ uint32_t COMM_send(char* msg,uint32_t fd)
 	return dataSent;
 }
 
-char* COMM_receiveWithAdvise(uint32_t socket_fd,uint32_t* dataRecieved,size_t *msg_len)
+char* COMM_receiveWithAdvise(uint32_t socket_fd,uint32_t* dataReceived,size_t *msg_len)
 {
 	char *msgIn = malloc(1);
 	uint32_t advise_length = recv(socket_fd,msgIn,1,0);
@@ -56,7 +56,7 @@ char* COMM_receiveWithAdvise(uint32_t socket_fd,uint32_t* dataRecieved,size_t *m
 
 			while (left > 0)
 			{
-				last_received = recv(socket_fd,all_msgIn+(*dataRecieved),left,MSG_DONTWAIT);
+				last_received = recv(socket_fd,all_msgIn+(*dataReceived),left,MSG_DONTWAIT);
 				if (last_received >= 0)
 				{
 					*dataReceived += last_received;
@@ -67,7 +67,7 @@ char* COMM_receiveWithAdvise(uint32_t socket_fd,uint32_t* dataRecieved,size_t *m
 
 			return all_msgIn;
 		}
-		else if (msgIn[0] != WRITE_SECTORS && msgIn[0] != READ_SECTORS)
+		else if (msgIn[0] != WRITE_SECTORS && msgIn[0] != READ_SECTORS && msgIn[0] != HANDSHAKE)
 		{
 			printf("ERROR");
 
@@ -89,7 +89,7 @@ char* COMM_receiveWithAdvise(uint32_t socket_fd,uint32_t* dataRecieved,size_t *m
 
 			while (left > 0)
 			{
-				last_received = recv(socket_fd,msgIn+(*dataRecieved),left,MSG_DONTWAIT);
+				last_received = recv(socket_fd,msgIn+(*dataReceived),left,MSG_DONTWAIT);
 				if (last_received >= 0)
 				{
 					*dataReceived += last_received;
@@ -115,4 +115,24 @@ void COMM_sendAdvise(uint32_t socket_descriptor,uint32_t data_size,uint32_t msg_
 	*((uint32_t*) (msg+5)) = msg_size;
 	send(socket_descriptor,msg,9,0);
 	free(msg);
+}
+
+void COMM_sendHandshake(uint32_t fd,char* payload,uint32_t payload_len)
+{
+	char* handshake = malloc(3+payload_len);
+
+	*handshake == HANDSHAKE;
+	memcpy(handshake+1,&payload_len,2);
+
+	if (payload != NULL)
+		memcpy(handshake+3,payload,payload_len);
+
+	send(fd,handshake,payload_len+3,NULL);
+}
+
+char* COMM_receiveHandshake(uint32_t fd)
+{
+	uint32_t received;
+	uint32_t len;
+	return COMM_receiveWithAdvise(fd,&received,&len);
 }
