@@ -262,3 +262,47 @@ void log_showTrace(char* msg,FILE* stream,uint32_t Sector,uint32_t Head,t_log* l
 	fprintf(stream,"\n");
 
 }
+
+uint32_t log_writeHeaderWithoutMutex(t_log *log, const char *thread_name, e_message_level level) {
+	time_t log_time;
+	struct tm *log_tm;
+	struct timeb tmili;
+	char str_time[128];
+	unsigned int thread_id = pthread_self();
+	char *str_type = log_error_as_string(level);
+	char logbuff[LOG_MAX_MESSAGE_LENGTH + 100];
+	char msgbuff[LOG_MAX_MESSAGE_LENGTH];
+
+	if (!log_has_level(log, level)) {
+		return 1;
+	}
+
+
+	if ((log_time = time(NULL)) == -1) {
+		perror("[[CRITICAL]] :: Error getting date!");
+		return 0;
+	}
+
+	log_tm = localtime(&log_time);
+	strftime(str_time, 127, "%H:%M:%S", log_tm);
+
+	if (ftime(&tmili)) {
+		perror("[[CRITICAL]] :: Error getting time!");
+		return 0;
+	}
+
+	sprintf(logbuff, "%s:%hu %s/%d %s/%u %s:\n", str_time, tmili.millitm, log->program_name, log->program_pid, thread_name, thread_id, str_type);
+
+	if ( log->file != NULL ) {
+		fprintf(log->file, "%s", logbuff);
+		fflush(log->file);
+	}
+
+	if ( log->console_mode == M_CONSOLE_ENABLE ) {
+		printf("%s", logbuff);
+		fflush(stdout);
+	}
+
+	return 1;
+}
+
