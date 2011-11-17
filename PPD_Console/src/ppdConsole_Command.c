@@ -10,8 +10,8 @@
 #include "comm.h"
 #include "log.h"
 
-extern uint32_t Head;
-extern uint32_t Sector;
+extern uint32_t* Head;
+extern uint32_t* Sector;
 
 uint32_t console_info(uint32_t ppdFD) {
 
@@ -100,7 +100,7 @@ uint32_t console_trace(queue_t parameters,uint32_t len,uint32_t ppdFD){
 			perror("recv");
 			exit(1);
 		}
-		log_showTrace(msgIn,stdout,Sector,Head,NULL);
+		log_showTrace(msgIn,stdout,*Sector,*Head,NULL);
 	}
 	free(payload);
 	free(msgOut);
