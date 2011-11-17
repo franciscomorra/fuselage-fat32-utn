@@ -6,25 +6,25 @@
 #include "tad_sockets.h"
 
 #define CANTMAX (7*5)+6+5									//TEMPORAL (va la cantidad maxima de letras q tiene lo ingresado por teclado)
-#define SOCK_PATH "/home/utn_so/CONSOLE_socket"
 
-uint32_t Head;
-uint32_t Sector;
+uint32_t* Head;
+uint32_t* Sector;
 
-void main () {
+int main (int argc, char *argv[]) {
 	char* input = malloc(CANTMAX);							//aloco memoria para el ingreso del teclado
 	char* command = malloc(6*sizeof(char));					//aloco memoria para guardar el nombre del comando
+	char* sockUnixPath = malloc(100);
+	Head = malloc(sizeof(uint32_t));
+	Sector = malloc(sizeof(uint32_t));
 	queue_t parameters;
 	QUEUE_initialize(&parameters);							//aloco memoria para guardar los parametros
 	uint32_t len;
 
-	config_param *ppd_config;
-	CONFIG_read("/home/utn_so/Desktop/trabajos/PPD/config/ppd.config",&ppd_config);
+	*Head = (uint32_t)*argv[0];
+	*Sector = (uint32_t)*argv[1];
+	strcpy(sockUnixPath,argv[2]);
 
-	Head =  atoi(CONFIG_getValue(ppd_config,"Head"));					//
-	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));				//	leer archivo de configuración
-
-	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,SOCK_PATH,MODE_CONNECT);		//se coneccta al proceso PPD
+	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,sockUnixPath,MODE_CONNECT);		//se coneccta al proceso PPD
 	printf("Connected.\n");
 
 	printf("Ingrese un Comando\n");
@@ -64,7 +64,10 @@ void main () {
 
 	free(input);
 	free(command);
+	free(sockUnixPath);
+	free(Head);
+	free(Sector);
 	//hacer frees necesarios
-
+	return EXIT_SUCCESS;
 }
 
