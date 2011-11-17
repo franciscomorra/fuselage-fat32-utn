@@ -32,7 +32,7 @@ extern uint32_t HeadPosition;
 extern t_log* Log;
 
 uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
-
+//TODO agregar loggeo de informacion
 	switch (msgIn[0]) {
 		case HANDSHAKE:{
 			uint16_t msgLen;

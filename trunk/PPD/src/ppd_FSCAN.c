@@ -9,7 +9,6 @@
 
 extern multiQueue_t*  multiQueue;
 extern uint32_t Cylinder;
-extern uint32_t HeadPosition;
 extern uint32_t TracePosition;
 extern uint32_t TrackJumpTime;
 

@@ -23,7 +23,6 @@ extern uint32_t bytes_perSector;
 extern uint32_t TrackJumpTime;
 extern uint32_t TracePosition;
 extern uint32_t SectorJumpTime;
-extern t_log* Log;
 extern multiQueue_t* multiQueue;
 extern sem_t mainMutex;
 extern queue_t pfsList;
@@ -45,7 +44,7 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 		request = TAKER_takeRequest(queue,prevCandidate,&delay);
 		sem_post(&mainMutex);
 
-		char* msg = TAKER_handleRequest(queue,request,delay,getNext);
+		char* msg = TAKER_handleRequest(queue,request,delay,getNext,prevCandidate);
 
 		pfs_node_t* out_pfs = PFSLIST_getByFd(pfsList,request->sender);			//antes de devolver el pedido, busca su respectivo semaforo para que no hayan sobrescrituras
 		sem_wait(&out_pfs->sock_mutex);
@@ -58,7 +57,7 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 		else												//temporal, muestra los sectores atendidos
 			memcpy(&a,msg+3,4);								//
 		printf("%d\n",a);									//
-		fflush(0);											//hace que no se acumulen datos y los largue de a tandas
+		fflush(0);											//
 
 		free(msg);
 		free(request->payload);
@@ -68,7 +67,7 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 	}
 }
 
-char* TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t)){
+char* TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t),queueNode_t* prevCandidate){
 	uint32_t sectorNum = TAKER_turnToSectorNum(request->CHS);
 	char* msg;
 	char* logMsg;
@@ -78,37 +77,10 @@ char* TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint
 	switch (request->type)
 	{
 		case PPDCONSOLE_TRACE:{
-
 			msg = COMMON_createLogChar(sectorNum,request,delay,getNext);
-			COMMON_writeInLog(queue,msg);
+			COMMON_writeInLog(queue,msg,prevCandidate,request->CHS);
 
 			break;
-/*
-			queueNode_t* queueNext =NULL;												//Siguiente pedido en la cola en CHS
-			uint32_t nextSector;														//Siguiente pedido en la cola en Numero
-
-			uint32_t len = sizeof(uint32_t)*4;											//Tamaño del payload
-			request->payload = malloc(len);
-			memset(request->payload,0,len);
-
-			memcpy(request->payload,&HeadPosition,4);									//Si no hay proximo sector en la cola no copio nada al payload y disminuyo el Len
-			TAKER_updateHPos(sectorNum);
-			if(multiQueue->queueElemSem.__align != 0){
-				flag_t previousDirection = multiQueue->direction;						//guardamos la direccion del cabezal por si la busqueda del proximo sector nos cambia la direccion del mismo
-				QMANAGER_selectActiveQueue(multiQueue);
-				getNext(queue,&queueNext);												//Obtiene el proximo sector que mostrara segun la planificacion
-				if(queueNext == NULL)
-					nextSector = TAKER_turnToSectorNum(((request_t*)queue->begin->data)->CHS);
-				else
-					nextSector = TAKER_turnToSectorNum(((request_t*)queueNext->data)->CHS);
-				memcpy(request->payload+12,&nextSector,4);
-				multiQueue->direction = previousDirection;
-			} else len -= sizeof(uint32_t);
-
-			memcpy(request->payload+4,&distance,4);
-			memcpy(request->payload+8,&delay,4);
-			memcpy(request->len,&len,2);
-*/
 		}
 		case READ_SECTORS:{
 			request->payload = malloc(sizeof(char)*bytes_perSector);
@@ -116,7 +88,7 @@ char* TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint
 			memcpy(request->len, &bytes_perSector,2);
 			msg = TRANSLATE_fromRequestToChar(request);
 			logMsg = COMMON_createLogChar(sectorNum,request,delay,getNext);
-			COMMON_writeInLog(queue,msg);
+			COMMON_writeInLog(queue,logMsg,prevCandidate,request->CHS);
 			free(logMsg);
 			break;
 		}
@@ -124,7 +96,7 @@ char* TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint
 			write_sector(file_descriptor, sectorNum, request->payload);
 			msg = TRANSLATE_fromRequestToChar(request);
 			logMsg = COMMON_createLogChar(sectorNum,request,delay,getNext);
-			COMMON_writeInLog(queue,logMsg);
+			COMMON_writeInLog(queue,logMsg,prevCandidate,request->CHS);
 			free(logMsg);
 			break;
 		}
@@ -216,6 +188,8 @@ uint32_t TAKER_near(CHS_t* curr, CHS_t* headP,CHS_t* candidate,uint32_t (conditi
 	//se fija si la distancia entre A y head Position es menor que la de head Position y B
 	// si es asi devuelve 1
 	// si la distancia entre cilindros es igual lo deja a modo FIFO
+
+	//TODO ver el tema de prioridades
 	switch (condition(*curr,*headP)+(condition(*candidate,*headP))*2){
 		case 3:{
 			uint32_t distTrackCurrH = abs(curr->cylinder - headP->cylinder);

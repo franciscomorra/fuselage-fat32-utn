@@ -9,9 +9,9 @@
 #include "ppd_common.h"
 #include "ppd_taker.h"		//funcion getTimeSleep()
 #include "tad_queue.h"
+#include "ppd_qManager.h"
 
 extern multiQueue_t* multiQueue;
-extern uint32_t HeadPosition;
 
 uint32_t SSTF_getHead(queue_t* queue){			//TODO cambiar por getNext
 	queueNode_t* aux = queue->begin;
