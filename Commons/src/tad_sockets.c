@@ -41,17 +41,18 @@ socketInet_t SOCKET_inet_create(uint32_t style,char* address,uint32_t port,uint3
 
 	 if (mode == MODE_CONNECT)
 	 {
+/*
 		 struct in_addr ipv4addr;
-		 inet_pton(AF_INET, address, &ipv4addr);
+		 inet_aton(address, &ipv4addr);
 
-		 struct hostent* server = gethostbyaddr(&ipv4addr,sizeof(ipv4addr),sock_addr.sin_family);
+		 struct hostent* server = gethostbyaddr((const void* )&ipv4addr,sizeof(ipv4addr),sock_addr.sin_family);
 
 		 if (server == NULL)
 		 {
 				new_socket.status = SOCK_ENOHOST;
 				return new_socket;
 		 }
-
+*/
 		 sock_addr.sin_addr.s_addr = inet_addr(address);
 
 	    if (connect(sockfd,(struct sockaddr *) &sock_addr,sizeof(sock_addr)) < 0)
@@ -109,16 +110,6 @@ socketUnix_t SOCKET_unix_create(uint32_t style,char* path,uint32_t mode)
 
 	}
 
-/*
-	 if (mode == MODE_CONNECT)
-	 {
-	    if (connect(sockfd,(struct sockaddr *) &sock_addr,len) < 0)
-	    {
-	    	  error("ERROR connecting");
-	    }
-
-	 }
-*/
 	if(mode == MODE_CONNECT)
 		while(connect(sockfd,(struct sockaddr*) &sock_addr,len)==-1);
 
