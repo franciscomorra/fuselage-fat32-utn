@@ -130,9 +130,8 @@ void COMM_sendHandshake(uint32_t fd,char* payload,uint32_t payload_len)
 	send(fd,handshake,payload_len+3,NULL);
 }
 
-char* COMM_receiveHandshake(uint32_t fd)
+char* COMM_receiveHandshake(uint32_t fd,uint32_t* received)
 {
-	uint32_t received;
 	uint32_t len;
-	return COMM_receiveWithAdvise(fd,&received,&len);
+	return COMM_receiveWithAdvise(fd,received,&len);
 }
