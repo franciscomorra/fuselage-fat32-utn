@@ -2,9 +2,10 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <string.h>
+#include "nipc.h"
 #include "comm.h"
 
-char* COMM_receive(uint32_t currFD,uint32_t* dataReceived){
+char* COMM_receive(uint32_t currFD,uint32_t* dataRecieved){
 
 	char* msgHeader = malloc(3);								//alojo memoria para recibir la cabecera del mensaje (tipo y len)
 	char* msgIn = NULL;
@@ -25,45 +26,93 @@ char* COMM_receive(uint32_t currFD,uint32_t* dataReceived){
 uint32_t COMM_send(char* msg,uint32_t fd)
 {
 	uint16_t len;
-	uint32_t dataSent;
+	uint32_t dataSent = 0;
 	memcpy(&len,msg+1,2);
-	dataSent = send(fd,msg,len+3,0);
-
+	while (dataSent < len+3)
+	{
+		dataSent += send(fd,msg,len+3,0);
+	}
 	return dataSent;
 }
 
 char* COMM_receiveWithAdvise(uint32_t socket_fd,uint32_t* dataRecieved,size_t *msg_len)
 {
-	char *msg_len_buf = malloc(9);
-	uint32_t advise_length = recv(socket_fd,msg_len_buf,9,0);
-	char *msgIn;
+	char *msgIn = malloc(1);
+	uint32_t advise_length = recv(socket_fd,msgIn,1,0);
+
 
 	if (advise_length != 0)
 	{
-		if (msg_len_buf[0] == -1)
+		if (msgIn[0] == -1)
 		{
-			msgIn = malloc(*((uint32_t*) (msg_len_buf+1)));
-			*msg_len = *((uint32_t*) (msg_len_buf+5));
+			msgIn = realloc(msgIn,9);
+			recv(socket_fd,msgIn+1,8,0);
 
-			int32_t left = 0;
-			left = *((uint32_t*) (msg_len_buf+1));
-			uint32_t received = 0;
-			uint32_t total = 0;
+			*msg_len = *((uint32_t*) (msgIn+5));
+			int32_t left = *((int32_t*) (msgIn+1));
+			free(msgIn);
+			int32_t last_received = 0;
+			char *all_msgIn = malloc(left);
 
 			while (left > 0)
 			{
-				received = recv(socket_fd,msgIn+total,left,0);
-				total += received;
-				left -= received;
+				last_received = recv(socket_fd,all_msgIn+(*dataRecieved),left,MSG_DONTWAIT);
+				if (last_received >= 0)
+				{
+					*dataReceived += last_received;
+					left -= last_received;
+				}
+
 			}
-			*dataRecieved = total;
+
+			return all_msgIn;
+		}
+		else if (msgIn[0] != WRITE_SECTORS && msgIn[0] != READ_SECTORS)
+		{
+			printf("ERROR");
+
+		}
+		else
+		{
+			msgIn = realloc(msgIn,3);
+			recv(socket_fd,msgIn+1,2,0);
+
+			uint16_t len = *((uint16_t*) (msgIn+1));
+			*msg_len = len+3;
+
+			msgIn = realloc(msgIn,len+3);
+
+			int32_t left = len;
+			*dataReceived = 3;
+
+			int32_t last_received = 0;
+
+			while (left > 0)
+			{
+				last_received = recv(socket_fd,msgIn+(*dataRecieved),left,MSG_DONTWAIT);
+				if (last_received >= 0)
+				{
+					*dataReceived += last_received;
+					left -= last_received;
+				}
+
+			}
+
 			return msgIn;
 		}
-		free(msg_len_buf);
 	}
 	else
 	{
-		free(msg_len_buf);
 		return NULL;
 	}
+}
+
+void COMM_sendAdvise(uint32_t socket_descriptor,uint32_t data_size,uint32_t msg_size)
+{
+	char *msg = malloc(9);
+	*msg = 0xFF;
+	*((uint32_t*) (msg+1)) = data_size;
+	*((uint32_t*) (msg+5)) = msg_size;
+	send(socket_descriptor,msg,9,0);
+	free(msg);
 }
