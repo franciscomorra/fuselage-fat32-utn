@@ -9,6 +9,8 @@
 #define PPD_COMMON_H_
 
 #include <semaphore.h>
+
+#include "log.h"
 #include "nipc.h"
 #include "tad_queue.h"
 
@@ -64,7 +66,9 @@ void COMMON_passiveQueueStatus();
 
 void COMMON_writeInLog(queue_t* queue,char* msg,queueNode_t* prevCandidate,CHS_t* CHSrequest);
 
-void COMMON_readPPDConfig(uint32_t* RPM, uint32_t* port, uint32_t* diskID,uint32_t* startingMode, char** IP,
-		char** sockUnixPath,char** diskFilePath,char** consolePath,char** logPath,flag_t* initialDirection);
+void COMMON_readPPDConfig(uint32_t* port, uint32_t* diskID,uint32_t* startingMode, char** IP,
+		char** sockUnixPath,char** diskFilePath,char** consolePath,char** logPath,flag_t* initialDirection,e_message_level* logFlag);
+
+char* COMMON_getTypeByFlag(NIPC_type requestType);
 
 #endif /* PPD_COMMON_H_ */
