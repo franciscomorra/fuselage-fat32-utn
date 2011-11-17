@@ -44,7 +44,8 @@ praid_ppdThreadParam* PRAID_ValidatePPD(char* msgIn, uint32_t newPPD_FD)
 		memcpy(msgIn+7,&disk_sectors_rcv,4);
 
 		if(RAID_ACTIVE==true){
-			if(disk_sectors_rcv!=DISK_SECTORS_AMOUNT){
+			if(disk_sectors_rcv<DISK_SECTORS_AMOUNT){
+				print_Console("Disco es mas chico!",pthread_self());
 				return NULL;
 			}
 
@@ -52,6 +53,7 @@ praid_ppdThreadParam* PRAID_ValidatePPD(char* msgIn, uint32_t newPPD_FD)
 			if(disk_sectors_rcv > 0){
 				DISK_SECTORS_AMOUNT = disk_sectors_rcv; //No hace falta un mutex, el select va a hacer de a un pedido
 			}else{
+				print_Console("Sectores de disco vacios",pthread_self());
 				return NULL;
 			}
 		}
@@ -59,6 +61,7 @@ praid_ppdThreadParam* PRAID_ValidatePPD(char* msgIn, uint32_t newPPD_FD)
 		memcpy(msgIn+3,&diskID,4);
 		pthread_mutex_lock(&mutex_LIST);
 		if(PRAID_discoExiste(diskID)){
+			print_Console("Disco ya existe!!",pthread_self());
 			return NULL;
 		}
 		pthread_mutex_unlock(&mutex_LIST);
@@ -86,6 +89,8 @@ uint32_t PRAID_pfs_receive(char* msgIn,uint32_t fd)
 	{
 		//Pedido de READ:
 		case READ_SECTORS:{
+			print_Console("Pedido nuevo de READ",pthread_self());
+
 			pthread_mutex_lock(&mutex_LIST);
 			PRAID_ADD_READ(data_sublist);
 			pthread_mutex_unlock(&mutex_LIST);
@@ -94,6 +99,8 @@ uint32_t PRAID_pfs_receive(char* msgIn,uint32_t fd)
 		break;
 		//Pedido de WRITE:
 		case WRITE_SECTORS:{
+			print_Console("Pedido nuevo de WRITE",pthread_self());
+
 			pthread_mutex_lock(&mutex_LIST);
 			PRAID_ADD_WRITE(data_sublist);
 			pthread_mutex_unlock(&mutex_LIST);
@@ -119,10 +126,12 @@ uint32_t PRAID_pfs_receive(char* msgIn,uint32_t fd)
 uint32_t PRAID_ppd_receive(char*  msgIn,uint32_t fd)
 {
 
+
 	nipcMsg_t NIPCmsgIn = NIPC_toMsg(msgIn);
 
 	pthread_mutex_lock(&mutex_LIST);
 	uint32_t IDrequest= NIPC_getID(NIPCmsgIn);
+	print_Console("Respuesta de PPD",IDrequest);
 
 	praid_list_node* nodoBuscado = PRAID_SearchPPDBySocket(fd);
 	//Se fija que nodo de la lista tiene el socket del que proviene el pedido

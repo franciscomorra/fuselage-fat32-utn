@@ -9,6 +9,10 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "praid_ppd_handler.h"
 #include "praid_console.h"
 #include "log.h"
@@ -17,10 +21,7 @@
 #include "tad_queue.h"
 #include "nipc.h"
 #include "tad_sockets.h"
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+
 
 extern queue_t* WRITE_QUEUE;
 extern uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
@@ -60,7 +61,7 @@ void *ppd_handler_thread (void *thread_data)
 					print_Console("Fin Espera Sincronizacion",self_tid);
 					PRAID_Start_Synch();
 				}else{
-					//print_Console("Continua Espera Sincronizacion",self_tid);
+					print_Console("Continua Espera Sincronizacion",self_tid);
 				}
 				pthread_mutex_unlock(&mutex_LIST);
 
@@ -79,7 +80,6 @@ void *ppd_handler_thread (void *thread_data)
 
 						case UNREAD://PEDIDO NUEVO
 							pthread_mutex_unlock(&mutex_LIST);//Deja libre la cola mientras envias
-
 							char *msgToPPD = NIPC_toBytes(&current_sl_content->msg);
 							uint16_t msgToPPD_len = *((uint16_t*) current_sl_content->msg.len);
 							send(self_list_node->socketPPD,msgToPPD,msgToPPD_len+3,0);
@@ -91,13 +91,23 @@ void *ppd_handler_thread (void *thread_data)
 							if(current_sl_content->synch == true && current_sl_content->msg.type == WRITE_SECTORS){
 								if(sectorCount < DISK_SECTORS_AMOUNT){//Si no es el ultimo
 									sectorCount++;
+									uint32_t idpedido = 0;
+
+									uint32_t size = sizeof(uint32_t);
+									int size2 = 2*size;
+									char* msgOut = malloc(size2);
+
+									memcpy(msgOut,&idpedido,size);
+									memcpy(msgOut+size,&sectorCount,size);
+
 									print_Console("WRITE a DISCO (Sincronizacion) de:",self_tid);
 									praid_sl_content *new_data_sublist= malloc(sizeof(praid_sl_content));
 									new_data_sublist->synch = true;
 									new_data_sublist->status = UNREAD;//Unread
 									new_data_sublist->socketPFS = 0;//El socket va a estar vacio, es de sincronizacion
-									new_data_sublist->msg = NIPC_createMsg(READ_SECTORS,sizeof(uint32_t),(char*) &sectorCount);
-									//TODO Verificar NIPC (el ID del pedido a donde se pone?)
+									new_data_sublist->msg = NIPC_createMsg(READ_SECTORS,size2,msgOut);
+
+									free(msgOut);
 									PRAID_ADD_READ(new_data_sublist);
 								}else{//Si era el ultimo
 									self_list_node->ppdStatus = READY; //Cambia estado de PPD a ACTIVO

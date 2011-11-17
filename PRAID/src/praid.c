@@ -10,6 +10,11 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <stdbool.h>
+#include <arpa/inet.h>
+
 #include "config_manager.h"
 #include "praid_console.h"
 #include "praid_ppd_handler.h"
@@ -18,15 +23,11 @@
 #include "comm.h"
 #include "log.h"
 #include "tad_queue.h"
-#include <sys/types.h>
-#include <netinet/in.h>
-
 #include "tad_sockets.h"
-#include <stdbool.h>
-
+/*
 queue_t* pfs_list;
 queue_t* ppd_list;
-
+*/
 //datos para el select
 
 fd_set masterFDs;					//conjunto total de FDs que queremos administrar
@@ -42,11 +43,14 @@ struct sockaddr_in remoteaddr;		//struct correspondiente a una nueva conexion
 uint32_t addrlen;
 uint32_t currFD;
 
+/*
 queue_t ppdlist;
 queue_t responselist;
 pthread_mutex_t ppdlist_mutex;
 pthread_mutex_t responselist_mutex;
 pthread_mutex_t sync_mutex;
+*/
+
 
 t_log *raid_log_file;
 
@@ -86,10 +90,9 @@ int main(int argc,char **argv){
 
 	log_debug(raid_log_file,"PRAID","Inicio Proceso RAID");
 
-
-	socketInet_t listenPFS = SOCKET_inet_create(SOCK_STREAM,"NULL",PFS_Port,MODE_LISTEN);//TODO poner en Config (IP??)
+	socketInet_t listenPFS = SOCKET_inet_create(SOCK_STREAM,"NULL",PFS_Port,MODE_LISTEN);
 	sleep(1);//Porque el sleep?
-	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,"NULL",PPD_Port,MODE_LISTEN);//TODO poner en Config
+	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,"NULL",PPD_Port,MODE_LISTEN);
 	if (listenPPD.status != 0 || listenPFS.status != 0)
 	{
 		printf("ERROR AL ABRIR SOCKETS!");
@@ -114,6 +117,8 @@ int main(int argc,char **argv){
 					if((newPFS_FD = accept(currFD,(struct sockaddr *)&remoteaddr,&addrlen))==-1){
 						perror("accept");
 					}else{
+						print_Console("Nueva conexion PFS",pthread_self());
+
 						char* msgOut = malloc(4);
 						memset(msgOut,0,4);
 						msgOut[0] = HANDSHAKE; //Nuevo PFS
@@ -122,10 +127,14 @@ int main(int argc,char **argv){
 							FD_SET(newPFS_FD,&PFS_FDs);
 							if(newPFS_FD > FDmax)
 								FDmax = newPFS_FD;
+							print_Console("Conexion PFS aceptada",pthread_self());
+
 							send(newPFS_FD,msgOut,4,0);
 						}else{
 							msgOut[1] = 0x01;
 							msgOut[3] = 0xFF;
+							print_Console("Conexion PFS denegada, RAID inactivo",pthread_self());
+
 							send(newPFS_FD,msgOut,4,0);
 							close(newPFS_FD);
 						}
@@ -139,6 +148,7 @@ int main(int argc,char **argv){
 						uint32_t dataReceived;
 						char *msgIn = COMM_receive(currFD,&dataReceived);
 						praid_ppdThreadParam* ppdParam = PRAID_ValidatePPD(msgIn,newPPD_FD);
+						print_Console("Nueva conexion PPD",pthread_self());
 
 						free(msgIn);
 						char* msgOut = malloc(4);
@@ -153,12 +163,16 @@ int main(int argc,char **argv){
 							}
 							send(newPPD_FD,msgOut,4,0);
 							pthread_t main_ppd_thread;
+							print_Console("Conexion PPD aceptada",pthread_self());
+
 							pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,(void *)ppdParam);
 						}else{
 							msgOut[1] = 0x01;
 							msgOut[3] = 0xFF;
 							send(newPFS_FD,msgOut,4,0);
 							close(newPFS_FD);
+							print_Console("Conexion PPD denegada",pthread_self());
+
 						}
 
 					}
