@@ -79,6 +79,7 @@
 	void 	log_destroy(t_log *log);
 	void 	log_turnToCHS(uint32_t* sectorNum,t_CHS* CHS,uint32_t Sector,uint32_t Head);
 	void 	log_showTrace(char* msg,FILE* stream,uint32_t Sector,uint32_t Head,t_log* Log);
+	uint32_t log_writeHeaderWithoutMutex(t_log *log, const char *thread_name, e_message_level level);
 
 
 #endif /*OLD_LOG_H_*/
