@@ -246,7 +246,7 @@ uint32_t TAKER_reachedSector(uint32_t cylinder,CHS_t* headPosCHS){
 	if(cDistance == 0)
 		reachedSector = headPosCHS->sector;
 	else
-		reachedSector = ((cDistance*(TrackJumpTime/SectorJumpTime))%Sector + headPosCHS->sector)%Sector;	//TODO cambiar a coma flotante
+		reachedSector = ((cDistance*(TrackJumpTime/SectorJumpTime))%Sector + headPosCHS->sector)%Sector;
 
 	return reachedSector;
 }

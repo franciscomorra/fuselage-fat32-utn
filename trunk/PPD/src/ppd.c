@@ -43,7 +43,6 @@ flag_t Algorithm;
 multiQueue_t* multiQueue;
 sem_t mainMutex;
 t_log* Log;
-e_message_level LogFlag;
 queue_t pfsList;
 
 int main(int argc, char *argv[])
@@ -57,7 +56,6 @@ int main(int argc, char *argv[])
 	uint32_t addrlen;
 	uint32_t startingMode;
 	uint32_t currFD;					//current fd sirve para saber que fd tuvo cambios
-	uint32_t RPM;						//No es global ya que solo me interesa comunicar el SectorJumpTime
 	uint32_t port;
 	uint32_t diskID;
 	char* IP;
@@ -66,6 +64,7 @@ int main(int argc, char *argv[])
 	char* consolePath;
 	char* logPath;
 	flag_t initialDirection;
+	e_message_level logFlag;
 	socketUnix_t consoleListen;			//estructura socket de escucha correspondiente a la consola
 	socketInet_t inetListen;			//estructura socket de escucha correspondiente a la consola
 	socketUnix_t newSocket;				//nueva estructura de socket que contendra datos de una nueva conexión
@@ -77,39 +76,15 @@ int main(int argc, char *argv[])
 	sem_init(&mainMutex,0,1);
 	multiQueue->qflag = QUEUE2_ACTIVE;
 
-/*
-	int i;														// temporal
- 	//uint32_t vec[7] = {512,534, 802, 498, 816, 1526, 483};	// temporal
-	uint32_t vec[6] = {176,199,191,200,300,50};
-	//uint32_t vec[1] = {0};
- 	uint32_t* p = malloc(6*sizeof(uint32_t));					// temporal
- 	memcpy(p,vec,6*4);											// temporal
+	COMMON_readPPDConfig(&port,&diskID,&startingMode,&IP,
+		&sockUnixPath,&diskFilePath,&consolePath,&logPath,&initialDirection,&logFlag);
 
-	config_param *ppd_config;
-	CONFIG_read("config/ppd.config",&ppd_config);
-
-	Cylinder   = atoi(CONFIG_getValue(ppd_config,"Cylinder"));			//
-	Head =  atoi(CONFIG_getValue(ppd_config,"Head"));					//
-	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));				//
-	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));	//	leer archivo de configuración
-	HeadPosition = atoi(CONFIG_getValue(ppd_config,"HeadPosition"));	//
-	RPM = atoi(CONFIG_getValue(ppd_config,"RPM"));						//
-	port = atoi(CONFIG_getValue(ppd_config,"Port"));
-	diskID = atoi(CONFIG_getValue(ppd_config,"DiskID"));
-	strcpy(IP,CONFIG_getValue(ppd_config,"IP"));
-	if(strcmp("SSTF",CONFIG_getValue(ppd_config,"Algorithm")) == 0)		//
-		Algorithm = SSTF;
+	if(logFlag == OFF){
+		Log = malloc(sizeof(t_log));
+		Log->file =  NULL;
+	}
 	else
-		Algorithm = FSCAN;
-	if(strcmp("LISTEN",CONFIG_getValue(ppd_config,"StartingMode")) == 0)		//
-		StartingMode = MODE_LISTEN;
-	else
-		StartingMode = MODE_CONNECT;
-*/
-	COMMON_readPPDConfig(&RPM,&port,&diskID,&startingMode,&IP,
-		&sockUnixPath,&diskFilePath,&consolePath,&logPath,&initialDirection);
-
-	Log = log_create("PPD",logPath,LogFlag,M_CONSOLE_DISABLE);
+		Log = log_create("PPD",logPath,logFlag,M_CONSOLE_DISABLE);
 
 	multiQueue->queue1 = malloc(sizeof(queue_t));
 	QUEUE_initialize(multiQueue->queue1);
@@ -120,26 +95,16 @@ int main(int argc, char *argv[])
 					perror("error creacion de thread ");
 	} else {
 		multiQueue->qflag = QUEUE1_ACTIVE;
-		multiQueue->direction = initialDirection;											//TODO hacerlo por configuracion?
+		multiQueue->direction = initialDirection;
 		multiQueue->queue2 = malloc(sizeof(queue_t));
 		QUEUE_initialize(multiQueue->queue2);
 		if(pthread_create(&TAKERtid,NULL,(void*)TAKER_main,FSCAN_getNext))
 			perror("error creacion de thread ");
 	}
 
-	SectorJumpTime = (RPM*Sector)/60000;// RPm/60 -> RPs/1000 -> RPms*Sector = tiempo entre sectores
-/*
-	char* msg;
-	for(i = 0; i < 6; i++){
-		msg = COMM_createCharMessage(READ_SECTORS,4);				// temporal
-		memcpy(msg+3,p+i,4);										// temporal
- 		COMM_handleReceive(msg,1);
- 		free(msg);
-	}
-*/
 	switch(fork()){ 																	//ejecuta la consola
 		case 0: 																		//si crea un nuevo proceso entra por esta rama
-			execl(consolePath,NULL); 	//ejecuta la consola en el nuevo proceso
+			execl(consolePath,(char*)&Head,&Sector,sockUnixPath,NULL); 							//ejecuta la consola en el nuevo proceso
 			break;
 		case -1:																		//se creo mal el proceso
 			perror("fork");

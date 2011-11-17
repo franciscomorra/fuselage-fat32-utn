@@ -18,10 +18,10 @@ extern uint32_t Sector;
 extern uint32_t HeadPosition;
 extern uint32_t TracePosition;
 extern uint32_t TrackJumpTime;
+extern uint32_t SectorJumpTime;
 extern uint32_t ReadTime;
 extern uint32_t WriteTime;
 extern flag_t Algorithm;
-extern e_message_level LogFlag;
 extern multiQueue_t* multiQueue;
 extern t_log* Log;
 extern sem_t mainMutex;
@@ -134,8 +134,8 @@ void COMMON_passiveQueueStatus(){
 }
 
 void COMMON_writeInLog(queue_t* queue,char* msg,queueNode_t* prevCandidate,CHS_t* CHSrequest){
-	//pthread_mutex_lock(&Log->mutex);
-	log_info(Log,"TAKER",NULL);
+	pthread_mutex_lock(&Log->mutex);
+	log_writeHeaderWithoutMutex(Log,"TAKER",Log->log_levels);
 	if(Log->log_levels == INFO){
 		COMMON_activeQueueStatus(queue,prevCandidate,CHSrequest);
 		if(multiQueue->qflag != SSTF)
@@ -143,12 +143,12 @@ void COMMON_writeInLog(queue_t* queue,char* msg,queueNode_t* prevCandidate,CHS_t
 		fprintf(Log->file,"Cantidad Total de Pedidos: %d\n",(uint32_t)(multiQueue->queueElemSem.__align)+1);
 		log_showTrace(msg,Log->file,Sector,Head,Log);
 	}
-	//pthread_mutex_unlock(&Log->mutex);
+	pthread_mutex_unlock(&Log->mutex);
 }
 
 
-void COMMON_readPPDConfig(uint32_t* RPM, uint32_t* port, uint32_t* diskID,uint32_t* startingMode, char** IP,
-		char** sockUnixPath,char** diskFilePath,char** consolePath,char** logPath,flag_t* initialDirection){
+void COMMON_readPPDConfig(uint32_t* port, uint32_t* diskID,uint32_t* startingMode, char** IP,
+		char** sockUnixPath,char** diskFilePath,char** consolePath,char** logPath,flag_t* initialDirection,e_message_level* logFlag){
 	config_param *ppd_config;
 	CONFIG_read("config/ppd.config",&ppd_config);
 
@@ -157,7 +157,7 @@ void COMMON_readPPDConfig(uint32_t* RPM, uint32_t* port, uint32_t* diskID,uint32
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));				//
 	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));	//	leer archivo de configuración
 	HeadPosition = atoi(CONFIG_getValue(ppd_config,"HeadPosition"));	//
-	*RPM = atoi(CONFIG_getValue(ppd_config,"RPM"));						//
+	uint32_t RPM = atoi(CONFIG_getValue(ppd_config,"RPM"));						//
 	*port = atoi(CONFIG_getValue(ppd_config,"Port"));
 	*diskID = atoi(CONFIG_getValue(ppd_config,"DiskID"));
 	ReadTime = atoi(CONFIG_getValue(ppd_config,"ReadTime"));
@@ -193,13 +193,38 @@ void COMMON_readPPDConfig(uint32_t* RPM, uint32_t* port, uint32_t* diskID,uint32
 		*initialDirection = DOWN;
 
 	if(strcmp("INFO",CONFIG_getValue(ppd_config,"LogFlag"))==0)
-		LogFlag = INFO;
+		*logFlag = INFO;
 	else
 		if(strcmp("ERROR",CONFIG_getValue(ppd_config,"LogFlag"))==0)
-			LogFlag = ERROR;
+			*logFlag = ERROR;
 		else
-			LogFlag = OFF;
+			*logFlag = OFF;
+
+	SectorJumpTime = (RPM*Sector)/60000;// RPm/60 -> RPs/1000 -> RPms*Sector = tiempo entre sectores
 
 	CONFIG_destroyList(ppd_config);
 
 }
+
+char* COMMON_getTypeByFlag(NIPC_type requestType){
+	char* type = malloc(10);
+	switch(requestType){
+		case READ_SECTORS:{
+			strcpy(type,"Lectura");
+			break;
+		}
+		case WRITE_SECTORS:{
+			strcpy(type,"Escritura");
+			break;
+		}
+		case PPDCONSOLE_TRACE:{
+			strcpy(type,"Trace");
+			break;
+		}
+		default:
+			break;
+	}
+	return type;
+}
+
+

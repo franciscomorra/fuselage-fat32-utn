@@ -32,13 +32,12 @@ extern uint32_t HeadPosition;
 extern t_log* Log;
 
 uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
-//TODO agregar loggeo de informacion
 	switch (msgIn[0]) {
 		case HANDSHAKE:{
 			uint16_t msgLen;
 			memcpy(&msgLen,msgIn,2);
 			if(msgLen == 0)
-				COMM_send(msgIn,fd);  // TODO completar con mensaje de error cuando corresponda
+				COMM_send(msgIn,fd);
 			else {
 				uint16_t payloadLen = (strlen("El mensaje de Handshake es incorrecto")+1);
 				char* errorMsg = malloc(payloadLen);
@@ -68,6 +67,9 @@ uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 		default:{ // puede ser tanto de lectura, escritura o de tipo trace
 
 			request_t* request = TRANSLATE_fromCharToRequest(msgIn,fd);
+
+			log_info(Log,"Principal","Ingreso de pedido de sector: (%d:%d:%d) de tipo: %s\n",
+					request->CHS->cylinder,request->CHS->head,request->CHS->sector,COMMON_getTypeByFlag(request->type));
 
 			sem_wait(&mainMutex);
 			queue_t* queue = QMANAGER_selectPassiveQueue(multiQueue);
