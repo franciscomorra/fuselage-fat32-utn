@@ -4,15 +4,15 @@
  *  Created on: 09/10/2011
  *      Author: utn_so
  */
-#include <pthread.h>
-#include "praid_queue.h"
-#include "tad_queue.h"
-#include "praid_console.h"
-#include "log.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "praid_queue.h"
+#include "tad_queue.h"
+#include "praid_console.h"
+#include "log.h"
+
 
 extern bool RAID_ACTIVE; //0 INACTIVE - 1 ACTIVE
 extern queue_t* WRITE_QUEUE;
@@ -54,18 +54,28 @@ praid_list_node* PRAID_list_appendNode(pthread_t tid, praid_ppdThreadParam* main
 		CURRENT_READ = PRAID_LIST;
 	}
 	return nodoLISTA;
-
 }
 
 uint32_t PRAID_Start_Synch(void)
 {
 	uint32_t first_sector = 0;
+	uint32_t idpedido = 0;
+
+	uint32_t size = sizeof(uint32_t);
+	int size2 = 2*size;
+	char* msgOut = malloc(size2);
+
+	memcpy(msgOut,&idpedido,size);
+	memcpy(msgOut+size,&first_sector,size);
+
+
 	print_Console("Iniciando Sincronizacion",pthread_self());
 	log_debug(raid_log_file,"PRAID","Iniciando Sincronizacion");
 
 	praid_sl_content *data_sublist= malloc(sizeof(praid_sl_content));
 	data_sublist->synch = true;
-	data_sublist->msg = NIPC_createMsg(READ_SECTORS,sizeof(uint32_t),(char*) &first_sector);//TODO Verificar NIPC (ID del pedido?)
+	data_sublist->msg = NIPC_createMsg(READ_SECTORS,size2,msgOut);
+	free(msgOut);
 	data_sublist->status = 0;
 	data_sublist->socketPFS = 0;//Socket vacio, es de sincronizacion
 	PRAID_ADD_READ(data_sublist);
@@ -84,7 +94,7 @@ uint32_t PRAID_ADD_READ(praid_sl_content* data_sublist)
 	if(data_sublist->synch == true)
 		print_Console("READ a COLA (Sincronizacion) de:",CURRENT_READ->tid);
 	else
-		print_Console("READ en COLA de:",CURRENT_READ->tid);
+		print_Console("READ a COLA de:",CURRENT_READ->tid);
 
 return 0;
 }
@@ -208,6 +218,8 @@ uint32_t PRAID_clear_list_node(praid_list_node* nodo)
 		}
 		free (sl_node);
 	}
+	print_Console("Reasignados los nodos de las colas",pthread_self());
+
 	praid_list_node* aux = PRAID_LIST;
 	while(aux->next!=nodo){//Sacar de la lista de ppds
 		if(aux->next == NULL){
@@ -218,6 +230,8 @@ uint32_t PRAID_clear_list_node(praid_list_node* nodo)
 	aux->next = nodo->next;
 	free(nodo->colaSublista);
 	free(nodo);
+	print_Console("Thread Terminado",pthread_self());
+
 return 0;
 }
 
@@ -231,7 +245,6 @@ uint32_t PRAID_ActiveThreads_Amount(void)
 		}
 		aux = aux->next;
 	}
-
 	return count;
 }
 
@@ -240,10 +253,13 @@ bool PRAID_hay_discos_sincronizandose(void)
 	praid_list_node* aux_list_node = PRAID_LIST;
 	while(aux_list_node->next != NULL){ //Recorre toda la lista
 		if(aux_list_node->ppdStatus == SYNCHRONIZING){//Se esta sincronizando
+			print_Console("Ya hay un disco sincronizandose",pthread_self());
+
 			return true;
 		}
 		aux_list_node = aux_list_node->next;
 	}
+print_Console("No hay discos sincronizandoses",pthread_self());
 
 return false;
 }
@@ -252,12 +268,14 @@ bool PRAID_discoExiste(uint32_t diskID)
 {
 	praid_list_node* aux_list_node = PRAID_LIST;
 	while(aux_list_node->next != NULL){ //Recorre toda la lista
-		if(aux_list_node->diskID == diskID){//Se esta sincronizando
+		if(aux_list_node->diskID == diskID){
+			print_Console("El disco ya existe!",diskID);
+
 			return true;
 		}
 		aux_list_node = aux_list_node->next;
 	}
-
+print_Console("El ID del disco es nuevo",diskID);
 return false;
 }
 
@@ -265,14 +283,15 @@ return false;
 
 praid_list_node* PRAID_SearchPPDBySocket(uint32_t socketBuscado)
 {
-
 praid_list_node *aux = PRAID_LIST;
 	while (aux != NULL){
-		if (aux->socketPPD == socketBuscado)	{
+		if (aux->socketPPD == socketBuscado){
+			print_Console("Encontrado disco",aux->tid);
 			return aux;
 		}
 		aux = aux->next;
 	}
+print_Console("Disco con ese Socket no encontrado!!",0);
 return NULL;
 }
 
@@ -315,7 +334,7 @@ uint32_t NIPC_getID(nipcMsg_t msg)
 	memcpy(mensaje+3,&messageID,4);
 	free(mensaje);
 
-	//TODO Sacar ID Pedido del NIPC
+
 return 0;
 }
 
