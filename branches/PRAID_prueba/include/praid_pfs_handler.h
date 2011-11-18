@@ -9,14 +9,19 @@
 #define PRAID_PFS_HANDLER_H_
 #include <stdint.h>
 #include <stdbool.h>
+
 typedef struct pfs_response
 {
+	uint32_t request_id;
+	uint32_t write_count;
 	uint32_t pfs_fd;
 	uint32_t sector;
 	uint32_t ppd_fd;
-	bool sync_response;
+	bool sync_write_response;
+
 } pfs_response_t;
 
 void PFSRESPONSE_addNew(uint32_t sector, uint32_t ppd_fd,uint32_t pfs_fd);
 void* PFSHANDLER_sendResponse(uint32_t ppd_fd,char* msg);
+void PFSREQUEST_removeAll();
 #endif /* PRAID_PFS_HANDLER_H_ */
