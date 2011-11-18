@@ -21,16 +21,21 @@
 /*extern uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
 extern pthread_mutex_t mutex_LIST;
 extern t_log *raid_log_file;*/
-ppd_node_t *thread_info_node;
+
 extern queue_t ppdlist;
 extern pthread_mutex_t ppdlist_mutex;
 extern queue_t responselist;
 extern pthread_mutex_t responselist_mutex;
 extern pthread_mutex_t sync_mutex;
+extern uint32_t sync_write_count;
+extern uint32_t total_sectors;
+extern sem_t sync_ready_sem;
+extern pthread_mutex_t prueba_mutex;
 
 void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 {
 	pthread_mutex_lock(&ppdlist_mutex);
+	ppd_node_t *thread_info_node;
 	queueNode_t *new_request_node;
 	queueNode_t *cur_ppdnode = ppdlist.begin;
 	while (cur_ppdnode != NULL)
@@ -47,17 +52,26 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 	if (thread_info_node->status == WAIT_SYNCH)
 	{
 		pthread_mutex_lock(&sync_mutex);
+		sync_write_count = total_sectors;
+
 		uint32_t sector = 0;
-		uint32_t max_sectors = 524288;
-		for (;sector < max_sectors;sector++)
+		for (;sector < total_sectors;sector++)
 		{
-			nipcMsg_t msg = NIPC_createMsg(READ_SECTORS,sizeof(uint32_t),(char*) &sector);
-			char* msg_inBytes = NIPC_toBytes(&msg);
-			PFSREQUEST_addNew(thread_info_node->ppd_fd,msg_inBytes);
-			free(msg_inBytes);
-			NIPC_cleanMsg(&msg);
+			char *sync_msg = malloc(8);
+			*sync_msg = 0x01;
+			*((uint16_t*) (sync_msg+1)) = 8;
+			*((uint32_t*) (sync_msg+3)) = 0;
+			*((uint32_t*) (sync_msg+7)) = sector;
+
+			pthread_mutex_lock(&prueba_mutex);
+			PFSREQUEST_addNew(thread_info_node->ppd_fd,sync_msg);
+
+			free(sync_msg);
 		}
-		//TODO CAMBIAR ESTADO A READY
+		sem_wait(&sync_ready_sem);
+		sem_wait(&sync_ready_sem);
+		thread_info_node->status = READY;
+		sem_post(&sync_ready_sem);
 		pthread_mutex_unlock(&sync_mutex);
 	}
 	//SINCRONIZAR!!!! ENVIAR PEDIDO DE LECTURA DE TODOS LOS SECTORES A LOS OTROS DISCOS, CUANDO FUERON LEIDOS ENCOLARLOS EN LA COLA DE ESTE THREAD Y EMPEZAR A PROCESAR
@@ -69,26 +83,40 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 
 			 new_request_node = QUEUE_takeNode(&thread_info_node->request_list);
 			 pfs_request_t* new_request = (pfs_request_t*) new_request_node->data;
-			 char *msgToPPD = NIPC_toBytes(&new_request->msg);
-			 uint16_t msgToPPD_len = *((uint16_t*) new_request->msg.len);
-
-			 if (send(thread_info_node->ppd_fd,msgToPPD,msgToPPD_len+3) != -1)
+			 pthread_mutex_unlock(&thread_info_node->request_list_mutex);
+			  pthread_mutex_lock(&thread_info_node->sock_mutex);
+			  int32_t sent = COMM_send(new_request->msg,thread_info_node->ppd_fd);
+			  pthread_mutex_unlock(&thread_info_node->sock_mutex);
+			 if (sent != -1)
 			 {
+
 				 //ENVIO A PPD OK // TODO DEJAR EL PFS_REQUEST PERO MARCARLO COMO ENVIADO, AGREGARLE UN ID DE PEDIDO, EL ID DEL THREAD QUE SE ENCARGO DE PEDIRLO
 				 pthread_mutex_lock(&responselist_mutex);
 					pfs_response_t *new_response = malloc(sizeof(pfs_response_t));
 					new_response->pfs_fd = new_request->pfs_fd;
+					new_response->request_id = new_request->request_id;
 					new_response->ppd_fd = thread_info_node->ppd_fd;
-					new_response->sector = *((uint32_t*) (msgToPPD+3));
-					new_response->sync_response = false;
+					if (new_request->msg[0] == WRITE_SECTORS)
+					{
+						//printf("W%d -> PPD:%d\n",*((uint32_t*) (new_request->msg+7)),thread_info_node->ppd_fd);
+						new_response->write_count = QUEUE_length(&ppdlist);
+					}
+					else
+					{
+						//printf("R%d -> PPD:%d\n",*((uint32_t*) (new_request->msg+7)),thread_info_node->ppd_fd);
+						new_response->write_count = 0;
+					}
+					new_response->sector = *((uint32_t*) (new_request->msg+7));
+					new_response->sync_write_response = false;
 					QUEUE_appendNode(&responselist,new_response);
 				 pthread_mutex_unlock(&responselist_mutex);
 
 			 }
+
 			 PFSREQUEST_free(new_request);
 			 free(new_request_node);
 
-		pthread_mutex_unlock(&thread_info_node->request_list_mutex);
+
 	}
 	//SINCRONIZAR!!!!
 	//TODO Recibir cantidad de sectores en el HANDSHAKE
