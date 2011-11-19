@@ -9,7 +9,7 @@
 
 typedef struct pfs_node {
 	uint32_t sock_fd;
-	sem_t sock_mutex;
+	pthread_mutex_t sock_mutex;
 }pfs_node_t;
 
 void PFSLIST_addNew(queue_t* pfsList,uint32_t fd);

@@ -49,25 +49,24 @@ queueNode_t* QUEUE_takeNode(queue_t *line)
 	return tmp;
 }
 
-void QUEUE_destroyQueue(queue_t *line,uint32_t var_type)
+void QUEUE_destroyQueue(queue_t *line)
 {
 	queueNode_t* cur = (line)->begin;
 
-	if (cur != NULL)
+	while (cur != NULL)
 	{
-		while (cur != NULL)
-		{
-			QUEUE_freeNode(cur);
-			cur = cur->next;
-		}
+		queueNode_t* tmp = cur->next;
+		QUEUE_freeNode(cur);
+		cur = tmp;
 	}
+
 	free(line);
 }
 
 void QUEUE_freeNode(queueNode_t *node)
 {
 	assert(node != NULL);
-	free(node->data);
+//	free(node->data);
 	free(node);
 }
 
@@ -124,20 +123,17 @@ uint32_t QUEUE_length(queue_t *line)
 }
 
 
-void QUEUE_cleanQueue(queue_t *line,uint32_t var_type)
-{
+void QUEUE_cleanQueue(queue_t *line){
 	queueNode_t* cur = (line)->begin;
 
-	if (line->begin != NULL)
-	{
-		while (line->begin != NULL)
-		{
-			cur = QUEUE_takeNode(line);
-			// free(cur->data) me tira segmentation fault ayuda !!;
-			free(cur);
-		}
+	while (line->begin != NULL){
+		cur = QUEUE_takeNode(line);
+//		free((char*)cur->data);
+
+		free(cur);
 	}
 }
+
 
 
 

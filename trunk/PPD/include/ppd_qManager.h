@@ -23,4 +23,6 @@ uint32_t QMANAGER_toggleQFlag(flag_t*,queue_t*);
 
 uint32_t QMANAGER_toggleDirection(flag_t* direction);
 
+uint32_t QMANAGER_freeRequests(queue_t* queue);
+
 #endif /* PPD_QMANAGER_H_ */

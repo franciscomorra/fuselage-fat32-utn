@@ -67,3 +67,16 @@ uint32_t QMANAGER_toggleDirection(flag_t* direction){
 	return 1;
 }
 
+uint32_t QMANAGER_freeRequests(queue_t* queue){
+	queueNode_t* aux = queue->begin;
+
+	while (aux != NULL){
+		free(((request_t*)aux->data)->CHS);
+		free(((request_t*)aux->data)->payload);
+		aux = aux->next;
+	}
+
+	return 1;
+}
+
+

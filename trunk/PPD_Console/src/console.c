@@ -1,9 +1,13 @@
 #include <string.h>
 #include <sys/socket.h>
+
 #include "ppdConsole_input.h"
 #include "ppdConsole_Command.h"
 #include "config_manager.h"
 #include "tad_sockets.h"
+#include "nipc.h"
+#include "comm.h"
+#include "tad_queue.h"
 
 #define CANTMAX (7*5)+6+5									//TEMPORAL (va la cantidad maxima de letras q tiene lo ingresado por teclado)
 
@@ -23,7 +27,10 @@ int main (int argc, char *argv[]) {
 	*Head = (uint32_t)*argv[0];
 	*Sector = (uint32_t)*argv[1];
 	strcpy(sockUnixPath,argv[2]);
-
+/*
+	*Head = 1;
+	*Sector = 16;
+*/
 	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,sockUnixPath,MODE_CONNECT);		//se coneccta al proceso PPD
 	printf("Connected.\n");
 
@@ -50,10 +57,10 @@ int main (int argc, char *argv[]) {
 			console_trace(parameters,len,ppd_socket.descriptor);					//funcion que hace el trace
 
 
-		//TODO Si no reconoce el comando entonces lo informa.
+		//TODO Si no recosnoce el comando entonces lo informa.
 
 		memset(command,0,6);
-		QUEUE_cleanQueue(&parameters,0);
+		QUEUE_cleanQueue(&parameters);
 
 		printf("Ingrese un Comando\n");
 		if (fgets(input,CANTMAX,stdin) == 0 )				//se ingresa el proximo comando
@@ -62,6 +69,14 @@ int main (int argc, char *argv[]) {
 		CONSOLE_getCommand(input,command,&parameters,&len);
 	}
 
+	char* exitMsg = malloc(sizeof(char)*3);
+	NIPC_createCharMsg(exitMsg,PPDCONSOLE_EXIT,0,NULL);
+
+	if (COMM_send(exitMsg,ppd_socket.descriptor) == -1) {
+		perror("send");
+		exit(1);
+	}
+	free(exitMsg);
 	free(input);
 	free(command);
 	free(sockUnixPath);

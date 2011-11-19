@@ -63,13 +63,16 @@ uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 			free(CHSPosition);
 			break;
 		}
+		case PPDCONSOLE_EXIT:{
+			return 1;
+		}
 
 		default:{ // puede ser tanto de lectura, escritura o de tipo trace
-
 			request_t* request = TRANSLATE_fromCharToRequest(msgIn,fd);
-
+			char* msgType = COMMON_getTypeByFlag(request->type);
 			log_info(Log,"Principal","Ingreso de pedido de sector: (%d:%d:%d) de tipo: %s\n",
-					request->CHS->cylinder,request->CHS->head,request->CHS->sector,COMMON_getTypeByFlag(request->type));
+					request->CHS->cylinder,request->CHS->head,request->CHS->sector,msgType);
+			free(msgType);
 
 			sem_wait(&mainMutex);
 			queue_t* queue = QMANAGER_selectPassiveQueue(multiQueue);
@@ -148,11 +151,12 @@ void COMM_RaidHandshake(socketInet_t inetListen,uint32_t diskID){
 	NIPC_createCharMsg(handshake,HANDSHAKE,handshakeLen,handshakePayload);
 
 	COMM_send(handshake,inetListen.descriptor);
-	free(handshakePayload);
+ 	free(handshakePayload);
 	free(handshake);
 
 	uint32_t dataReceived = 0;
-	char* msgIn = COMM_receive(inetListen.descriptor,&dataReceived);
+	uint32_t len;
+	char* msgIn = COMM_receiveWithAdvise(inetListen.descriptor,&dataReceived,&len);
 	if(dataReceived > 3){
 		uint16_t len;
 		memcpy(&len,msgIn,2);

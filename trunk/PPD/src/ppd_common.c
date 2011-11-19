@@ -54,6 +54,7 @@ char* COMMON_createLogChar(uint32_t sectorNum,request_t* request,uint32_t delay,
 
 	uint16_t len = 3 + 6*sizeof(uint32_t); 																//cantidad de bytes alojados para el msg
 	char* msg = malloc(len);
+	len -= 3;
 	queueNode_t* queueNext = NULL;
 	uint32_t nextSector;																	//siguiente pedido, lo elije no lo saca
 	CHS_t* tracePosCHS = COMMON_turnToCHS(TracePosition);									//variable que determina si el algoritmo tuvo que irse a algun extremo
@@ -142,6 +143,7 @@ void COMMON_writeInLog(queue_t* queue,char* msg,queueNode_t* prevCandidate,CHS_t
 			COMMON_passiveQueueStatus();
 		fprintf(Log->file,"Cantidad Total de Pedidos: %d\n",(uint32_t)(multiQueue->queueElemSem.__align)+1);
 		log_showTrace(msg,Log->file,Sector,Head,Log);
+		fflush(Log->file);
 	}
 	pthread_mutex_unlock(&Log->mutex);
 }
@@ -164,19 +166,12 @@ void COMMON_readPPDConfig(uint32_t* port, uint32_t* diskID,uint32_t* startingMod
 	WriteTime = atoi(CONFIG_getValue(ppd_config,"WriteTime"));
 
 	*IP = malloc(strlen(CONFIG_getValue(ppd_config,"IP")));
-	strcpy(*IP,CONFIG_getValue(ppd_config,"IP"));
+	strncpy(*IP,CONFIG_getValue(ppd_config,"IP"),strlen(CONFIG_getValue(ppd_config,"IP")));
 
-	*sockUnixPath = malloc(strlen(CONFIG_getValue(ppd_config,"SockUnixPath")));
-	strcpy(*sockUnixPath,CONFIG_getValue(ppd_config,"SockUnixPath"));
-
-	*diskFilePath = malloc(strlen(CONFIG_getValue(ppd_config,"DiskFilePath")));
-	strcpy(*diskFilePath,CONFIG_getValue(ppd_config,"DiskFilePath"));
-
-	*consolePath = malloc(strlen(CONFIG_getValue(ppd_config,"ConsolePath")));
-	strcpy(*consolePath,CONFIG_getValue(ppd_config,"ConsolePath"));
-
-	*logPath = malloc(strlen(CONFIG_getValue(ppd_config,"LogPath")));
-	strcpy(*logPath,CONFIG_getValue(ppd_config,"LogPath"));
+	*sockUnixPath = CONFIG_getValue(ppd_config,"SockUnixPath");
+	*diskFilePath = CONFIG_getValue(ppd_config,"DiskFilePath");
+	*consolePath = CONFIG_getValue(ppd_config,"ConsolePath");
+	*logPath = CONFIG_getValue(ppd_config,"LogPath");
 
 	if(strcmp("SSTF",CONFIG_getValue(ppd_config,"Algorithm")) == 0)		//
 		Algorithm = SSTF;
