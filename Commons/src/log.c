@@ -254,7 +254,7 @@ void log_showTrace(char* msg,FILE* stream,uint32_t Sector,uint32_t Head,t_log* l
 	fprintf(stream,"\nTiempo Consumido: %dms\n",delay);
 
 	memcpy(&len,msg+1,2);
-	if(len == 27){
+	if(len == 24){
 	log_turnToCHS((uint32_t*)(msg+23),&CHS,Sector,Head);
 	fprintf(stream,"Proximo Sector: %d:%d:%d\n",CHS.cylinder,CHS.head,CHS.sector);
 	} else

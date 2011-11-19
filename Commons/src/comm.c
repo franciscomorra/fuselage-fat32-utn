@@ -27,10 +27,15 @@ uint32_t COMM_send(char* msg,uint32_t fd)
 {
 	uint16_t len;
 	uint32_t dataSent = 0;
+	int32_t sent = 0;
 	memcpy(&len,msg+1,2);
 	while (dataSent < len+3)
 	{
-		dataSent += send(fd,msg,len+3,0);
+		sent = send(fd,msg,len+3,MSG_DONTWAIT);
+		if (sent > 0)
+			dataSent += sent;
+		else
+			sleep(1);
 	}
 	return dataSent;
 }
@@ -67,7 +72,7 @@ char* COMM_receiveWithAdvise(uint32_t socket_fd,uint32_t* dataReceived,size_t *m
 
 			return all_msgIn;
 		}
-		else if (msgIn[0] != WRITE_SECTORS && msgIn[0] != READ_SECTORS && msgIn[0] != HANDSHAKE)
+		else if (msgIn[0] != WRITE_SECTORS && msgIn[0] != READ_SECTORS && msgIn[0] != HANDSHAKE && msgIn[0] != PPDCONSOLE_TRACE && msgIn[0] != PPDCONSOLE_INFO && msgIn[0] != PPDCONSOLE_EXIT)
 		{
 			printf("ERROR");
 

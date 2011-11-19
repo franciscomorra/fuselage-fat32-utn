@@ -20,6 +20,6 @@ void PFSLIST_addNew(queue_t* pfsList,uint32_t fd){
 	pfs_node_t* new_pfs = malloc(sizeof(pfs_node_t));
 
 	new_pfs->sock_fd = fd;
-	sem_init(&new_pfs->sock_mutex,0,1);
+pthread_mutex_init(&new_pfs->sock_mutex,NULL);
 	QUEUE_appendNode(pfsList,new_pfs);
 }

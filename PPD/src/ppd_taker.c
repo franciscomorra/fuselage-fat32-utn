@@ -28,10 +28,8 @@ extern sem_t mainMutex;
 extern queue_t pfsList;
 extern uint32_t HeadPosition;
 
-
 void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 {
-
 	while(1){
 		sem_wait(&multiQueue->queueElemSem);
 		TracePosition = HeadPosition;
@@ -47,9 +45,9 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 		char* msg = TAKER_handleRequest(queue,request,delay,getNext,prevCandidate);
 
 		pfs_node_t* out_pfs = PFSLIST_getByFd(pfsList,request->sender);			//antes de devolver el pedido, busca su respectivo semaforo para que no hayan sobrescrituras
-		sem_wait(&out_pfs->sock_mutex);
+		pthread_mutex_lock(&out_pfs->sock_mutex);
 		COMM_send(msg,request->sender);
-		sem_post(&out_pfs->sock_mutex);
+		pthread_mutex_unlock(&out_pfs->sock_mutex);
 
 		uint32_t a;											//
 		if(request->type != PPDCONSOLE_TRACE)				//
@@ -125,7 +123,7 @@ request_t* TAKER_takeRequest(queue_t* queue, queueNode_t* prevCandidate,uint32_t
 			queue->end = prevCandidate;
 	}
 	*delay += TAKER_distanceTime(request->CHS);
-	//sleep(*delay/1000);
+
 	free(candidate);
 	return request;
 }
@@ -183,19 +181,22 @@ void TAKER_updateHPos(uint32_t sectorNum){
 		HeadPosition = HeadPosition - Sector;
 }
 
-uint32_t TAKER_near(CHS_t* curr, CHS_t* headP,CHS_t* candidate,uint32_t (condition)(CHS_t,CHS_t)){
+uint32_t TAKER_near(request_t* curr, CHS_t* headP,request_t* candidate,uint32_t (condition)(CHS_t,CHS_t)){
 
 	//se fija si la distancia entre A y head Position es menor que la de head Position y B
 	// si es asi devuelve 1
 	// si la distancia entre cilindros es igual lo deja a modo FIFO
 
 	//TODO ver el tema de prioridades
-	switch (condition(*curr,*headP)+(condition(*candidate,*headP))*2){
+	switch (condition(*curr->CHS,*headP)+(condition(*candidate->CHS,*headP))*2){
 		case 3:{
-			uint32_t distTrackCurrH = abs(curr->cylinder - headP->cylinder);
-			uint32_t distTrackCandH = abs(candidate->cylinder - headP->cylinder);
+			uint32_t distTrackCurrH = abs(curr->CHS->cylinder - headP->cylinder);
+			uint32_t distTrackCandH = abs(candidate->CHS->cylinder - headP->cylinder);
 			if (distTrackCurrH < distTrackCandH)
 				return 2;
+			else if (distTrackCurrH == distTrackCandH)
+				if((curr->type == WRITE_SECTORS) && (candidate->type != WRITE_SECTORS))
+					return 2;
 			break;
 		}
 		case 1:{
@@ -216,13 +217,13 @@ uint32_t TAKER_getNextNode(queue_t* queue,uint32_t headPosition, queueNode_t** p
 
 	while(currNode->next != NULL){
 			if(*prevCandidate == NULL){																											//si apunta a NULL quiere decir que el candidato a sacar es el primero de la cola
-				if(TAKER_near(((request_t*)currNode->next->data)->CHS,headPCHS,((request_t*)queue->begin->data)->CHS,condition)>0){	//se fija si es preferible sacar el siguiente nodo al auxiliar que el primero de la cola
+				if(TAKER_near((request_t*)currNode->next->data,headPCHS,(request_t*)queue->begin->data,condition)>0){	//se fija si es preferible sacar el siguiente nodo al auxiliar que el primero de la cola
 					*prevCandidate = currNode;																									//si es conveniente sacarlo, le asigna al anterior al candidato el auxiliar
 					currNode = currNode->next;																											//avanza el auxiliar
 				} else
 					currNode = currNode->next;																									//si no es conveniente solo avanza el auxiliar
 			} else {
-				if(TAKER_near(((request_t*)currNode->next->data)->CHS,headPCHS,((request_t*)(*prevCandidate)->next->data)->CHS,condition)>0){	//se fija si es preferible sacar el siguiente nodo al auxiliar que el siguiente nodo al anterior al candidato
+				if(TAKER_near((request_t*)currNode->next->data,headPCHS,(request_t*)(*prevCandidate)->next->data,condition)>0){	//se fija si es preferible sacar el siguiente nodo al auxiliar que el siguiente nodo al anterior al candidato
 					*prevCandidate = currNode;																											//si es conveniente sacarlo, le asigna al anterior al candidato el auxiliar
 					currNode = currNode->next;																										//avanza el auxiliar
 				} else

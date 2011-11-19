@@ -35,7 +35,7 @@ uint32_t TrackJumpTime;
 uint32_t HeadPosition;
 uint32_t SectorJumpTime;
 uint32_t bytes_perSector;
-uint32_t file_descriptor;
+int32_t file_descriptor;
 uint32_t TracePosition;
 uint32_t ReadTime;
 uint32_t WriteTime;
@@ -44,6 +44,7 @@ multiQueue_t* multiQueue;
 sem_t mainMutex;
 t_log* Log;
 queue_t pfsList;
+
 
 int main(int argc, char *argv[])
 {
@@ -58,6 +59,7 @@ int main(int argc, char *argv[])
 	uint32_t currFD;					//current fd sirve para saber que fd tuvo cambios
 	uint32_t port;
 	uint32_t diskID;
+	uint32_t exit = 0;
 	char* IP;
 	char* sockUnixPath;
 	char* diskFilePath;
@@ -79,8 +81,19 @@ int main(int argc, char *argv[])
 	COMMON_readPPDConfig(&port,&diskID,&startingMode,&IP,
 		&sockUnixPath,&diskFilePath,&consolePath,&logPath,&initialDirection,&logFlag);
 
+	switch(fork()){ 																	//ejecuta la consola
+		case 0: 																		//si crea un nuevo proceso entra por esta rama
+			execl(consolePath,(char*)&Head,(char*)&Sector,sockUnixPath,NULL); 			//ejecuta la consola en el nuevo proceso
+			break;
+		case -1:
+			log_error(Log,"Principal","Error en la creación del fork()");
+			break;
+		}
+
 	if(logFlag == OFF){
 		Log = malloc(sizeof(t_log));
+		pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+		Log->mutex = mutex;
 		Log->file =  NULL;
 	}
 	else
@@ -92,33 +105,27 @@ int main(int argc, char *argv[])
 		multiQueue->qflag = SSTF;
 		multiQueue->direction = SSTF;
 		if(pthread_create(&TAKERtid,NULL,(void*)TAKER_main,SSTF_getNext)) 	//crea el thread correspondiente al TAKER
-					perror("error creacion de thread ");
+			log_error(Log,"Principal","Error en la creación thread con algoritmo SSTF");
 	} else {
 		multiQueue->qflag = QUEUE1_ACTIVE;
 		multiQueue->direction = initialDirection;
 		multiQueue->queue2 = malloc(sizeof(queue_t));
 		QUEUE_initialize(multiQueue->queue2);
 		if(pthread_create(&TAKERtid,NULL,(void*)TAKER_main,FSCAN_getNext))
-			perror("error creacion de thread ");
+			log_error(Log,"Principal","Error en la creación thread con algoritmo FSCAN");
 	}
 
-	switch(fork()){ 																	//ejecuta la consola
-		case 0: 																		//si crea un nuevo proceso entra por esta rama
-			execl(consolePath,(char*)&Head,&Sector,sockUnixPath,NULL); 							//ejecuta la consola en el nuevo proceso
-			break;
-		case -1:																		//se creo mal el proceso
-			perror("fork");
-			break;
-	}
-
-	file_descriptor = open(diskFilePath,O_RDWR);
+	if((file_descriptor = open(diskFilePath,O_RDWR)) == -1)
+		log_error(Log,"Principal","Error al asociar el disco con el proceso");
 
 	consoleListen = SOCKET_unix_create(SOCK_STREAM,sockUnixPath,MODE_LISTEN);							//conecta la consola
 
 	inetListen = SOCKET_inet_create(SOCK_STREAM,IP,port,startingMode);										//crea un descriptor de socket encargado de recibir conexiones entrantes
-	if(startingMode == MODE_CONNECT)
-		COMM_RaidHandshake(inetListen,diskID);
 
+	if(startingMode == MODE_CONNECT){
+		COMM_RaidHandshake(inetListen,diskID);
+		PFSLIST_addNew(&pfsList,inetListen.descriptor);
+	}
 	FD_ZERO(&masterFDs);
 	FD_SET(inetListen.descriptor,&masterFDs); 						//agrego el descriptor que recibe conexiones al conjunto de FDs
 	FD_SET(consoleListen.descriptor,&masterFDs);					//agrego el descriptor de la consola al conjunto de FDs
@@ -154,21 +161,47 @@ int main(int argc, char *argv[])
 					PFSLIST_addNew(&pfsList,newSocket.descriptor);
 					}
 				else { 																						//datos de un cliente
-					uint32_t dataReceived = 0;
-					pfs_node_t* in_pfs = PFSLIST_getByFd(pfsList,currFD);
-					sem_wait(&in_pfs->sock_mutex);
-					char* msgIn = COMM_receive(currFD,&dataReceived);
-					if(dataReceived == 0){																	//si es igual a cero cierra la conexion
+					uint32_t dataRecieved = 0;
+					uint32_t msg_len = 0;
+					pfs_node_t *in_pfs = PFSLIST_getByFd(pfsList,currFD);
+
+					pthread_mutex_lock(&in_pfs->sock_mutex);
+					char* msg_buf = COMM_receiveWithAdvise(currFD,&dataRecieved,&msg_len);
+					pthread_mutex_unlock(&in_pfs->sock_mutex);
+
+					if (msg_buf != NULL)
+					{
+						uint32_t msg_count = dataRecieved/msg_len;
+						uint32_t msg_index = 0;
+
+						for(;msg_index < msg_count;msg_index++)
+						{
+							exit = COMM_handleReceive(msg_buf+(msg_index*msg_len),currFD);
+						}
+						free(msg_buf);
+					}
+					else
+					{
 						close(currFD);
 						FD_CLR(currFD,&masterFDs);
-					} else {
-						COMM_handleReceive(msgIn,currFD);
-						free(msgIn);
 					}
-					sem_post(&in_pfs->sock_mutex);
 				}
 			}
 		}
+		if(exit == 1)
+			break;
 	}
+	log_destroy(Log);
+	free(IP);
+	free(sockUnixPath);
+	free(diskFilePath);
+	free(consolePath);
+	free(logPath);
+	QMANAGER_freeRequests(multiQueue->queue1);
+	QUEUE_destroyQueue(multiQueue->queue1);
+	if(Algorithm != SSTF)
+		QMANAGER_freeRequests(multiQueue->queue2);
+		QUEUE_destroyQueue(multiQueue->queue2);
+	free(multiQueue);
 	return 0;
 }

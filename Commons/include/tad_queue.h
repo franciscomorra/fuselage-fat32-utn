@@ -33,9 +33,10 @@ void QUEUE_appendNode(queue_t*,void*);
 queueNode_t* QUEUE_takeNode(queue_t*);
 queueNode_t* QUEUE_searchNode(queue_t*,void*,size_t);
 queueNode_t* QUEUE_createNode(void*);
-void QUEUE_destroyQueue(queue_t*,uint32_t);
+void QUEUE_destroyQueue(queue_t*);
 void QUEUE_freeNode(queueNode_t *);
 void QUEUE_freeByType(void*,uint32_t);
 uint32_t QUEUE_length(queue_t *);
-void QUEUE_cleanQueue(queue_t*,uint32_t);
+void QUEUE_cleanQueue(queue_t *line);
+
 #endif /* TAD_QUEUE_H_ */
