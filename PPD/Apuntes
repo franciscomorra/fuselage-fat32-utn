@@ -19,3 +19,5 @@ el problema de esta solucion es que podriamos llegar a estar en la misma... si l
 
 *Problema memcpy: No se como castear un char[2] a un int.
 -Posible Solucion: utilize el memcpy pasando una variable estatica int y copiando el contenido del char[2] a esta variable.
+
+*Path para crear los discos: mkfs.msdos -F 32 -S 512 -s 8 -C escritura.disk 524288
