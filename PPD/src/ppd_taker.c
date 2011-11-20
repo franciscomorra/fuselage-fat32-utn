@@ -30,6 +30,7 @@ extern uint32_t HeadPosition;
 
 void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 {
+	fd_set writeFDs;
 	while(1){
 		sem_wait(&multiQueue->queueElemSem);
 		TracePosition = HeadPosition;
@@ -44,10 +45,19 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 
 		char* msg = TAKER_handleRequest(queue,request,delay,getNext,prevCandidate);
 
-		pfs_node_t* out_pfs = PFSLIST_getByFd(pfsList,request->sender);			//antes de devolver el pedido, busca su respectivo semaforo para que no hayan sobrescrituras
-		pthread_mutex_lock(&out_pfs->sock_mutex);
-		COMM_send(msg,request->sender);
-		pthread_mutex_unlock(&out_pfs->sock_mutex);
+		//pfs_node_t* out_pfs = PFSLIST_getByFd(pfsList,request->sender);			//antes de devolver el pedido, busca su respectivo semaforo para que no hayan sobrescrituras
+
+		uint32_t sent = 0;
+		FD_ZERO(&writeFDs);
+		FD_SET(request->sender,&writeFDs);
+		if(select(request->sender +1,NULL,&writeFDs,NULL,NULL) == -1)
+			perror("select");
+		while(sent == 0){
+		if(FD_ISSET(request->sender,&writeFDs))
+			//pthread_mutex_lock(&out_pfs->sock_mutex);
+			sent = COMM_send(msg,request->sender);
+		//	pthread_mutex_unlock(&out_pfs->sock_mutex);
+		}
 
 		uint32_t a;											//
 		if(request->type != PPDCONSOLE_TRACE)				//
