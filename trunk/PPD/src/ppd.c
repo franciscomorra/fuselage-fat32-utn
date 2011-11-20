@@ -165,9 +165,9 @@ int main(int argc, char *argv[])
 					uint32_t msg_len = 0;
 					pfs_node_t *in_pfs = PFSLIST_getByFd(pfsList,currFD);
 
-					pthread_mutex_lock(&in_pfs->sock_mutex);
+					//pthread_mutex_lock(&in_pfs->sock_mutex);
 					char* msg_buf = COMM_receiveWithAdvise(currFD,&dataRecieved,&msg_len);
-					pthread_mutex_unlock(&in_pfs->sock_mutex);
+					//pthread_mutex_unlock(&in_pfs->sock_mutex);
 
 					if (msg_buf != NULL)
 					{
