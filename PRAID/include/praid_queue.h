@@ -12,6 +12,7 @@
 #include "nipc.h"
 #include "tad_queue.h"
 #include <stdbool.h>
+#include <semaphore.h>
 
 typedef enum {
 	READY=0, SYNCHRONIZING=1, WAIT_SYNCH=2, DISCONNECTED=3
@@ -24,6 +25,8 @@ typedef struct praid_list_node{
 	struct queue_t* colaSublista;
 	struct praid_list_node* next;
 	uint32_t diskID;
+	uint32_t ammount_synch;
+	sem_t request_list_sem;
 }praid_list_node;
 
 typedef enum {
@@ -37,10 +40,10 @@ typedef struct praid_sl_content{
 	PRAID_request_status status;
 }praid_sl_content;
 
-typedef struct praid_read_content{
+typedef struct praid_write_content{
 	uint32_t threads_left;
 	uint32_t IDrequest;
-}praid_read_content;
+}praid_write_content;
 
 typedef struct praid_ppdThreadParam{
 	uint32_t socketPPD;
@@ -49,19 +52,19 @@ typedef struct praid_ppdThreadParam{
 
 
 
-praid_list_node* PRAID_list_appendNode(pthread_t, praid_ppdThreadParam*);
+praid_list_node* PRAID_ADD_PPD_NODE(pthread_t, praid_ppdThreadParam*);
 uint32_t PRAID_ADD_READ(praid_sl_content*);
 uint32_t PRAID_ADD_WRITE(praid_sl_content*);
-uint32_t PRAID_clear_list_node(praid_list_node*);
-uint32_t PRAID_ActiveThreads_Amount(void);
-bool PRAID_hay_discos_sincronizandose(void);
-bool PRAID_discoExiste(uint32_t);
-uint32_t PRAID_Start_Synch(void);
-uint32_t PRAID_actualizar_CurrentRead(void);
-praid_list_node* PRAID_SearchPPDBySocket(uint32_t);
-queueNode_t* PRAID_Search_WRITE_Queue(uint32_t);
-queueNode_t* PRAID_Search_Requests_SL(uint32_t,queue_t*);
-uint32_t NIPC_getID(nipcMsg_t);
+uint32_t PRAID_REMOVE_PPD(praid_list_node*);
+uint32_t PRAID_ACTIVE_PPD_COUNT(void);
+//bool PRAID_hay_discos_sincronizandose(void);
+bool PRAID_DISK_ID_EXISTS(uint32_t);
+uint32_t PRAID_START_SYNCHR(void);
+uint32_t PRAID_REFRESH_CURRENT_READ(void);
+praid_list_node* PRAID_GET_PPD_FROM_FD(uint32_t);
+queueNode_t* PRAID_GET_WRITE_NODE_BY_ID(uint32_t);
+queueNode_t* PRAID_GET_REQUEST_BY_ID(uint32_t,queue_t*);
+//uint32_t NIPC_getID(nipcMsg_t);
 
 
 #endif /* PRAID_QUEUE_H_ */

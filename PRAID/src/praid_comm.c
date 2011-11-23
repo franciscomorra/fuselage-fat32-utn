@@ -38,14 +38,14 @@ extern pthread_mutex_t mutex_WRITE_QUEUE;
 praid_ppdThreadParam* PRAID_ValidatePPD(char* msgIn, uint32_t newPPD_FD)
 {
 	uint16_t len;
-	memcpy(msgIn+1,&len,2);
+	memcpy(&len,msgIn+1,2);
 	if(len == 8){
-		uint32_t disk_sectors_rcv;
-		memcpy(msgIn+7,&disk_sectors_rcv,4);
+		uint32_t disk_sectors_rcv = 0;
+		memcpy(&disk_sectors_rcv,msgIn+7,4);
 
 		if(RAID_ACTIVE==true){
-			if(disk_sectors_rcv<DISK_SECTORS_AMOUNT){
-				print_Console("Disco es mas chico!",pthread_self());
+			if(disk_sectors_rcv < DISK_SECTORS_AMOUNT){
+				print_Console("comm Disco es mas chico!",pthread_self());
 				return NULL;
 			}
 
@@ -53,15 +53,15 @@ praid_ppdThreadParam* PRAID_ValidatePPD(char* msgIn, uint32_t newPPD_FD)
 			if(disk_sectors_rcv > 0){
 				DISK_SECTORS_AMOUNT = disk_sectors_rcv; //No hace falta un mutex, el select va a hacer de a un pedido
 			}else{
-				print_Console("Sectores de disco vacios",pthread_self());
+				print_Console("comm Sectores de disco vacios",pthread_self());
 				return NULL;
 			}
 		}
 		uint32_t diskID;
-		memcpy(msgIn+3,&diskID,4);
+		memcpy(&diskID,msgIn+3,4);
 		pthread_mutex_lock(&mutex_LIST);
-		if(PRAID_discoExiste(diskID)){
-			print_Console("Disco ya existe!!",pthread_self());
+		if(PRAID_DISK_ID_EXISTS(diskID) == true){
+			print_Console("comm Disco ya existe!!",pthread_self());
 			return NULL;
 		}
 		pthread_mutex_unlock(&mutex_LIST);
@@ -78,7 +78,7 @@ return NULL;
 
 
 
-uint32_t PRAID_pfs_receive(char* msgIn,uint32_t fd)
+uint32_t PRAID_PFS_RECEIVE_REQUEST(char* msgIn,uint32_t fd)
 {
 	praid_sl_content* data_sublist = malloc(sizeof(praid_sl_content));
 	data_sublist->synch = false;
@@ -89,8 +89,7 @@ uint32_t PRAID_pfs_receive(char* msgIn,uint32_t fd)
 	{
 		//Pedido de READ:
 		case READ_SECTORS:{
-			print_Console("Pedido nuevo de READ",pthread_self());
-
+			print_Console("comm Pedido nuevo de READ",pthread_self());
 			pthread_mutex_lock(&mutex_LIST);
 			PRAID_ADD_READ(data_sublist);
 			pthread_mutex_unlock(&mutex_LIST);
@@ -99,22 +98,10 @@ uint32_t PRAID_pfs_receive(char* msgIn,uint32_t fd)
 		break;
 		//Pedido de WRITE:
 		case WRITE_SECTORS:{
-			print_Console("Pedido nuevo de WRITE",pthread_self());
-
+			print_Console("comm Pedido nuevo de WRITE",pthread_self());
 			pthread_mutex_lock(&mutex_LIST);
 			PRAID_ADD_WRITE(data_sublist);
 			pthread_mutex_unlock(&mutex_LIST);
-
-			praid_read_content* nodoREAD = malloc(sizeof(praid_read_content));
-
-			uint32_t IDpedido = NIPC_getID(data_sublist->msg);
-
-			nodoREAD->IDrequest = IDpedido;
-			nodoREAD->threads_left = PRAID_ActiveThreads_Amount();
-			pthread_mutex_lock(&mutex_WRITE_QUEUE);
-			QUEUE_appendNode(WRITE_QUEUE,nodoREAD);
-			pthread_mutex_unlock(&mutex_WRITE_QUEUE);
-
 		}
 		break;
 	}
@@ -123,24 +110,32 @@ uint32_t PRAID_pfs_receive(char* msgIn,uint32_t fd)
 }
 
 
-uint32_t PRAID_ppd_receive(char*  msgIn,uint32_t fd)
+uint32_t PRAID_PPD_RECEIVE_REQUEST(char*  msgIn,uint32_t fd)
 {
-
-
 	nipcMsg_t NIPCmsgIn = NIPC_toMsg(msgIn);
-
+	uint32_t IDrequest;
+	memcpy(&IDrequest,msgIn+3,4);
+	/*
 	pthread_mutex_lock(&mutex_LIST);
 	uint32_t IDrequest= NIPC_getID(NIPCmsgIn);
-	print_Console("Respuesta de PPD",IDrequest);
+	*/
+	print_Console("comm Respuesta de PPD",IDrequest);
+	praid_list_node* nodoBuscado = PRAID_GET_PPD_FROM_FD(fd);//Se fija que nodo de la lista tiene el socket del que proviene el pedido
+	if(nodoBuscado!=NULL){
 
-	praid_list_node* nodoBuscado = PRAID_SearchPPDBySocket(fd);
-	//Se fija que nodo de la lista tiene el socket del que proviene el pedido
-	queueNode_t* nodoSublista = PRAID_Search_Requests_SL(IDrequest,nodoBuscado->colaSublista);//Busca en la cola para el primer pedido que tenga el sector, y que este en estado ENVIADO
-	praid_sl_content* contenidoNodoSublista=((praid_sl_content*) nodoSublista->data);
-	contenidoNodoSublista->status = RECEIVED;
-	contenidoNodoSublista->msg = NIPCmsgIn;
-	pthread_mutex_unlock(&mutex_LIST);
+		queueNode_t* nodoSublista = PRAID_GET_REQUEST_BY_ID(IDrequest,nodoBuscado->colaSublista);//Busca en la cola para el primer pedido que tenga el sector, y que este en estado ENVIADO
+		if(nodoSublista!=NULL){
+			praid_sl_content* contenidoNodoSublista=((praid_sl_content*) nodoSublista->data);
+			contenidoNodoSublista->status = RECEIVED;
+			contenidoNodoSublista->msg = NIPCmsgIn;
+			sem_post(&nodoBuscado->request_list_sem);
+		}else{
+			print_Console("comm PPD ya estaba de baja para ese pedido",IDrequest);//ERROR DEL HANSHAKE
+		}
+	}else{
+		print_Console("comm PPD No encontrado",IDrequest);
 
+	}
 	return 0;
 }
 
@@ -223,21 +218,6 @@ uint32_t Create_Sockets_INET(uint32_t* listenFD){
 
 
 */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /*
