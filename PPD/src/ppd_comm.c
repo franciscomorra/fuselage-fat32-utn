@@ -27,15 +27,15 @@ extern uint32_t Sector;
 extern uint32_t Head;
 extern uint32_t Cylinder;
 extern multiQueue_t* multiQueue;
-extern sem_t mainMutex;
 extern uint32_t HeadPosition;
 extern t_log* Log;
+extern sem_t queueMutex;
 
 uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 	switch (msgIn[0]) {
 		case HANDSHAKE:{
 			uint16_t msgLen;
-			memcpy(&msgLen,msgIn,2);
+			memcpy(&msgLen,msgIn+1,2);
 			if(msgLen == 0)
 				COMM_send(msgIn,fd);
 			else {
@@ -70,16 +70,22 @@ uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 		default:{ // puede ser tanto de lectura, escritura o de tipo trace
 			request_t* request = TRANSLATE_fromCharToRequest(msgIn,fd);
 			char* msgType = COMMON_getTypeByFlag(request->type);
-			log_info(Log,"Principal","Ingreso de pedido de sector: (%d:%d:%d) de tipo: %s\n",
-					request->CHS->cylinder,request->CHS->head,request->CHS->sector,msgType);
-			free(msgType);
 
-			sem_wait(&mainMutex);
+			pthread_mutex_lock(&Log->mutex);
+			sem_wait(&queueMutex);
+			if(Log->log_levels == INFO){
+				log_writeHeaderWithoutMutex(Log,"Principal",Log->log_levels);
+				fprintf(Log->file,"Ingreso de pedido de sector: (%d:%d:%d) de tipo: %s\n",request->CHS->cylinder,request->CHS->head,request->CHS->sector,msgType);
+			}
+			sem_post(&multiQueue->queueElemSem);
 			queue_t* queue = QMANAGER_selectPassiveQueue(multiQueue);
 			QUEUE_appendNode(queue,request);
-			sem_post(&mainMutex);
+			sem_post(&queueMutex);
+			pthread_mutex_unlock(&Log->mutex);
 
-			sem_post(&multiQueue->queueElemSem);
+
+			free(msgType);
+
 
 			break;
 		}

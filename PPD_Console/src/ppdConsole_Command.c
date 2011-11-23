@@ -1,5 +1,8 @@
 #include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -43,11 +46,28 @@ uint32_t console_clean(queue_t parameters,uint32_t ppdFD){
 	uint32_t i;
 	char* payload = malloc(520);
 	char* msg = malloc(523);
+	fd_set readFDs;
+	uint32_t recvs = 0;
 
 	uint32_t firstSector = atoi(parameters.begin->data);
 	uint32_t lastSector = atoi(parameters.end->data);
 
 	for(i=firstSector;i<=lastSector;i++){
+		uint32_t recvLen=0;
+		struct timeval val;
+		val.tv_sec = 0;
+		val.tv_usec = 0;
+		FD_ZERO(&readFDs);
+		FD_SET(ppdFD,&readFDs);
+		select(ppdFD+1, &readFDs,NULL,NULL,&val);
+			if(FD_ISSET(ppdFD,&readFDs)){
+				recvs++;
+				COMM_receive(ppdFD,&recvLen);
+					if(recvLen == -1){
+						perror("recv");
+						exit(1);
+					}
+			}
 		memset(payload,0,sizeof(uint32_t));
 		memcpy(payload+4,&i,sizeof(uint32_t));
 		memset(payload+8,'\0',512);
@@ -58,12 +78,18 @@ uint32_t console_clean(queue_t parameters,uint32_t ppdFD){
 	    }
 	}
 	uint32_t recvLen=0;
-	for(i=firstSector;i<=lastSector;i++){
+	for(i=recvs;i<=lastSector;i++){
 		msg = COMM_receive(ppdFD,&recvLen);
 			if(recvLen == -1){
 				perror("recv");
 				exit(1);
 			}
+
+	/*	uint32_t numero;
+		memcpy(&numero,msg+7,4);
+		printf("consola: %d\n",numero);
+		fflush(0);
+		*/
 	}
 
 	printf("Se borro desde el sector: %d hasta el: %d\n",firstSector,lastSector);

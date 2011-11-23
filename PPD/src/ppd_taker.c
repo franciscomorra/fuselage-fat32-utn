@@ -3,6 +3,7 @@
 #include <string.h>
 #include <semaphore.h>
 #include <unistd.h>
+#include <sys/socket.h>
 
 #include "ppd_common.h"
 #include "ppd_comm.h"
@@ -27,6 +28,8 @@ extern multiQueue_t* multiQueue;
 extern sem_t mainMutex;
 extern queue_t pfsList;
 extern uint32_t HeadPosition;
+extern sem_t queueMutex;
+t_log* Log;
 
 void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 {
@@ -37,27 +40,11 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 		request_t* request;
 		queueNode_t* prevCandidate = NULL;
 
-		sem_wait(&mainMutex);
 		queue_t* queue = QMANAGER_selectActiveQueue(multiQueue);
 		uint32_t delay = getNext(queue,&prevCandidate,HeadPosition);
 		request = TAKER_takeRequest(queue,prevCandidate,&delay);
-		sem_post(&mainMutex);
 
 		char* msg = TAKER_handleRequest(queue,request,delay,getNext,prevCandidate);
-
-		//pfs_node_t* out_pfs = PFSLIST_getByFd(pfsList,request->sender);			//antes de devolver el pedido, busca su respectivo semaforo para que no hayan sobrescrituras
-
-		uint32_t sent = 0;
-		FD_ZERO(&writeFDs);
-		FD_SET(request->sender,&writeFDs);
-		if(select(request->sender +1,NULL,&writeFDs,NULL,NULL) == -1)
-			perror("select");
-		while(sent == 0){
-		if(FD_ISSET(request->sender,&writeFDs))
-			//pthread_mutex_lock(&out_pfs->sock_mutex);
-			sent = COMM_send(msg,request->sender);
-		//	pthread_mutex_unlock(&out_pfs->sock_mutex);
-		}
 
 		uint32_t a;											//
 		if(request->type != PPDCONSOLE_TRACE)				//
@@ -66,6 +53,26 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 			memcpy(&a,msg+3,4);								//
 		printf("%d\n",a);									//
 		fflush(0);											//
+
+		pfs_node_t* out_pfs = PFSLIST_getByFd(pfsList,request->sender);			//antes de devolver el pedido, busca su respectivo semaforo para que no hayan sobrescrituras
+		pthread_mutex_lock(&out_pfs->sock_mutex);
+		COMM_send(msg,request->sender);
+		pthread_mutex_unlock(&out_pfs->sock_mutex);
+/*
+		//sem_wait(&mainMutex);
+		uint32_t sent = 0;
+		FD_ZERO(&writeFDs);
+		FD_SET(request->sender,&writeFDs);
+		if(select(request->sender +1,NULL,&writeFDs,NULL,NULL) == -1)
+			perror("select");
+		while(sent == 0){
+			if(FD_ISSET(request->sender,&writeFDs))
+				//pthread_mutex_lock(&out_pfs->sock_mutex);
+				sent = COMM_send(msg,request->sender);
+				//pthread_mutex_unlock(&out_pfs->sock_mutex);
+		}
+		//sem_post(&mainMutex);
+*/
 
 		free(msg);
 		free(request->payload);
@@ -78,34 +85,31 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 char* TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t),queueNode_t* prevCandidate){
 	uint32_t sectorNum = TAKER_turnToSectorNum(request->CHS);
 	char* msg;
-	char* logMsg;
+
 //	CHS_t* tracePosCHS = COMMON_turnToCHS(TracePosition);
 //	uint32_t distance = TAKER_sectReachedDistance(request->CHS,tracePosCHS);				//Distancia entre el pedido solicitado y la headPosition
 
 	switch (request->type)
 	{
 		case PPDCONSOLE_TRACE:{
-			msg = COMMON_createLogChar(sectorNum,request,delay,getNext);
-			COMMON_writeInLog(queue,msg,prevCandidate,request->CHS);
+			msg = COMMON_writeInLog(queue,prevCandidate,request,sectorNum,getNext,delay);
 
 			break;
 		}
 		case READ_SECTORS:{
+			//char* logMsg;
 			request->payload = malloc(sizeof(char)*bytes_perSector);
-			read_sector(file_descriptor,sectorNum,request->payload);
+			IO_readDisk(sectorNum,request->payload);
 			memcpy(request->len, &bytes_perSector,2);
 			msg = TRANSLATE_fromRequestToChar(request);
-			logMsg = COMMON_createLogChar(sectorNum,request,delay,getNext);
-			COMMON_writeInLog(queue,logMsg,prevCandidate,request->CHS);
-			free(logMsg);
+			COMMON_writeInLog(queue,prevCandidate,request,sectorNum,getNext,delay);
 			break;
 		}
 		case WRITE_SECTORS:{
-			write_sector(file_descriptor, sectorNum, request->payload);
+			//char* logMsg;
+			IO_writeDisk(sectorNum, request->payload);
 			msg = TRANSLATE_fromRequestToChar(request);
-			logMsg = COMMON_createLogChar(sectorNum,request,delay,getNext);
-			COMMON_writeInLog(queue,logMsg,prevCandidate,request->CHS);
-			free(logMsg);
+			COMMON_writeInLog(queue,prevCandidate,request,sectorNum,getNext,delay);
 			break;
 		}
 		default:
