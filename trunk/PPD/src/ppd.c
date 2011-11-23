@@ -41,6 +41,7 @@ uint32_t ReadTime;
 uint32_t WriteTime;
 flag_t Algorithm;
 multiQueue_t* multiQueue;
+sem_t queueMutex;
 sem_t mainMutex;
 t_log* Log;
 queue_t pfsList;
@@ -76,6 +77,7 @@ int main(int argc, char *argv[])
 
 	sem_init(&(multiQueue->queueElemSem),0,0);
 	sem_init(&mainMutex,0,1);
+	sem_init(&queueMutex,0,1);
 	multiQueue->qflag = QUEUE2_ACTIVE;
 
 	COMMON_readPPDConfig(&port,&diskID,&startingMode,&IP,
@@ -115,8 +117,7 @@ int main(int argc, char *argv[])
 			log_error(Log,"Principal","Error en la creación thread con algoritmo FSCAN");
 	}
 
-	if((file_descriptor = open(diskFilePath,O_RDWR)) == -1)
-		log_error(Log,"Principal","Error al asociar el disco con el proceso");
+	uint32_t file_descriptor = IO_openDisk(diskFilePath);
 
 	consoleListen = SOCKET_unix_create(SOCK_STREAM,sockUnixPath,MODE_LISTEN);							//conecta la consola
 
@@ -140,6 +141,7 @@ int main(int argc, char *argv[])
 		readFDs = masterFDs;
 		if(select(FDmax+1, &readFDs,NULL,NULL,NULL) == -1)
 			perror("select");
+		//sem_wait(&mainMutex);
 		for(currFD = 0; currFD <= FDmax; currFD++){
 			if(FD_ISSET(currFD,&readFDs)){															//hay datos nuevos
 				if((currFD == inetListen.descriptor) && (startingMode == MODE_LISTEN)){																//nueva conexion tipo INET
@@ -176,6 +178,10 @@ int main(int argc, char *argv[])
 
 						for(;msg_index < msg_count;msg_index++)
 						{
+						/*	uint32_t numero;
+							memcpy(&numero,(msg_buf+(msg_index*msg_len))+7,4);
+							printf("entrada: %d\n",numero);
+							fflush(0);*/
 							exit = COMM_handleReceive(msg_buf+(msg_index*msg_len),currFD);
 						}
 						free(msg_buf);
@@ -188,6 +194,7 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
+	//	sem_post(&mainMutex);
 		if(exit == 1)
 			break;
 	}
@@ -203,5 +210,6 @@ int main(int argc, char *argv[])
 		QMANAGER_freeRequests(multiQueue->queue2);
 		QUEUE_destroyQueue(multiQueue->queue2);
 	free(multiQueue);
+	IO_closeDisk(file_descriptor);
 	return 0;
 }

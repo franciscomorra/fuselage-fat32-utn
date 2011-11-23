@@ -64,7 +64,7 @@ void COMMON_activeQueueStatus(queue_t* queue,queueNode_t* prevCandidate,CHS_t* C
 
 void COMMON_passiveQueueStatus();
 
-void COMMON_writeInLog(queue_t* queue,char* msg,queueNode_t* prevCandidate,CHS_t* CHSrequest);
+char* COMMON_writeInLog(queue_t* queue,queueNode_t* prevCandidate,request_t* request,uint32_t sectorNum,uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t),uint32_t delay);
 
 void COMMON_readPPDConfig(uint32_t* port, uint32_t* diskID,uint32_t* startingMode, char** IP,
 		char** sockUnixPath,char** diskFilePath,char** consolePath,char** logPath,flag_t* initialDirection,e_message_level* logFlag);

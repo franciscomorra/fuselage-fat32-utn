@@ -30,6 +30,9 @@ int main (int argc, char *argv[]) {
 /*
 	*Head = 1;
 	*Sector = 16;
+
+	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,"/home/utn_so/CONSOLE_socket",MODE_CONNECT);		//se coneccta al proceso PPD
+		printf("Connected.\n");
 */
 	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,sockUnixPath,MODE_CONNECT);		//se coneccta al proceso PPD
 	printf("Connected.\n");

@@ -67,16 +67,16 @@ char* COMMON_createLogChar(uint32_t sectorNum,request_t* request,uint32_t delay,
 	memcpy(msg+15,&delay,4);
 	memcpy(msg+19,&TracePosition,4);														//indica si se cambio de direccion para mostrar diferentes cosas en el trace o log
 
-	if(multiQueue->queueElemSem.__align != 0){
+	if(multiQueue->queueElemSem.__align > 0){
 
-		sem_wait(&mainMutex);
+		//sem_wait(&mainMutex);
 		flag_t previousDirection = multiQueue->direction;									//guardamos la direccion del cabezal por si la busqueda del proximo sector nos cambia la direccion del mismo
-		flag_t previousFlag = multiQueue->qflag;
+		//flag_t previousFlag = multiQueue->qflag;
 		queue_t* queue = QMANAGER_selectActiveQueue(multiQueue);
 		getNext(queue,&queueNext,sectorNum + 1);
 		multiQueue->direction = previousDirection;
-		multiQueue->qflag = previousFlag;
-		sem_post(&mainMutex);																//Obtiene el proximo sector que mostrara segun la planificacion
+		//multiQueue->qflag = previousFlag;
+		//sem_post(&mainMutex);																//Obtiene el proximo sector que mostrara segun la planificacion
 
 		if(queueNext == NULL)
 			nextSector = TAKER_turnToSectorNum(((request_t*)queue->begin->data)->CHS);
@@ -134,18 +134,35 @@ void COMMON_passiveQueueStatus(){
 	}
 }
 
-void COMMON_writeInLog(queue_t* queue,char* msg,queueNode_t* prevCandidate,CHS_t* CHSrequest){
-	pthread_mutex_lock(&Log->mutex);
-	log_writeHeaderWithoutMutex(Log,"TAKER",Log->log_levels);
+char* COMMON_writeInLog(queue_t* queue,queueNode_t* prevCandidate,request_t* request,uint32_t sectorNum,uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t),uint32_t delay){
+	char* logMsg;
 	if(Log->log_levels == INFO){
-		COMMON_activeQueueStatus(queue,prevCandidate,CHSrequest);
+		pthread_mutex_lock(&Log->mutex);
+
+		log_writeHeaderWithoutMutex(Log,"TAKER",Log->log_levels);
+		COMMON_activeQueueStatus(queue,prevCandidate,request->CHS);
+
 		if(multiQueue->qflag != SSTF)
 			COMMON_passiveQueueStatus();
+
 		fprintf(Log->file,"Cantidad Total de Pedidos: %d\n",(uint32_t)(multiQueue->queueElemSem.__align)+1);
-		log_showTrace(msg,Log->file,Sector,Head,Log);
+		logMsg = COMMON_createLogChar(sectorNum,request,delay,getNext);
+		log_showTrace(logMsg,Log->file,Sector,Head,Log);
 		fflush(Log->file);
+
+		pthread_mutex_unlock(&Log->mutex);
+		if(request->type != PPDCONSOLE_TRACE){
+			free(logMsg);
+			return NULL;
+		}
+		return logMsg;
+	}else if(request->type == PPDCONSOLE_TRACE){
+		logMsg = COMMON_createLogChar(sectorNum,request,delay,getNext);
+
+		return logMsg;
+	}else {
+		return NULL;
 	}
-	pthread_mutex_unlock(&Log->mutex);
 }
 
 

@@ -1,7 +1,9 @@
 #include <stdlib.h>
 #include "tad_queue.h"
 #include "ppd_qManager.h"
+#include "ppd_common.h"
 
+extern sem_t queueMutex;
 
 queue_t* QMANAGER_selectPassiveQueue(multiQueue_t* multiQueue){
 	if(multiQueue->qflag == QUEUE2_ACTIVE || multiQueue->qflag == SSTF)
@@ -50,10 +52,12 @@ conditionFunction_t QMANAGER_selectCondition(flag_t direction){
 
 uint32_t QMANAGER_toggleQFlag(flag_t* flag,queue_t* queue){
 	if(queue->begin == NULL){
+		sem_wait(&queueMutex);
 		if(*flag == QUEUE1_ACTIVE)
 			*flag = QUEUE2_ACTIVE;
 		else
 			*flag = QUEUE1_ACTIVE;
+		sem_post(&queueMutex);
 		return 1;
 	} else
 		return 0;

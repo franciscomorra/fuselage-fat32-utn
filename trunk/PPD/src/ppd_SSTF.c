@@ -10,10 +10,13 @@
 #include "ppd_qManager.h"
 
 extern multiQueue_t* multiQueue;
+extern sem_t queueMutex;
 
 uint32_t SSTF_getNext(queue_t* queue, queueNode_t** prevCandidate,uint32_t initialPosition){
 
+	sem_wait(&queueMutex);
 	TAKER_getNextNode(queue,initialPosition,prevCandidate,QMANAGER_selectCondition(multiQueue->direction));
+	sem_post(&queueMutex);
 
 	return 0;
 
