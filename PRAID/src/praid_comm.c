@@ -24,10 +24,10 @@
 #define PORT 9333
 extern bool RAID_ACTIVE;
 extern uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
-extern queue_t* WRITE_QUEUE;
+//extern queue_t* WRITE_QUEUE;
 
 extern pthread_mutex_t mutex_LIST;
-extern pthread_mutex_t mutex_WRITE_QUEUE;
+//extern pthread_mutex_t mutex_WRITE_QUEUE;
 
 #include "comm.h"
 //extern struct praid_list_node* PRAID_LIST;
@@ -83,13 +83,13 @@ uint32_t PRAID_PFS_RECEIVE_REQUEST(char* msgIn,uint32_t fd)
 	praid_sl_content* data_sublist = malloc(sizeof(praid_sl_content));
 	data_sublist->synch = false;
 	data_sublist->msg = NIPC_toMsg(msgIn);
-	data_sublist->socketPFS = fd;
+	data_sublist->socketRequest = fd;
 
 	switch (msgIn[0])
 	{
 		//Pedido de READ:
 		case READ_SECTORS:{
-			print_Console("comm Pedido nuevo de READ",pthread_self());
+			//print_Console("comm Pedido nuevo de READ",((uint32_t)msgIn+7));
 			pthread_mutex_lock(&mutex_LIST);
 			PRAID_ADD_READ(data_sublist);
 			pthread_mutex_unlock(&mutex_LIST);
@@ -98,7 +98,7 @@ uint32_t PRAID_PFS_RECEIVE_REQUEST(char* msgIn,uint32_t fd)
 		break;
 		//Pedido de WRITE:
 		case WRITE_SECTORS:{
-			print_Console("comm Pedido nuevo de WRITE",pthread_self());
+			//print_Console("comm Pedido nuevo de WRITE",((uint32_t)msgIn+7));
 			pthread_mutex_lock(&mutex_LIST);
 			PRAID_ADD_WRITE(data_sublist);
 			pthread_mutex_unlock(&mutex_LIST);
@@ -113,19 +113,31 @@ uint32_t PRAID_PFS_RECEIVE_REQUEST(char* msgIn,uint32_t fd)
 uint32_t PRAID_PPD_RECEIVE_REQUEST(char*  msgIn,uint32_t fd)
 {
 	nipcMsg_t NIPCmsgIn = NIPC_toMsg(msgIn);
+	uint32_t sector;
+	memcpy(&sector,msgIn+7,4);
 	uint32_t IDrequest;
 	memcpy(&IDrequest,msgIn+3,4);
+	free(msgIn);
 	/*
 	pthread_mutex_lock(&mutex_LIST);
 	uint32_t IDrequest= NIPC_getID(NIPCmsgIn);
 	*/
-	print_Console("comm Respuesta de PPD",IDrequest);
+	//print_Console("comm Respuesta de PPD Sector:",sector);
+	//print_Console("comm Respuesta de PPD ID:",IDrequest);
+
 	praid_list_node* nodoBuscado = PRAID_GET_PPD_FROM_FD(fd);//Se fija que nodo de la lista tiene el socket del que proviene el pedido
 	if(nodoBuscado!=NULL){
 
 		queueNode_t* nodoSublista = PRAID_GET_REQUEST_BY_ID(IDrequest,nodoBuscado->colaSublista);//Busca en la cola para el primer pedido que tenga el sector, y que este en estado ENVIADO
 		if(nodoSublista!=NULL){
+
 			praid_sl_content* contenidoNodoSublista=((praid_sl_content*) nodoSublista->data);
+			if(contenidoNodoSublista->msg.type==READ_SECTORS){
+				//print_Console("Actualizando pedido de READ",nodoBuscado->tid);
+			}else{
+				//print_Console("Actualizando pedido de WRITE",nodoBuscado->tid);
+			}
+
 			contenidoNodoSublista->status = RECEIVED;
 			contenidoNodoSublista->msg = NIPCmsgIn;
 			sem_post(&nodoBuscado->request_list_sem);
