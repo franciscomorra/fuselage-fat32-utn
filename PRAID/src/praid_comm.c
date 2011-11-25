@@ -45,7 +45,7 @@ praid_ppdThreadParam* PRAID_ValidatePPD(char* msgIn, uint32_t newPPD_FD)
 
 		if(RAID_ACTIVE==true){
 			if(disk_sectors_rcv < DISK_SECTORS_AMOUNT){
-				print_Console("comm Disco es mas chico!",pthread_self());
+				print_Console("comm Disco es mas chico!",pthread_self(),1,true);
 				return NULL;
 			}
 
@@ -53,7 +53,7 @@ praid_ppdThreadParam* PRAID_ValidatePPD(char* msgIn, uint32_t newPPD_FD)
 			if(disk_sectors_rcv > 0){
 				DISK_SECTORS_AMOUNT = disk_sectors_rcv; //No hace falta un mutex, el select va a hacer de a un pedido
 			}else{
-				print_Console("comm Sectores de disco vacios",pthread_self());
+				print_Console("comm Sectores de disco vacios",pthread_self(),1,true);
 				return NULL;
 			}
 		}
@@ -61,7 +61,7 @@ praid_ppdThreadParam* PRAID_ValidatePPD(char* msgIn, uint32_t newPPD_FD)
 		memcpy(&diskID,msgIn+3,4);
 		pthread_mutex_lock(&mutex_LIST);
 		if(PRAID_DISK_ID_EXISTS(diskID) == true){
-			print_Console("comm Disco ya existe!!",pthread_self());
+			print_Console("comm Disco ya existe!!",pthread_self(),1,true);
 			return NULL;
 		}
 		pthread_mutex_unlock(&mutex_LIST);
@@ -142,10 +142,10 @@ uint32_t PRAID_PPD_RECEIVE_REQUEST(char*  msgIn,uint32_t fd)
 			contenidoNodoSublista->msg = NIPCmsgIn;
 			sem_post(&nodoBuscado->request_list_sem);
 		}else{
-			print_Console("comm PPD ya estaba de baja para ese pedido",IDrequest);//ERROR DEL HANSHAKE
+			print_Console("comm PPD ya estaba de baja para ese pedido",IDrequest,1,true);//ERROR DEL HANSHAKE
 		}
 	}else{
-		print_Console("comm PPD No encontrado",IDrequest);
+		print_Console("comm PPD No encontrado",IDrequest,1,true);
 
 	}
 	return 0;

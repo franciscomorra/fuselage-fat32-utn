@@ -37,17 +37,17 @@ praid_list_node* PRAID_ADD_PPD_NODE(pthread_t tid, praid_ppdThreadParam* mainPar
 
 	free(mainParams);
 
-	print_Console("NUEVO PPD",pthread_self());//CONSOLE NEW PPD
+	print_Console("NUEVO PPD",pthread_self(),1,true);//CONSOLE NEW PPD
 	log_debug(raid_log_file,"PRAID","Nuevo PPD");
 
 	if(PRAID_ACTIVE_PPD_COUNT() > 0){ //Hay mas de un disco
 		nodoLISTA->ppdStatus = WAIT_SYNCH;
-		print_Console("PPD ESPERANDO PARA SINCRONIZACION ",pthread_self());
+		print_Console("PPD ESPERANDO PARA SINCRONIZACION ",pthread_self(),1,true);
 		sem_post(&nodoLISTA->request_list_sem);
 	}else{ //Primer Disco
 		nodoLISTA->ppdStatus = READY;
 		RAID_ACTIVE = true;
-		print_Console("----RAID ACTIVADO----",pthread_self());
+		print_Console("----RAID ACTIVADO----\n",pthread_self(),1,false);
 		log_debug(raid_log_file,"PRAID","RAID Activado");
 	}
 	nodoLISTA->colaSublista = subList;
@@ -73,7 +73,7 @@ uint32_t PRAID_START_SYNCHR(uint32_t self_socket)
 	memcpy(msgOut+size,&first_sector,size);
 
 
-	print_Console("INICIANDO SINCRONIZACION",pthread_self());
+	print_Console("INICIANDO SINCRONIZACION",pthread_self(),1,true);
 	log_debug(raid_log_file,"PRAID","Iniciando Sincronizacion");
 
 	praid_sl_content *data_sublist= malloc(sizeof(praid_sl_content));
@@ -106,7 +106,7 @@ uint32_t PRAID_ADD_READ(praid_sl_content* data_sublist)
 		sem_post(&CURRENT_READ->request_list_sem);
 		return 0;
 	}else{
-		print_Console("Error actualizando CURRENT_READ:",CURRENT_READ->tid);
+		print_Console("Error actualizando CURRENT_READ:",CURRENT_READ->tid,1,true);
 		return 1;
 	}
 }
@@ -175,7 +175,7 @@ uint32_t PRAID_ADD_WRITE(praid_sl_content* data_sublist)
 			sem_post(&aux_list_node->request_list_sem);
 //			print_Console("WRITE a COLA (Sincronizacion) de:",aux_list_node->tid);
 		}else{
-			print_Console("ERROR GRAVE AGREGANDO ESCRITURA:",data_sublist->socketRequest);
+			print_Console("ERROR AGREGANDO ESCRITURA PARA SINCRONIZACION ",pthread_self(),1,false);
 			return 1; //ERROR NO HAY NODOS SINCRONIZANDOSE!
 
 		}
@@ -191,13 +191,13 @@ uint32_t PRAID_ADD_WRITE(praid_sl_content* data_sublist)
 					if(requestedSector < aux_list_node->ammount_synch){
 						QUEUE_appendNode(aux_list_node->colaSublista, data_sublist);
 						sem_post(&aux_list_node->request_list_sem);
-						print_Console("Sector pedido es menor que el currentWrite en sync",0);
+						//print_Console("Sector pedido es menor que el currentWrite en sync",0);
 					}
 				}
 				//Si hay tiempo se lee del que se esta sincronizando
 				aux_list_node = aux_list_node->next;
 			}
-			print_Console("WRITE a COLA de TODOS LOS DISCOS",0);
+			print_Console("WRITE a COLA de TODOS LOS DISCOS",0,1,true);
 
 			uint32_t IDpedido; //= NIPC_getID(data_sublist->msg);
 
@@ -209,7 +209,7 @@ uint32_t PRAID_ADD_WRITE(praid_sl_content* data_sublist)
 			QUEUE_appendNode(WRITE_QUEUE,nodoREAD);
 			pthread_mutex_unlock(&mutex_WRITE_QUEUE);
 		}else{
-			print_Console("ERROR ADD WRITE, PRAID_LIST NULL",0);
+			print_Console("ERROR ADD WRITE, PRAID_LIST NULL",0,1,true);
 
 			return 1; //ERROR PRAID_LIST VACIA
 		}
@@ -255,7 +255,7 @@ uint32_t PRAID_REMOVE_PPD(praid_list_node* nodo)
 		}
 		free (sl_node);
 	}
-	print_Console("Reasignados los nodos de las colas",pthread_self());
+	print_Console("COLA DE PEDIDOS LIBERADA",pthread_self(),1,true);
 
 	//Sacar de la lista de ppds
 	if(PRAID_LIST == nodo){
@@ -268,22 +268,24 @@ uint32_t PRAID_REMOVE_PPD(praid_list_node* nodo)
 		if(anterior->next==nodo){
 			anterior->next = nodo->next;
 		}else{
-			print_Console("Error al eliminar nodo de lista de PPDs",pthread_self());
+			print_Console("Error al eliminar nodo de lista de PPDs",pthread_self(),1,true);
 			return 1;
 		}
 	}
 	free(nodo->colaSublista);
 	free(nodo);
+	print_Console("CANTIDAD DE DISCOS ACTIVOS: ",PRAID_ACTIVE_PPD_COUNT(),1,true);
 
 	if(SYNCHRONIZING_DISCS ==true && PRAID_ACTIVE_PPD_COUNT()==1){
 		SYNCHRONIZING_DISCS = false;
 	}
-	print_Console("CANTIDAD DE DISCOS ACTIVOS: ",PRAID_ACTIVE_PPD_COUNT());
 	if(PRAID_ACTIVE_PPD_COUNT()==0){
 		RAID_ACTIVE = false;//Lo reseteo
-		print_Console("----RAID DESACTIVADO----",pthread_self());
+		print_Console("----RAID DESACTIVADO----",pthread_self(),1,false);
 
 	}
+	print_Console("\n ",PRAID_ACTIVE_PPD_COUNT(),1,false);
+
 	return 0;
 }
 
@@ -306,19 +308,19 @@ uint32_t PRAID_ACTIVE_PPD_COUNT(void)
 bool PRAID_DISK_ID_EXISTS(uint32_t diskID)
 {
 	if(PRAID_LIST==NULL){
-		print_Console("El ID del disco es nuevo",diskID);
+		//print_Console("El ID del disco es nuevo",diskID);
 		return false;
 	}
 
 	praid_list_node* aux_list_node = PRAID_LIST;
 	do{
 		if(aux_list_node->diskID == diskID){
-			print_Console("El disco ya existe!",diskID);
+			print_Console("El disco ya existe!",diskID,1,true);
 			return true;
 		}
 		aux_list_node = aux_list_node->next;
 	}while(aux_list_node != NULL);
-print_Console("El ID del disco es nuevo",diskID);
+print_Console("El ID del disco es nuevo",diskID,1,true);
 return false;
 }
 
@@ -332,7 +334,7 @@ praid_list_node *aux = PRAID_LIST;
 		}
 		aux = aux->next;
 	}
-print_Console("DISCO SINCH NO ENCONTRADO",0);
+print_Console("DISCO SINCRONIZACION NO ENCONTRADO",pthread_self(),1,true);
 return NULL;
 }
 
@@ -346,7 +348,7 @@ praid_list_node *aux = PRAID_LIST;
 		}
 		aux = aux->next;
 	}
-print_Console("Disco con ese Socket no encontrado!!",0);
+print_Console("Disco con ese Socket no encontrado!!",0,1,true);
 return NULL;
 }
 
@@ -401,13 +403,13 @@ bool PRAID_hay_discos_sincronizandose(void)
 	praid_list_node* aux_list_node = PRAID_LIST;
 	while(aux_list_node->next != NULL){ //Recorre toda la lista
 		if(aux_list_node->ppdStatus == SYNCHRONIZING){//Se esta sincronizando
-			print_Console("Ya hay un disco sincronizandose",pthread_self());
+			print_Console("Ya hay un disco sincronizandose",pthread_self(),1,true);
 
 			return true;
 		}
 		aux_list_node = aux_list_node->next;
 	}
-print_Console("No hay discos sincronizandose",pthread_self());
+print_Console("No hay discos sincronizandose",pthread_self(),1,true);
 
 return false;
 	return SYNCHRONIZING_DISCS;
