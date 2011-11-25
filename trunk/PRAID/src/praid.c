@@ -89,21 +89,28 @@ int main(int argc,char **argv){
 	//QUEUE_initialize(WRITE_QUEUE);
 	//Fin Seteo de Variables Iniciales
 
-	print_Console("INICIO PROCESO RAID",(uint32_t)pthread_self());//CONSOLE WELCOME
+	print_Console("INICIO PROCESO RAID",(uint32_t)pthread_self(),1,true);//CONSOLE WELCOME
 
 	log_debug(raid_log_file,"PRAID","Inicio Proceso RAID");
-	sleep(1);//Porque el sleep?
-
+	print_Console("ABRIENDO PUERTOS...",(uint32_t)pthread_self(),1,false);//CONSOLE WELCOME
+	char* ip_ppd = "127.0.0.1";
+	sleep(1);
 	socketInet_t listenPFS = SOCKET_inet_create(SOCK_STREAM,"NULL",PFS_Port,MODE_LISTEN);
 	sleep(1);//Porque el sleep?
-	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",PPD_Port,MODE_LISTEN);
+	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,ip_ppd,PPD_Port,MODE_LISTEN);
 	if (listenPPD.status != 0 || listenPFS.status != 0)
 	{
-		print_Console("Error Abriendo Sockets",pthread_self());
-		print_Console("Puertos PPD:",listenPPD.status);
-		print_Console("Puertos PFS:",listenPFS.status);
+		print_Console("ERROR ABRIENDO PUERTOS",0,1,false);
+		print_Console("ESTADO PUERTO PPD:",listenPPD.status,1,true);
+		print_Console("ESTADO PUERTO PFS:",listenPFS.status,1,true);
 
 		exit(0);
+	}else{
+		print_Console("PUERTOS ABIERTOS",pthread_self(),1,false);
+		print_Console(ip_ppd,pthread_self(),1,false);
+		print_Console("ESPERANDO CONEXION DE DISCOS...",0,1,false);
+
+		//free(ip_ppd);
 	}
 	// Escuchar Sockets (select)
     FD_ZERO(&masterFDs);
@@ -116,7 +123,7 @@ int main(int argc,char **argv){
 		FD_ZERO(&readFDs);
 		readFDs = masterFDs;
 		if(select(FDmax+1, &readFDs,NULL,NULL,NULL) == -1){
-			//print_Console("Error Select",pthread_self());
+			//print_Console("Error Select",pthread_self(),1,true);
 			perror("select");
 		}
 		for(currFD = 0; currFD <= FDmax; currFD++){
@@ -128,11 +135,11 @@ int main(int argc,char **argv){
 					if((newPFS_FD = accept(currFD,(struct sockaddr *)&remoteaddr,&addrlen))==-1)
 					{
 						perror("accept");
-						print_Console("Error Conexion PFS",newPFS_FD);
+						print_Console("Error Conexion PFS",newPFS_FD,1,true);
 					}
 					else
 					{
-						print_Console("Nueva conexion PFS",newPFS_FD);
+						print_Console("Nueva conexion PFS",newPFS_FD,1,true);
 						if (RAID_ACTIVE == true){
 							FD_SET(newPFS_FD,&masterFDs);
 							FD_SET(newPFS_FD,&PFS_FDs);
@@ -141,7 +148,7 @@ int main(int argc,char **argv){
 							uint32_t received = 0;
 							COMM_receiveHandshake(newPFS_FD,&received);
 							COMM_sendHandshake(newPFS_FD,NULL,0);
-							print_Console("Conexion PFS aceptada",newPFS_FD);
+							print_Console("Conexion PFS aceptada",newPFS_FD,1,true);
 						}else{
 
 							char* handshake = malloc(4);
@@ -151,7 +158,7 @@ int main(int argc,char **argv){
 							handshake[3] = 0xFF;
 							send(newPFS_FD,handshake,4,0);
 							close(newPFS_FD);
-							print_Console("Conexion PFS denegada, no hay discos",pthread_self());
+							print_Console("Conexion PFS denegada, no hay discos",pthread_self(),1,true);
 							free(handshake);
 						}
 					}
@@ -161,12 +168,12 @@ int main(int argc,char **argv){
 					uint32_t newPPD_FD,addrlen = sizeof(remoteaddr);
 					if((newPPD_FD = accept(currFD,(struct sockaddr *)&remoteaddr,&addrlen))==-1)
 					{
-						print_Console("Error Conexion PPD",newPPD_FD);
+						print_Console("ERROR CONEXION DE DISCO, SOCKET",newPPD_FD,1,true);
 						perror("accept");
 					}
 					else
 					{
-						print_Console("CONEXION PPD DETECTADA",newPPD_FD);
+						print_Console("NUEVA CONEXION DE DISCO, SOCKET:",newPPD_FD,1,true);
 						uint32_t received = 0;
 						uint32_t len = 0;
 						char *handshake = COMM_receiveWithAdvise(newPPD_FD,&received,&len);
@@ -179,7 +186,7 @@ int main(int argc,char **argv){
 							}
 							pthread_t main_ppd_thread;
 							pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,(void *)ppdParam);
-							print_Console("CANTIDAD DE SECTORES",DISK_SECTORS_AMOUNT);
+							print_Console("CANTIDAD DE SECTORES",DISK_SECTORS_AMOUNT,1,true);
 
 							COMM_sendHandshake(newPPD_FD,NULL,0);
 						}else{//El handshake vino con errores
@@ -191,7 +198,7 @@ int main(int argc,char **argv){
 							send(newPPD_FD,handshake,4,0);
 							close(newPPD_FD);
 							free(handshake);
-							print_Console("Conexion PPD denegada",newPPD_FD);
+							print_Console("CONEXION DE DISCO DENEGADA",newPPD_FD,1,true);
 						}
 
 					}
@@ -203,19 +210,19 @@ int main(int argc,char **argv){
 						uint32_t dataReceived = 0;
 						uint32_t msg_len = 0;
 						char* msg_buf = COMM_receiveWithAdvise(currFD,&dataReceived,&msg_len);
-						print_Console("Recibida informacion de un PFS existente",currFD);
+						print_Console("Recibida informacion de un PFS existente",currFD,1,true);
 
 						if (msg_buf != NULL)
 						{
 							PRAID_PFS_RECEIVE_REQUEST(msg_buf,currFD);//Recibi del PFS
-							print_Console("El pedido de PFS no es vacio",currFD);
+							print_Console("El pedido de PFS no es vacio",currFD,1,true);
 						}
 						else
 						{
 							close(currFD);
 							FD_CLR(currFD,&masterFDs);
 							FD_CLR(currFD,&PFS_FDs);
-							print_Console("PFS DESCONECTADO - FIN",pthread_self());
+							print_Console("PFS DESCONECTADO - FIN",pthread_self(),1,true);
 							log_debug(raid_log_file,"PRAID","Apagado Proceso RAID, PFS desconectado");
 							//Antes envia todos los pedidos!
 							exit(0);
@@ -236,10 +243,11 @@ int main(int argc,char **argv){
 						{
 							if(msg_buf[0]==HANDSHAKE){//EL ERROR PUTO QUE ME ESTA TIRANDO AHORA, PPD SE BAJA CUANDO RECIBE EL HAND
 
-								print_Console("ERROR - RESPUESTA DE PPD EXISTENTE ES HANSHAKE",currFD);
+								print_Console("***ERROR - DOBLE HANSHAKE***",currFD,1,false);
 								close(currFD);
 								FD_CLR(currFD,&masterFDs);
 								FD_CLR(currFD,&PPD_FDs);
+								sleep(2);
 								pthread_mutex_lock(&mutex_LIST);
 								praid_list_node* nodoBuscado = PRAID_GET_PPD_FROM_FD(currFD);
 
@@ -269,12 +277,12 @@ int main(int argc,char **argv){
 								pthread_mutex_lock(&mutex_LIST);
 								praid_list_node* nodoBuscado = PRAID_GET_PPD_FROM_FD(currFD);
 								if(PRAID_ACTIVE_PPD_COUNT()==1){
-									print_Console("UNICO DISCO DESCONECTADO - FIN",pthread_self());
+									print_Console("UNICO DISCO DESCONECTADO - FIN",pthread_self(),1,true);
 									log_debug(raid_log_file,"PRAID","Apagado Proceso RAID, Unico PPD desconectado");
 									exit(0);
 								}
 								if(nodoBuscado->ppdStatus == READY && PRAID_ACTIVE_PPD_COUNT()==2 && SYNCHRONIZING_DISCS==true){
-									print_Console("MASTER DESCONECTADO MIENTRAS SINCRONIZABA - FIN",pthread_self());
+									print_Console("MASTER DESCONECTADO MIENTRAS SINCRONIZABA - FIN",pthread_self(),1,true);
 									log_debug(raid_log_file,"PRAID","Apagado Proceso RAID, Master desconectado mientras sincronizaba");
 									//ERROR GRAVE, SI SE QUIERE, QUE AGARRE EL PRIMER DISCO Y VACIE LA COLA DE PEDIDOS DEL PFS
 									exit(0);
@@ -282,7 +290,7 @@ int main(int argc,char **argv){
 								nodoBuscado->ppdStatus = DISCONNECTED;
 								sem_post(&nodoBuscado->request_list_sem);
 								pthread_mutex_unlock(&mutex_LIST);
-								print_Console("Estado de PPD DISCONNECTED",nodoBuscado->tid);
+								print_Console("Estado de PPD DISCONNECTED",nodoBuscado->tid,1,true);
 
 							}
 						}
@@ -292,52 +300,9 @@ int main(int argc,char **argv){
 			}
 		}
 	}
-print_Console("Adios Proceso RAID",(uint32_t)pthread_self());//CONSOLE WELCOME
+print_Console("Adios Proceso RAID",(uint32_t)pthread_self(),1,true);//CONSOLE WELCOME
 return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 //creacion Sockets listen

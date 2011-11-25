@@ -60,7 +60,7 @@ while(1){
 				self_list_node->ppdStatus = SYNCHRONIZING;
 				PRAID_START_SYNCHR(self_list_node->socketPPD);
 			}else{
-				print_Console("Continua Espera Sincronizacion",self_tid);
+				print_Console("Continua Espera Sincronizacion",self_tid,1,true);
 			}
 			pthread_mutex_unlock(&mutex_LIST);
 		break;
@@ -93,7 +93,7 @@ while(1){
 									char* msgOut = malloc(size2);//CREO PEDIDO NUEVO DE LECTURA PARA EL PROXIMO SECTOR
 									memcpy(msgOut,&idpedido,size);
 									memcpy(msgOut+size,&self_list_node->ammount_synch,size);
-									//print_Console("WRITE a DISCO (Sincronizacion) de:",self_tid);
+									//print_Console("WRITE a DISCO (Sincronizacion) de:",self_tid,1,true);
 									praid_sl_content *new_data_sublist= malloc(sizeof(praid_sl_content));
 									new_data_sublist->synch = true;
 									new_data_sublist->status = UNREAD;
@@ -104,7 +104,7 @@ while(1){
 								}else{//SI ES EL ULTIMO SECTOR
 									self_list_node->ppdStatus = READY; //Cambia estado de PPD a ACTIVO
 									SYNCHRONIZING_DISCS = false;
-									print_Console("FIN SINCRONIZACION: ",self_tid);
+									print_Console("FIN SINCRONIZACION: ",self_tid,1,true);
 									log_debug(raid_log_file,"PRAID","Fin Sincronizacion");
 								}
 							}else if(current_sl_content->msg.type == READ_SECTORS){//EL THREAD ES MASTER Y MANDO UN PEDIDOD AL DISCO PARA QUE LEA
@@ -117,7 +117,7 @@ while(1){
 						current_SL_node = current_SL_node->next;//PASO AL SIGUIENTE PEDIDO
 						pthread_mutex_unlock(&mutex_LIST);
 						//Inicio envio a PPD
-						//print_Console("PEDIDO ENVIADO A DISCO",self_tid);
+						//print_Console("PEDIDO ENVIADO A DISCO",self_tid,1,true);
 						send(self_list_node->socketPPD,msgToPPD,msgToPPD_len+3,0);//SE LO ENVIO AL DISCO ASOCIADO AL THREAD
 						free(msgToPPD);
 					break;
@@ -125,17 +125,33 @@ while(1){
 						if(current_sl_content->synch == true){//ES PARA SINCRONIZACION
 							if(current_sl_content->msg.type == READ_SECTORS){//EL THREAD ES MASTER Y LEYO UN SECTOR
 								//pthread_mutex_lock(&mutex_LIST);
-								//print_Console("READ SINCR. LEIDO POR MASTER",self_tid);
+								//print_Console("READ SINCR. LEIDO POR MASTER",self_tid,1,true);
 								praid_sl_content *new_data_sublist= malloc(sizeof(praid_sl_content));
 								new_data_sublist->synch = true;
 								new_data_sublist->msg = current_sl_content->msg;
 								new_data_sublist->msg.type = WRITE_SECTORS;//LO QUE ME LLEGO DEL DISCO, LO TIENE QUE ESCRIBIR EL MIRROR
 								new_data_sublist->status = UNREAD;
 								//new_data_sublist->socketRequest;
-								PRAID_ADD_WRITE(new_data_sublist);//SE LO AGREGO AL MIRROR PARA QUE ESCRIBA
+
+								if(PRAID_ADD_WRITE(new_data_sublist)!=0){//SE LO AGREGO AL MIRROR PARA QUE ESCRIBA
+									print_Console("LIMPIANDO COLA DE PEDIDODS DE SINCRONIZACION \n",self_tid,1,false);
+
+									queueNode_t* aux = current_SL_node->next;
+									while(aux!=NULL){
+										praid_sl_content* aux_sl_content =((praid_sl_content*) aux->data);
+										if(aux_sl_content->synch == true){
+											praid_sl_content* aux1 = aux->next;
+											free(aux_sl_content);
+											free(aux);
+											aux = aux1;
+										}
+									}
+
+								}
+
 							}else if(current_sl_content->msg.type == WRITE_SECTORS){//EL THREAD ES MIRROR Y RECIBIO LA RESPUESTA DE ESCRITURA DEL DISCO
 
-							}//FIN IF ELSE TYPE
+							}//FIN IF ELSE TYPE READ WRITE
 						}else{//NO ES PARA SINCRONIZACION
 
 
@@ -144,7 +160,7 @@ while(1){
 							if(current_sl_content->msg.type == READ_SECTORS){//PEDIDO NORMAL DE LECTURA, YA DEVUELTO POR EL DISCO
 								send(current_sl_content->socketRequest,msgToPFS,msgToPFS_len+3,0);
 								free(msgToPFS);
-								//print_Console("READ A PFS",self_tid);
+								//print_Console("READ A PFS",self_tid,1,true);
 								log_debug(raid_log_file,"PRAID","READ A PFS");
 								//pthread_mutex_lock(&mutex_LIST);
 							}else if (current_sl_content->msg.type == WRITE_SECTORS){//PEDIDO NORMAL DE ESCRITURA, YA DEVUELTO POR EL DISCO
@@ -166,8 +182,8 @@ while(1){
 									free(contenidoNodoWrite);
 									free(nodoWRITE);
 
-									//print_Console("WRITE A PFS",self_tid);
-									log_debug(raid_log_file,"PRAID","WRITE A PFS",self_tid);
+									//print_Console("WRITE A PFS",self_tid,1,true);
+									log_debug(raid_log_file,"PRAID","WRITE A PFS",self_tid,1,true);
 								}
 								pthread_mutex_unlock(&mutex_WRITE_QUEUE);
 							}//FIN IF ELSE TYPE
@@ -190,7 +206,7 @@ while(1){
 								}
 								anterior->next = current_SL_node->next;
 							}else{
-								print_Console("ERROR ELIMINANDO PEDIDO",pthread_self());
+								print_Console("ERROR ELIMINANDO PEDIDO",pthread_self(),1,true);
 								exit(0);
 							}
 						}
@@ -198,7 +214,7 @@ while(1){
 
 						current_SL_node = current_SL_node->next;
 						free(aux);
-					//	print_Console("Pedido Liberado.",self_tid);
+					//	print_Console("Pedido Liberado.",self_tid,1,true);
 						pthread_mutex_unlock(&mutex_LIST);
 
 					break;
