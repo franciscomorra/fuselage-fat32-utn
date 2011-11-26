@@ -30,6 +30,8 @@ extern multiQueue_t* multiQueue;
 extern uint32_t HeadPosition;
 extern t_log* Log;
 extern sem_t queueMutex;
+extern sem_t queueAvailableMutex;
+
 
 uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 	switch (msgIn[0]) {
@@ -70,6 +72,8 @@ uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 		default:{ // puede ser tanto de lectura, escritura o de tipo trace
 			request_t* request = TRANSLATE_fromCharToRequest(msgIn,fd);
 			char* msgType = COMMON_getTypeByFlag(request->type);
+
+			sem_wait(&queueAvailableMutex);
 
 			pthread_mutex_lock(&Log->mutex);
 			sem_wait(&queueMutex);
