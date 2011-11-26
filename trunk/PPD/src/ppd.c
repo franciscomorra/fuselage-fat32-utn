@@ -42,7 +42,8 @@ uint32_t WriteTime;
 flag_t Algorithm;
 multiQueue_t* multiQueue;
 sem_t queueMutex;
-sem_t mainMutex;
+//sem_t mainMutex;
+sem_t queueAvailableMutex;
 t_log* Log;
 queue_t pfsList;
 
@@ -76,8 +77,9 @@ int main(int argc, char *argv[])
 	fd_set readFDs;						//conjunto de FDs de los que deseamos recibir datos
 
 	sem_init(&(multiQueue->queueElemSem),0,0);
-	sem_init(&mainMutex,0,1);
+//	sem_init(&mainMutex,0,1);
 	sem_init(&queueMutex,0,1);
+	sem_init(&queueAvailableMutex,0,5000);
 	multiQueue->qflag = QUEUE2_ACTIVE;
 
 	COMMON_readPPDConfig(&port,&diskID,&startingMode,&IP,
@@ -167,9 +169,9 @@ int main(int argc, char *argv[])
 					uint32_t msg_len = 0;
 					pfs_node_t *in_pfs = PFSLIST_getByFd(pfsList,currFD);
 
-					pthread_mutex_lock(&in_pfs->sock_mutex);
+//					pthread_mutex_lock(&in_pfs->sock_mutex);
 					char* msg_buf = COMM_receiveWithAdvise(currFD,&dataRecieved,&msg_len);
-					pthread_mutex_unlock(&in_pfs->sock_mutex);
+//					pthread_mutex_unlock(&in_pfs->sock_mutex);
 
 					if (msg_buf != NULL)
 					{
@@ -178,10 +180,10 @@ int main(int argc, char *argv[])
 
 						for(;msg_index < msg_count;msg_index++)
 						{
-							uint32_t numero;
-							memcpy(&numero,(msg_buf+(msg_index*msg_len))+7,4);
-							printf("entrada: %d\n",numero);
-							fflush(0);
+//							uint32_t numero;
+//							memcpy(&numero,(msg_buf+(msg_index*msg_len))+7,4);
+//							printf("entrada: %d\n",numero);
+//							fflush(0);
 							exit = COMM_handleReceive(msg_buf+(msg_index*msg_len),currFD);
 						}
 						free(msg_buf);

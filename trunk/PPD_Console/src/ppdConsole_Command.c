@@ -51,7 +51,7 @@ uint32_t console_clean(queue_t parameters,uint32_t ppdFD){
 
 	uint32_t firstSector = atoi(parameters.begin->data);
 	uint32_t lastSector = atoi(parameters.end->data);
-	uint32_t totalSectors = lastSector - firstSector;
+	uint32_t totalSectors = (lastSector - firstSector)+1;
 
 	for(i=firstSector;i<=lastSector;i++){
 		uint32_t recvLen=0;
@@ -86,10 +86,10 @@ uint32_t console_clean(queue_t parameters,uint32_t ppdFD){
 				exit(1);
 			}
 
-		uint32_t numero;
-		memcpy(&numero,msg+7,4);
-		printf("consola: %d\n",numero);
-		fflush(0);
+//		uint32_t numero;
+//		memcpy(&numero,msg+7,4);
+//		printf("consola: %d\n",numero);
+//		fflush(0);
 
 	}
 

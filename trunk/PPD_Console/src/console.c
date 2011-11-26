@@ -27,15 +27,17 @@ int main (int argc, char *argv[]) {
 	*Head = (uint32_t)*argv[0];
 	*Sector = (uint32_t)*argv[1];
 	strcpy(sockUnixPath,argv[2]);
-/*
-	*Head = 1;
-	*Sector = 16;
 
-	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,"/home/utn_so/CONSOLE_socket",MODE_CONNECT);		//se coneccta al proceso PPD
-		printf("Connected.\n");
-*/
 	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,sockUnixPath,MODE_CONNECT);		//se coneccta al proceso PPD
 	printf("Connected.\n");
+
+
+//	*Head = 1;
+//	*Sector = 16;
+//	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,"/home/utn_so/CONSOLE_socket",MODE_CONNECT);		//se coneccta al proceso PPD
+//		printf("Connected.\n");
+
+
 
 	printf("Ingrese un Comando\n");
 	if (fgets(input,CANTMAX,stdin) == 0 )

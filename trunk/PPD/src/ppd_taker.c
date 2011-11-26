@@ -29,6 +29,8 @@ extern sem_t mainMutex;
 extern queue_t pfsList;
 extern uint32_t HeadPosition;
 extern sem_t queueMutex;
+extern sem_t queueAvailableMutex;
+
 t_log* Log;
 
 void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
@@ -36,6 +38,8 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 	fd_set writeFDs;
 	while(1){
 		sem_wait(&multiQueue->queueElemSem);
+		sem_post(&queueAvailableMutex);
+
 		TracePosition = HeadPosition;
 		request_t* request;
 		queueNode_t* prevCandidate = NULL;
@@ -55,10 +59,11 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 		fflush(0);											//
 
 		pfs_node_t* out_pfs = PFSLIST_getByFd(pfsList,request->sender);			//antes de devolver el pedido, busca su respectivo semaforo para que no hayan sobrescrituras
-		pthread_mutex_lock(&out_pfs->sock_mutex);
+/*		pthread_mutex_lock(&out_pfs->sock_mutex);
 		COMM_send(msg,request->sender);
 		pthread_mutex_unlock(&out_pfs->sock_mutex);
-/*
+*/
+
 		//sem_wait(&mainMutex);
 		uint32_t sent = 0;
 		FD_ZERO(&writeFDs);
@@ -72,7 +77,7 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 				//pthread_mutex_unlock(&out_pfs->sock_mutex);
 		}
 		//sem_post(&mainMutex);
-*/
+
 
 		free(msg);
 		free(request->payload);
