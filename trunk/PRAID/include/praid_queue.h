@@ -51,13 +51,14 @@ typedef struct praid_ppdThreadParam{
 }praid_ppdThreadParam;
 
 
-
+bool QUEUE_SEARCH_REMOVE(queueNode_t*, queue_t*);
 praid_list_node* PRAID_ADD_PPD_NODE(pthread_t, praid_ppdThreadParam*);
 uint32_t PRAID_ADD_READ(praid_sl_content*);
 uint32_t PRAID_ADD_WRITE(praid_sl_content*);
 uint32_t PRAID_REMOVE_PPD(praid_list_node*);
 uint32_t PRAID_ACTIVE_PPD_COUNT(void);
 //bool PRAID_hay_discos_sincronizandose(void);
+bool PRAID_ACTIVATE_NEXT_SYNCH(void);
 bool PRAID_DISK_ID_EXISTS(uint32_t);
 uint32_t PRAID_START_SYNCHR(uint32_t);
 uint32_t PRAID_REFRESH_CURRENT_READ(void);
@@ -65,6 +66,7 @@ praid_list_node* PRAID_GET_PPD_FROM_FD(uint32_t);
 praid_list_node* PRAID_GET_SYNCH_PPD(void);
 queueNode_t* PRAID_GET_WRITE_NODE_BY_ID(uint32_t);
 queueNode_t* PRAID_GET_REQUEST_BY_ID(uint32_t,queue_t*);
+
 //uint32_t NIPC_getID(nipcMsg_t);
 
 
