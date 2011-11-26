@@ -38,10 +38,10 @@ extern pthread_mutex_t mutex_LIST;
 praid_ppdThreadParam* PRAID_ValidatePPD(char* msgIn, uint32_t newPPD_FD)
 {
 	uint16_t len;
-	memcpy(&len,msgIn+1,2);
+	memcpy(&len,msgIn+1,sizeof(uint16_t));
 	if(len == 8){
 		uint32_t disk_sectors_rcv = 0;
-		memcpy(&disk_sectors_rcv,msgIn+7,4);
+		memcpy(&disk_sectors_rcv,(msgIn+sizeof(uint32_t)+sizeof(uint16_t)+1),sizeof(uint32_t));
 
 		if(RAID_ACTIVE==true){
 			if(disk_sectors_rcv < DISK_SECTORS_AMOUNT){
@@ -58,7 +58,7 @@ praid_ppdThreadParam* PRAID_ValidatePPD(char* msgIn, uint32_t newPPD_FD)
 			}
 		}
 		uint32_t diskID;
-		memcpy(&diskID,msgIn+3,4);
+		memcpy(&diskID,msgIn+1+sizeof(uint16_t),sizeof(uint32_t));
 		pthread_mutex_lock(&mutex_LIST);
 		if(PRAID_DISK_ID_EXISTS(diskID) == true){
 			print_Console("comm Disco ya existe!!",pthread_self(),1,true);
@@ -114,9 +114,9 @@ uint32_t PRAID_PPD_RECEIVE_REQUEST(char*  msgIn,uint32_t fd)
 {
 	nipcMsg_t NIPCmsgIn = NIPC_toMsg(msgIn);
 	uint32_t sector;
-	memcpy(&sector,msgIn+7,4);
+	memcpy(&sector,msgIn+7,sizeof(uint32_t));
 	uint32_t IDrequest;
-	memcpy(&IDrequest,msgIn+3,4);
+	memcpy(&IDrequest,msgIn+1+sizeof(uint16_t),sizeof(uint32_t));
 	free(msgIn);
 	/*
 	pthread_mutex_lock(&mutex_LIST);
@@ -150,187 +150,3 @@ uint32_t PRAID_PPD_RECEIVE_REQUEST(char*  msgIn,uint32_t fd)
 	}
 	return 0;
 }
-
-
-/*Del Switch de PFS
-		case HANDSHAKE:
-				if(RAID_ACTIVE == false){
-				//Responde hanshake
-				 nipcMsg_t msgOut = NIPC_createMsg(HANDSHAKE,0,0);  //si esta bien contestar type 0, payload 0
-				 COMM_send(NIPC_toBytes(&msgOut),fd);
-			}else{
-				//Respoder hanshake:Error, no hay PPD asociado
-				char* error = malloc(1);
-			//	*error = PRAID_NOTREADY;
-				nipcMsg_t msgOut = NIPC_createMsg(HANDSHAKE,1,error);
-				COMM_send(NIPC_toBytes(&msgOut),fd);
-			}
-		break;
-*/
-
-/* Del switch PPD
-	case HANDSHAKE:{
-		nipcMsg_t msgOut = NIPC_createMsg(HANDSHAKE,0,0);  //si esta bien contestar type 0, payload 0
-		COMM_send(NIPC_toBytes(&msgOut),fd);
-
-		//OBTENER CANTIDAD DE SECTORES DISK_SECTORS_AMOUNT;
-
-		pthread_t main_ppd_thread;
-		pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,(void *)fd);
-	}
-	break;
-*/
-
-
-/*
-void error_fd(uint32_t fd)
-{
-	uint32_t cur;
-	cur = QUEUE_searchNode(pfs_list,fd,dataLength);
-	if(cur !=NULL){
-		//FINN!! no anda el PFS
-	}else{
-		cur = QUEUE_searchNode(ppd_list,fd,dataLength);
-		if(cur !=NULL){
-			//PRAID_clear_list_node(praid_list_node* nodo); primero hay que buscar el nodo que tenga este fd
-		}
-	}
-}
-
-
-
-uint32_t Create_Sockets_INET(uint32_t* listenFD){
-
-	struct sockaddr_in dir;
-
-	if((*listenFD = socket(AF_INET,SOCK_STREAM,0)) == -1){
-		perror("socket");
-		exit(1);
-	}
-	dir.sin_family = AF_INET;
-	dir.sin_addr.s_addr = INADDR_ANY;
-	dir.sin_port = htons(PORT);
-	memset(&(dir.sin_zero),'\0',8);
-
-	if(bind(*listenFD,(struct sockaddr *)&dir,sizeof(dir))==-1){
-		perror("bind");
-		exit(1);
-	}
-	if(listen(*listenFD,10) == -1){
-		perror("listen");
-		exit(1);
-	}
-
-	return 0;
-}
-
-
-
-
-
-
-*/
-
-
-/*
- * DEPRECADO
- *
-uint32_t PRAID_manage_PPD(nipcMsg_t msgIn, PPDnode* first, PPDnode* last, diskInfo* sender, pfsInfo receiver){
-
-	switch (msgIn[0])	{
-
-		case HANDSHAKE:
-			if(first == last){
-				//PRAID_requestDiskInfo(sender, 0x13);
-				//PEDIR INFORMACION DEL DISCO
-			}else{
-				//ESPEJAR
-				//ESPEJAR
-				//THREAD NUEVO AL QUE LE PASO LA FUNCION, EL NODO QUE VA A HACER DE MASTER, Y EL SOCKET AL DISCO NUEVO
-			}
-		break;
-		case READ_SECTORS://Se leyo el sector ok
-			if(first == last){ //Si proviene del primer disco conectado
-				//ME SIRVE EL SECTOR 0X13??
-				//SI NO, PEDI EL 0X20
-				//SI ME SIRVE, CREA UN THREAD PARA EL DISCO
-
-			}else{
-				//SE LO MANDO AL THREAD PFS
-			}
-		break;
-		case WRITE_SECTORS:
-			//Se escribio el sector, ver si todos ya escribieron.
-			//RECORRER LA COLA DE PPDS, Y VER EL STATUS DE CADA UNO.
-			//SI ESTAN TODOS, SE LO MANDO AL PFS, SETEO PRAID_STATUS EN ACTIVE
-		break;
-	}
-	return 0;
-}
-
-
-uint32_t PRAID_manage_PFS(nipcMsg_t msgIn, PPDnode first, PPDnode last){
-diskInfo readNext;
-	switch (msgIn.type)
-	{
-
-		case HANDSHAKE:
-			//if (PRAID_STATUS!=INACTIVE){
-
-
-		break;
-
-		case WRITE_SECTORS:
-			//Enviar pedido a todos los discos
-			//SETEAR VARIABLE PRAID_STATUS EN WAIT_WRITE
-			//PRAID_requestPPD_Write(msgIn, first, last);
-		break;
-
-		case READ_SECTORS: //ELEGIR EL DISCO, MANDARSELO AL THREAD ASOCIADO
-			//readNext = PRAID_select_free_PPD(first, last);
-			//PRAID_requestPPD(msgIn, readNext);
-		break;
-	}
-	return 0;
-}
-uint32_t PRAID_takeRequest(msgNIPC_t msg,nipc_node* first, nipc_node* last)
-{
-	nipc_node* new = malloc(sizeof(nipc_node));
-	new->info = msg;
-	new->next = 0x0;
-
-	if(first == 0x0){
-		first = new;
-		last = new;
-	}
-	else {
-		last->next = new;
-		last = new;
-	}
-
-	return 0;
-}
-
-uint32_t PRAID_manageRequest(msgNIPC_t msg, nipc_node* first) {
-	if (first == 0x0)
-			return 1;
-	if (msg.type == READ)
-	{
-		//Enviala a cualquier thread libre excepto los que se estan actualizando
-	}
-
-	if (msg.type == WRITE)
-	{
-		//Fijate que no se este actualizando ningun disco nuevo, y mandasela a cualquiera
-	}
-	//Elimino el nodo de la cola
-	nipc_node* aux;
-	first = aux;
-	msg = first->info;
-	first = first->next;
-	free(aux);
-	return 0;
-}
-FIN DEPRECADO
-
-*/

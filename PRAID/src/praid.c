@@ -185,10 +185,9 @@ int main(int argc,char **argv){
 								FDmax = newPPD_FD;
 							}
 							pthread_t main_ppd_thread;
-							pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,(void *)ppdParam);
-							print_Console("CANTIDAD DE SECTORES",DISK_SECTORS_AMOUNT,1,true);
-
 							COMM_sendHandshake(newPPD_FD,NULL,0);
+							pthread_create(&main_ppd_thread,NULL,ppd_handler_thread,(void *)ppdParam);
+
 						}else{//El handshake vino con errores
 							char* handshake = malloc(4);
 							memset(handshake,0,4);
@@ -276,21 +275,31 @@ int main(int argc,char **argv){
 
 								pthread_mutex_lock(&mutex_LIST);
 								praid_list_node* nodoBuscado = PRAID_GET_PPD_FROM_FD(currFD);
-								if(PRAID_ACTIVE_PPD_COUNT()==1){
-									print_Console("UNICO DISCO DESCONECTADO - FIN",pthread_self(),1,true);
+								print_Console("DISCO DESCONECTADO",nodoBuscado->tid,1,false);
+
+								if(PRAID_ACTIVE_PPD_COUNT()==1 && nodoBuscado->ppdStatus== READY){
+									print_Console("UNICO DISCO DESCONECTADO",pthread_self(),1,false);
 									log_debug(raid_log_file,"PRAID","Apagado Proceso RAID, Unico PPD desconectado");
-									exit(0);
+									exit(0);//TODO QUE SE DESACTIVE
 								}
 								if(nodoBuscado->ppdStatus == READY && PRAID_ACTIVE_PPD_COUNT()==2 && SYNCHRONIZING_DISCS==true){
-									print_Console("MASTER DESCONECTADO MIENTRAS SINCRONIZABA - FIN",pthread_self(),1,true);
+									print_Console("MASTER DESCONECTADO MIENTRAS SINCRONIZABA -- APAGANDO PROCESO",pthread_self(),1,false);
 									log_debug(raid_log_file,"PRAID","Apagado Proceso RAID, Master desconectado mientras sincronizaba");
 									//ERROR GRAVE, SI SE QUIERE, QUE AGARRE EL PRIMER DISCO Y VACIE LA COLA DE PEDIDOS DEL PFS
 									exit(0);
 								}
+								if(nodoBuscado->ppdStatus == SYNCHRONIZING){
+									SYNCHRONIZING_DISCS = false;
+									if(PRAID_ACTIVATE_NEXT_SYNCH()==false){
+										print_Console("NO HAY MAS DISCOS PARA SINCRONIZAR",pthread_self(),1,false);
+									}else{
+										print_Console("ACTIVANDO DISCO A SINCRONIZAR",nodoBuscado->tid,1,true);
+									}
+								}
+
 								nodoBuscado->ppdStatus = DISCONNECTED;
 								sem_post(&nodoBuscado->request_list_sem);
 								pthread_mutex_unlock(&mutex_LIST);
-								print_Console("Estado de PPD DISCONNECTED",nodoBuscado->tid,1,true);
 
 							}
 						}
@@ -300,66 +309,6 @@ int main(int argc,char **argv){
 			}
 		}
 	}
-print_Console("Adios Proceso RAID",(uint32_t)pthread_self(),1,true);//CONSOLE WELCOME
-return 0;
+	print_Console("Adios Proceso RAID",(uint32_t)pthread_self(),1,true);//CONSOLE WELCOME
+	return 0;
 }
-
-
-//creacion Sockets listen
-/*
-socketInet_t sock_listen = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",9034,MODE_LISTEN);
-listenFD = sock_listen.descriptor;
-// Escuchar Sockets (select)
-FD_ZERO(&masterFDs);
-FD_SET(listenFD,&masterFDs);  //agrego el descriptor que recibe conexiones al conjunto de FDs
-FDmax=listenFD;   //   por ahora es este porque no hay otro
-while(1){
-	FD_ZERO(&readFDs);
-	readFDs = masterFDs;
-	if(select(FDmax+1, &readFDs,NULL,NULL,NULL) == -1)
-		perror("select");
-	for(currFD = 0; currFD <= FDmax; currFD++){
-		if(FD_ISSET(currFD,&readFDs)){  //hay datos nuevos
-			if( currFD == listenFD ){        //nueva conexion
-				addrlen = sizeof(remoteaddr);
-				if((newFD = accept(listenFD,(struct sockaddr *)&remoteaddr,&addrlen))==-1)
-					perror("accept");
-				else {
-					FD_SET(newFD,&masterFDs);
-					if(newFD > FDmax)
-						FDmax = newFD;
-				}
-			} else { //datos de un cliente
-				uint32_t recvReturn = 0;
-				char* msgIn = malloc(512 + 7);
-				if((recvReturn = recv(currFD,msgIn,519,0)) == 0)//aca el cliente cerro conexion
-				{
-					close(currFD);
-					FD_CLR(currFD,&masterFDs);
-				}
-				else{
-			   //aca tengo que preguntar el tipo del msj para saber si es PPD o PFS
-					if(msgIn[3]==1)    //PFS=1
-					{
-					   pfs_receive(msgIn,currFD);
-					   memset(msgIn,0,sizeof(msgIn));
-					}
-					else if(msgIn[3]==2) //PPD=2
-					{
-				     ppd_receive(msgIn,currFD);
-				     memset(msgIn,0,sizeof(msgIn));
-					}
-				}
-
-				free(msgIn);
-			}
-		}
-	}
-}
-
-*/
-/*	NUEVA CONEXION PFS
- *
- *
-
-*/
