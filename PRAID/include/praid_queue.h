@@ -56,10 +56,11 @@ praid_list_node* PRAID_ADD_PPD_NODE(pthread_t, praid_ppdThreadParam*);
 uint32_t PRAID_ADD_READ(praid_sl_content*);
 uint32_t PRAID_ADD_WRITE(praid_sl_content*);
 uint32_t PRAID_REMOVE_PPD(praid_list_node*);
-uint32_t PRAID_ACTIVE_PPD_COUNT(void);
+uint32_t PRAID_ACTIVE_PPD_COUNT(void);//DEPRECADA
 //bool PRAID_hay_discos_sincronizandose(void);
 bool PRAID_ACTIVATE_NEXT_SYNCH(void);
 bool PRAID_DISK_ID_EXISTS(uint32_t);
+praid_sl_content* NEW_SYNCH_REQUEST(uint32_t);
 uint32_t PRAID_START_SYNCHR(uint32_t);
 uint32_t PRAID_REFRESH_CURRENT_READ(void);
 praid_list_node* PRAID_GET_PPD_FROM_FD(uint32_t);
