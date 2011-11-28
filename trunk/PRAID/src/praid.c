@@ -24,53 +24,29 @@
 #include "log.h"
 #include "tad_queue.h"
 #include "tad_sockets.h"
-/*
-queue_t* pfs_list;
-queue_t* ppd_list;
-*/
-//datos para el select
-/*
-fd_set masterFDs;					//conjunto total de FDs que queremos administrar
-fd_set readFDs;
-fd_set PPD_FDs;
-fd_set PFS_FDs;//conjunto de FDs de los que deseamos recibir datos
-uint32_t newPFS_FD;
-uint32_t newPPD_FD;
-uint32_t FDmax;						//mayor descriptor de socket
-uint32_t consoleFD;					//FD correspondiente a la consola
-uint32_t listenFD;					//FD encargado de escuchar nuevas conexiones
-struct sockaddr_in remoteaddr;		//struct correspondiente a una nueva conexion
-uint32_t addrlen;
-uint32_t currFD;
-
-
-queue_t ppdlist;
-queue_t responselist;
-pthread_mutex_t ppdlist_mutex;
-pthread_mutex_t responselist_mutex;
-pthread_mutex_t sync_mutex;
-*/
-
 
 t_log *raid_log_file;
 
 uint32_t RAID_CONSOLE = 0; //0 DISABLE - 1 ENABLE
-bool RAID_ACTIVE = false;
 uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
+uint32_t ACTIVE_DISKS_AMOUNT;
+uint32_t DISKS_AMOUNT;
+
+uint32_t LOG_ENABLE = 0;
+bool RAID_ACTIVE;
+bool SYNCHRONIZING_DISCS;
+
 queue_t* WRITE_QUEUE;
-bool SYNCHRONIZING_DISCS = false;
-
 praid_list_node* PRAID_LIST, CURRENT_READ;
-
 t_log *raid_log_file;
 
 pthread_mutex_t mutex_CONSOLE;
 pthread_mutex_t mutex_LIST;
 pthread_mutex_t mutex_WRITE_QUEUE;
+fd_set masterFDs, readFDs , PPD_FDs ,PFS_FDs;
 
 int main(int argc,char **argv){
 	uint32_t currFD;
-	fd_set masterFDs, readFDs , PPD_FDs ,PFS_FDs;
 	struct sockaddr_in remoteaddr;
 	//Inicio Leer Archivo de Configuracion
 	config_param *praid_config;
@@ -78,7 +54,10 @@ int main(int argc,char **argv){
 	RAID_CONSOLE  = atoi(CONFIG_getValue(praid_config,"Console"));
 	uint32_t PPD_Port = atoi(CONFIG_getValue(praid_config,"PpdPort"));
 	uint32_t PFS_Port = atoi(CONFIG_getValue(praid_config,"PfsPort"));
-	raid_log_file = log_create("PRAID","praid.log",DEBUG,M_CONSOLE_DISABLE);
+	LOG_ENABLE= atoi(CONFIG_getValue(praid_config,"Log"));//TRUE = 1;FALSE = 0;
+	if(LOG_ENABLE == 1){
+		raid_log_file = log_create("PRAID","praid.log",DEBUG,M_CONSOLE_DISABLE);
+	}
 	//Fin Leer archivo de Configuracion, seteada Variable Global raid_console
 
 	//Inicio Seteo de Variables Iniciales
@@ -86,12 +65,21 @@ int main(int argc,char **argv){
 	pthread_mutex_init(&mutex_WRITE_QUEUE, NULL);
 	pthread_mutex_init(&mutex_LIST, NULL);
 	WRITE_QUEUE = malloc(sizeof(queue_t));
+	ACTIVE_DISKS_AMOUNT = 0;
+	DISKS_AMOUNT = 0;
+
+	DISK_SECTORS_AMOUNT = 0;
+	RAID_ACTIVE = false;
+	SYNCHRONIZING_DISCS = false;
 	//QUEUE_initialize(WRITE_QUEUE);
 	//Fin Seteo de Variables Iniciales
 
 	print_Console("INICIO PROCESO RAID",(uint32_t)pthread_self(),1,true);//CONSOLE WELCOME
+	print_Console("CANTIDAD DE DISCOS ACTIVOS",ACTIVE_DISKS_AMOUNT,1,true);
 
-	log_debug(raid_log_file,"PRAID","Inicio Proceso RAID");
+	PRAID_WRITE_LOG("Inicio Proceso RAID");
+	//log_debug(raid_log_file,"PRAID","Inicio Proceso RAID");
+
 	print_Console("ABRIENDO PUERTOS...",(uint32_t)pthread_self(),1,false);//CONSOLE WELCOME
 	char* ip_ppd = "127.0.0.1";
 	sleep(1);
@@ -103,7 +91,6 @@ int main(int argc,char **argv){
 		print_Console("ERROR ABRIENDO PUERTOS",0,1,false);
 		print_Console("ESTADO PUERTO PPD:",listenPPD.status,1,true);
 		print_Console("ESTADO PUERTO PFS:",listenPFS.status,1,true);
-
 		exit(0);
 	}else{
 		print_Console("PUERTOS ABIERTOS",pthread_self(),1,false);
@@ -222,7 +209,8 @@ int main(int argc,char **argv){
 							FD_CLR(currFD,&masterFDs);
 							FD_CLR(currFD,&PFS_FDs);
 							print_Console("PFS DESCONECTADO - FIN",pthread_self(),1,true);
-							log_debug(raid_log_file,"PRAID","Apagado Proceso RAID, PFS desconectado");
+							PRAID_WRITE_LOG("Apagado Proceso RAID, PFS desconectado");
+							//log_debug(raid_log_file,"PRAID","Apagado Proceso RAID, PFS desconectado");
 							//Antes envia todos los pedidos!
 							exit(0);
 						}
@@ -234,26 +222,16 @@ int main(int argc,char **argv){
 						uint32_t dataReceived = 0;
 						uint32_t msg_len = 0;
 						char* msg_buf = COMM_receiveWithAdvise(currFD,&dataReceived,&msg_len);
-						//print_Console("PPD EXISTENTE ENVIO RESPUESTA",currFD);
-						//print_Console("CANTIDAD DE DISCOS ACTIVOS: ",PRAID_ACTIVE_PPD_COUNT());
-
-
-						if (msg_buf != NULL)
+						if (msg_len != NULL)//TODO otra manera segura de preguntar si llego sin errores??
 						{
-							if(msg_buf[0]==HANDSHAKE){//EL ERROR PUTO QUE ME ESTA TIRANDO AHORA, PPD SE BAJA CUANDO RECIBE EL HAND
-
-								print_Console("***ERROR - DOBLE HANSHAKE***",currFD,1,false);
+							if(msg_buf[0]==HANDSHAKE){//EL ERROR PUTO QUE ME ESTA TIRANDO AHORA, PPD SE BAJA CUANDO RECIBE EL HAND Y ME MANDA OTRO HAND?
+								print_Console("***ERROR - DOBLE HANSHAKE***",currFD,1,true);
 								close(currFD);
 								FD_CLR(currFD,&masterFDs);
 								FD_CLR(currFD,&PPD_FDs);
 								sleep(2);
 								pthread_mutex_lock(&mutex_LIST);
-								praid_list_node* nodoBuscado = PRAID_GET_PPD_FROM_FD(currFD);
-
-								if(nodoBuscado!=NULL){
-									nodoBuscado->ppdStatus = DISCONNECTED;
-									sem_post(&nodoBuscado->request_list_sem);
-								}
+								PRAID_HANDLE_DOWN_PPD(currFD);
 								pthread_mutex_unlock(&mutex_LIST);
 
 							}else{
@@ -272,33 +250,8 @@ int main(int argc,char **argv){
 
 							}else if (FD_ISSET(currFD,&PPD_FDs)){
 								FD_CLR(currFD,&PPD_FDs); // PPD de baja
-
 								pthread_mutex_lock(&mutex_LIST);
-								praid_list_node* nodoBuscado = PRAID_GET_PPD_FROM_FD(currFD);
-								print_Console("DISCO DESCONECTADO",nodoBuscado->tid,1,false);
-
-								if(PRAID_ACTIVE_PPD_COUNT()==1 && nodoBuscado->ppdStatus== READY){
-									print_Console("UNICO DISCO DESCONECTADO",pthread_self(),1,false);
-									log_debug(raid_log_file,"PRAID","Apagado Proceso RAID, Unico PPD desconectado");
-									exit(0);//TODO QUE SE DESACTIVE
-								}
-								if(nodoBuscado->ppdStatus == READY && PRAID_ACTIVE_PPD_COUNT()==2 && SYNCHRONIZING_DISCS==true){
-									print_Console("MASTER DESCONECTADO MIENTRAS SINCRONIZABA -- APAGANDO PROCESO",pthread_self(),1,false);
-									log_debug(raid_log_file,"PRAID","Apagado Proceso RAID, Master desconectado mientras sincronizaba");
-									//ERROR GRAVE, SI SE QUIERE, QUE AGARRE EL PRIMER DISCO Y VACIE LA COLA DE PEDIDOS DEL PFS
-									exit(0);
-								}
-								if(nodoBuscado->ppdStatus == SYNCHRONIZING){
-									SYNCHRONIZING_DISCS = false;
-									if(PRAID_ACTIVATE_NEXT_SYNCH()==false){
-										print_Console("NO HAY MAS DISCOS PARA SINCRONIZAR",pthread_self(),1,false);
-									}else{
-										print_Console("ACTIVANDO DISCO A SINCRONIZAR",nodoBuscado->tid,1,true);
-									}
-								}
-
-								nodoBuscado->ppdStatus = DISCONNECTED;
-								sem_post(&nodoBuscado->request_list_sem);
+								PRAID_HANDLE_DOWN_PPD(currFD);
 								pthread_mutex_unlock(&mutex_LIST);
 
 							}

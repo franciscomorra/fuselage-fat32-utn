@@ -12,10 +12,14 @@
 #include <pthread.h>
 #include "praid_console.h"
 #include <stdbool.h>
+#include "log.h"
 
 
 extern uint32_t RAID_CONSOLE;
+extern uint32_t LOG_ENABLE;
+
 extern pthread_mutex_t mutex_CONSOLE;
+extern t_log *raid_log_file;
 
 uint32_t print_Console (char *message, pthread_t threadID, uint32_t priority, bool display_int)
 {
@@ -51,7 +55,14 @@ uint32_t print_Console (char *message, pthread_t threadID, uint32_t priority, bo
 			pthread_mutex_unlock(&mutex_CONSOLE);
 		}
 	}
-
 	return 0;
-
+}
+uint32_t PRAID_WRITE_LOG(char* msg)
+{/*
+	if(LOG_ENABLE == 1){
+		log_debug(raid_log_file,"PRAID",msg);
+		return 0;
+	}
+	*/
+return 1;
 }
