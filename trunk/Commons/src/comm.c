@@ -5,17 +5,30 @@
 #include "nipc.h"
 #include "comm.h"
 
-char* COMM_receive(uint32_t currFD,uint32_t* dataReceived){
+char* COMM_receive(uint32_t currFD,uint32_t* dataReceived)
+{
 
 	char* msgHeader = malloc(3);								//alojo memoria para recibir la cabecera del mensaje (tipo y len)
 	char* msgIn = NULL;
 
 	if((*dataReceived = recv(currFD,msgHeader,3,0)) != 0)		//recibo la cabecera y la guardo en msgHeader
 	{
+
 		uint16_t len = 0;
-		memcpy(&len,msgHeader+1,2);								//copio el len en un int para poder usarlo
-		msgIn = malloc(len+3);									//alojo memoria para recibir el payload del mensaje
-		*dataReceived += recv(currFD,msgIn+3,len,0);				//recibo el mensaje y lo guardo en msgIn +3
+		uint32_t left = 0;
+		int32_t last_received = 0;
+		memcpy(&len,msgHeader+1,2);
+		left = len;//copio el len en un int para poder usarlo
+		msgIn = malloc(len+3);
+		while (left > 0)
+		{//alojo memoria para recibir el payload del mensaje
+			last_received = recv(currFD,msgIn+(*dataReceived),left,0);
+			if (last_received > 0)
+			{
+				*dataReceived += last_received;
+				left -= last_received;//recibo el mensaje y lo guardo en msgIn +3
+			}
+		}
 		memcpy(msgIn,msgHeader,3);								//concateno la cabecera con el payload del mensaje
 	}
 
@@ -25,30 +38,27 @@ char* COMM_receive(uint32_t currFD,uint32_t* dataReceived){
 
 uint32_t COMM_send(char* msg,uint32_t fd)
 {
-	uint16_t len;
+	uint16_t len = *((uint16_t*) (msg+1));
 	uint32_t dataSent = 0;
 	int32_t sent = 0;
-	memcpy(&len,msg+1,2);
+
 	while (dataSent < len+3)
 	{
 		sent = send(fd,msg,len+3,MSG_DONTWAIT);
 		if (sent > 0)
 			dataSent += sent;
-		else
-			sleep(1);
 	}
 	return dataSent;
 }
 
-char* COMM_receiveWithAdvise(uint32_t socket_fd,uint32_t* dataReceived,size_t *msg_len)
+char* COMM_receiveAll(uint32_t socket_fd,uint32_t* dataReceived,size_t *msg_len)
 {
 	char *msgIn = malloc(1);
-	uint32_t advise_length = recv(socket_fd,msgIn,1,0);
+	uint32_t one_byte = recv(socket_fd,msgIn,1,0);
 
-
-	if (advise_length != 0)
+	if (one_byte != 0)
 	{
-		if (msgIn[0] == -1)
+		if (msgIn[0] == -1) // ES UN MENSAJE DE AVISO
 		{
 			msgIn = realloc(msgIn,9);
 			recv(socket_fd,msgIn+1,8,0);
@@ -67,7 +77,6 @@ char* COMM_receiveWithAdvise(uint32_t socket_fd,uint32_t* dataReceived,size_t *m
 					*dataReceived += last_received;
 					left -= last_received;
 				}
-
 			}
 
 			return all_msgIn;
@@ -95,12 +104,15 @@ char* COMM_receiveWithAdvise(uint32_t socket_fd,uint32_t* dataReceived,size_t *m
 			while (left > 0)
 			{
 				last_received = recv(socket_fd,msgIn+(*dataReceived),left,MSG_DONTWAIT);
-				if (last_received >= 0)
+				if (last_received > 0)
 				{
 					*dataReceived += last_received;
 					left -= last_received;
 				}
+				else
+				{
 
+				}
 			}
 
 			return msgIn;
@@ -126,7 +138,7 @@ void COMM_sendHandshake(uint32_t fd,char* payload,uint32_t payload_len)
 {
 	char* handshake = malloc(3+payload_len);
 
-	*handshake == HANDSHAKE;
+	*handshake = HANDSHAKE;
 	memcpy(handshake+1,&payload_len,2);
 
 	if (payload != NULL)
@@ -138,5 +150,5 @@ void COMM_sendHandshake(uint32_t fd,char* payload,uint32_t payload_len)
 char* COMM_receiveHandshake(uint32_t fd,uint32_t* received)
 {
 	uint32_t len;
-	return COMM_receiveWithAdvise(fd,received,&len);
+	return COMM_receiveAll(fd,received,&len);
 }
