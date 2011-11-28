@@ -75,7 +75,6 @@ int main(int argc,char **argv){
 	//Fin Seteo de Variables Iniciales
 
 	print_Console("INICIO PROCESO RAID",(uint32_t)pthread_self(),1,true);//CONSOLE WELCOME
-	print_Console("CANTIDAD DE DISCOS ACTIVOS",ACTIVE_DISKS_AMOUNT,1,true);
 
 	PRAID_WRITE_LOG("Inicio Proceso RAID");
 	//log_debug(raid_log_file,"PRAID","Inicio Proceso RAID");
