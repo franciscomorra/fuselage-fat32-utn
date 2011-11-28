@@ -63,12 +63,10 @@ praid_ppdThreadParam* PRAID_ValidatePPD(char* msgIn, uint32_t newPPD_FD)
 		}
 		uint32_t diskID;
 		memcpy(&diskID,msgIn+1+sizeof(uint16_t),sizeof(uint32_t));
-		pthread_mutex_lock(&mutex_LIST);
 		if(PRAID_DISK_ID_EXISTS(diskID) == true){
 			print_Console("ID DE DISCO YA EXISTENTE",diskID,1,true);
 			return NULL;
 		}
-		pthread_mutex_unlock(&mutex_LIST);
 
 		praid_ppdThreadParam* parameters = malloc(sizeof(praid_ppdThreadParam));
 		parameters->diskID = diskID;
@@ -190,6 +188,6 @@ uint32_t PRAID_HANDLE_DOWN_PPD(uint32_t currFD)
 		}
 	}
 
-
+return 0;
 
 }

@@ -56,7 +56,8 @@ while(1){
 				PRAID_WRITE_LOG("Iniciando Sincronizacion");
 				//log_debug(raid_log_file,"PRAID","Iniciando Sincronizacion");
 				self_list_node->ppdStatus = SYNCHRONIZING;
-				PRAID_START_SYNCHR(self_list_node->socketPPD);
+				uint32_t sectores = PRAID_START_SYNCHR(self_list_node->socketPPD);
+				print_Console("AGREGADOS TODOS LOS PEDIDOS DE SINCRONIZACION",sectores,1,true);
 			}else{
 				print_Console("YA HAY DISCOS SINCRONIZANDOSE, ESPERANDO",self_tid,1,true);
 			}
@@ -76,8 +77,13 @@ while(1){
 					break;
 					case UNREAD://PEDIDO NUEVO
 					{
+						char *msgToPPD = NIPC_toBytes(&current_sl_content->msg);//SACO EL NIPC DEL PEDIDO
+						uint16_t msgToPPD_len = *((uint16_t*) current_sl_content->msg.len);//SACO EL LENGTH
+
 						if(current_sl_content->synch == true ){
 							if(current_sl_content->msg.type == WRITE_SECTORS){ //EL THREAD ES MIRROR, PEDIDO PARA QUE ESCRIBA EN EL DISCO
+								memcpy(&self_list_node->ammount_synch,&msgToPPD+3,(sizeof(uint32_t)));
+
 								if(self_list_node->ammount_synch < DISK_SECTORS_AMOUNT){//SI NO ES EL ULTIMO SECTOR
 									self_list_node->ammount_synch++;
 									/* SE VA A MANDAR A MEDIDA QUE LLEGUEN*/
@@ -97,11 +103,24 @@ while(1){
 							}//FIN IF ELSE TYPE
 						}//FIN IF ELSE SYNCH
 						current_sl_content->status = SENT;
-						char *msgToPPD = NIPC_toBytes(&current_sl_content->msg);//SACO EL NIPC DEL PEDIDO
-						uint16_t msgToPPD_len = *((uint16_t*) current_sl_content->msg.len);//SACO EL LENGTH
+
 						current_SL_node = current_SL_node->next;//PASO AL SIGUIENTE PEDIDO
 						pthread_mutex_unlock(&mutex_LIST);
-						send(self_list_node->socketPPD,msgToPPD,msgToPPD_len+3,0);//SE LO ENVIO AL DISCO ASOCIADO AL THREAD
+//**********************************************************************
+						fd_set writeFDs;
+						uint32_t sent = 0;
+						FD_ZERO(&writeFDs);
+						FD_SET(self_list_node->socketPPD,&writeFDs);
+						if(select((self_list_node->socketPPD) +1,NULL,&writeFDs,NULL,NULL) == -1)
+							perror("select");
+						while(sent == 0){
+							if(FD_ISSET(self_list_node->socketPPD,&writeFDs)){
+								sent = send(self_list_node->socketPPD,msgToPPD,msgToPPD_len+3,0);//SE LO ENVIO AL DISCO ASOCIADO AL THREAD
+							}
+						}
+//**********************************************************************
+//						send(self_list_node->socketPPD,msgToPPD,msgToPPD_len+3,0);//SE LO ENVIO AL DISCO ASOCIADO AL THREAD
+						//TODO BROKEN PIPE!!!
 						free(msgToPPD);
 					break;
 					}

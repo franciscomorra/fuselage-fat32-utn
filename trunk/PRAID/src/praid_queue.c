@@ -112,7 +112,7 @@ praid_sl_content* NEW_SYNCH_REQUEST(uint32_t sector)
 {
 	uint32_t payloadSize = 2*(sizeof(uint32_t));
 	char* new_payload = malloc(payloadSize);//CREO PEDIDO NUEVO DE LECTURA PARA EL PROXIMO SECTOR
-	memcpy(new_payload,&sector,(sizeof(uint32_t)));//EL ID DEL PEDIDO VA A SER EL SECTOR
+	memcpy(new_payload,&sector,sizeof(uint32_t));//EL ID DEL PEDIDO VA A SER EL SECTOR
 	memcpy(new_payload+(sizeof(uint32_t)),&sector,(sizeof(uint32_t)));
 
 	praid_sl_content* new_request_data= malloc(sizeof(praid_sl_content));
@@ -124,7 +124,7 @@ praid_sl_content* NEW_SYNCH_REQUEST(uint32_t sector)
 	//= NIPC_createMsg(READ_SECTORS,payloadSize,new_payload);;
 	new_request_data->synch = true;
 	new_request_data->status = UNREAD;
-	free(new_payload);
+	//free(new_payload);
 	return new_request_data;
 	//LE AGREGO EL PEDIDO A ALGUN DISCO READY
 
@@ -132,7 +132,7 @@ praid_sl_content* NEW_SYNCH_REQUEST(uint32_t sector)
 uint32_t PRAID_START_SYNCHR(uint32_t self_socket)
 {
 	uint32_t sector = 0;
-	while(sector <= DISK_SECTORS_AMOUNT){
+	while(sector < DISK_SECTORS_AMOUNT){
 		praid_sl_content* new_request_data = NEW_SYNCH_REQUEST(sector);
 		pthread_mutex_lock(&mutex_LIST);
 		PRAID_ADD_READ(new_request_data);
@@ -148,7 +148,7 @@ uint32_t PRAID_START_SYNCHR(uint32_t self_socket)
 
 	*/
 	ACTIVE_DISKS_AMOUNT++;
-	return 0;
+	return sector;
 
 
 }
@@ -333,7 +333,6 @@ uint32_t PRAID_REMOVE_PPD(praid_list_node* nodo)
 		}else{//NODO PARA SINCRONIZACION
 			char* payload = contenidoNodoSL->msg.payload;
 			free(payload);
-
 			free (contenidoNodoSL);
 			queueNode_t* aux = sl_node;
 			sl_node = sl_node->next;
