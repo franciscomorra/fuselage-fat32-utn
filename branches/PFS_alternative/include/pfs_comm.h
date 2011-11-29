@@ -22,16 +22,16 @@ typedef struct socketPool_t
 } socketPool_t;
 
 
-//char* PFS_requestSectorsRead(uint32_t *sectors,size_t sectors_count);
-char* PFS_requestSectorsOperation(NIPC_type request_type,uint32_t *sectors,size_t sectors_count);
-
-//char* PFS_request(char* msg);
-char* PFS_request(nipcMsg_t msg);
+char* PPDINTERFACE_readSectors(uint32_t* sectors_array, size_t sectors_array_len);
 
 socketPool_t create_connections_pool(uint32_t max_conn,char* address,uint32_t port);
 
 char* splitAndSort(char *sectors,uint32_t *indexes_array,size_t array_len);
 
-int32_t sendMsgToPPD(socketInet_t socket,nipcMsg_t *msg);
+int32_t sendMsgToPPD(socketInet_t socket,char *msg);
+
+char* createRequest(NIPC_type msg_type,uint32_t payload_len,char* payload);
+
+socketInet_t* PPDINTERFACE_getFreeSocket();
 
 #endif /* PFS_COMM_H_ */
