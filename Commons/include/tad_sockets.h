@@ -17,6 +17,10 @@
 #define SOCK_FREE 2
 #define SOCK_NOTFREE 3
 
+#define SOCK_DISCONNECTED -2
+#define SOCK_NODATA -3
+#define SOCK_ERROR -4
+
 typedef struct socketInet_t
 {
 	uint32_t descriptor;
@@ -43,8 +47,8 @@ typedef struct socketUnix_t
 
 socketInet_t SOCKET_inet_create(uint32_t style,char* address,uint32_t port,uint32_t mode);
 socketUnix_t SOCKET_unix_create(uint32_t style,char* path,uint32_t mode);
-int32_t SOCKET_sendAll(uint32_t fd, char *buf, uint32_t len);
-int32_t SOCKET_recvAll(uint32_t fd, char *buf, uint32_t len);
+int32_t SOCKET_sendAll(uint32_t fd, char *buf, uint32_t len,uint32_t opt);
+int32_t SOCKET_recvAll(uint32_t fd, char *buf, uint32_t len,uint32_t opt);
 
 
 #endif /* TAD_SOCKETS_H_ */
