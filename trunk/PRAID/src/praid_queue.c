@@ -43,18 +43,18 @@ bool QUEUE_SEARCH_REMOVE(queueNode_t* current_node, queue_t* queue)
 		}
 	}else{//SI ESTA A LA MITAD O AL FINAL
 		queueNode_t* anterior = queue->begin;
-		while(anterior->next != current_node && anterior != NULL){
+		while(anterior != NULL && anterior->next != current_node){
 			anterior = anterior->next;
 		}
-
-		if(anterior->next==current_node){
+		if(anterior == NULL){
+			print_Console("ERROR ELIMINANDO PEDIDO",pthread_self(),1,true);
+			return false;
+		}else{
+			//(anterior->next==current_node){
 			anterior->next = current_node->next;
 			if(queue->end == current_node){
 				queue->end = anterior;
 			}
-		}else{
-			print_Console("ERROR ELIMINANDO PEDIDO",pthread_self(),1,true);
-			return false;
 		}
 	}
 	return true;
@@ -230,7 +230,7 @@ uint32_t PRAID_REFRESH_CURRENT_READ(void)
 uint32_t PRAID_ADD_WRITE(praid_sl_content* data_sublist)
 {
 	praid_list_node* aux_list_node = PRAID_LIST;
-	if(data_sublist->synch == true){
+	if(data_sublist->synch == true){ //PARA SINCRONIZACION
 		aux_list_node = PRAID_GET_SYNCH_PPD();
 		if(aux_list_node!=NULL){
 			QUEUE_appendNode(aux_list_node->colaSublista, data_sublist);
@@ -241,7 +241,7 @@ uint32_t PRAID_ADD_WRITE(praid_sl_content* data_sublist)
 			return 1; //ERROR NO HAY NODOS SINCRONIZANDOSE!
 
 		}
-	}else{
+	}else{//PEDIDO DE PFS
 		if(PRAID_LIST != NULL){
 			while(aux_list_node!=NULL){
 				if(aux_list_node->ppdStatus==READY){//Si esta listo
@@ -267,9 +267,7 @@ uint32_t PRAID_ADD_WRITE(praid_sl_content* data_sublist)
 			praid_write_content* nodoREAD = malloc(sizeof(praid_write_content));
 			nodoREAD->IDrequest = IDpedido;
 			nodoREAD->threads_left = ACTIVE_DISKS_AMOUNT;
-			pthread_mutex_lock(&mutex_WRITE_QUEUE);
 			QUEUE_appendNode(WRITE_QUEUE,nodoREAD);
-			pthread_mutex_unlock(&mutex_WRITE_QUEUE);
 		}else{
 			print_Console("ERROR ADD WRITE, PRAID_LIST NULL",0,1,false);
 
@@ -338,7 +336,6 @@ uint32_t PRAID_REMOVE_PPD(praid_list_node* nodo)
 			sl_node = sl_node->next;
 			free (aux);
 		}
-		pthread_mutex_unlock(&mutex_LIST);
 
 	}
 	print_Console("COLA DE PEDIDOS LIBERADA",nodo->diskID,2,true);
@@ -362,6 +359,8 @@ uint32_t PRAID_REMOVE_PPD(praid_list_node* nodo)
 
 	free(nodo->colaSublista);
 	free(nodo);
+	pthread_mutex_unlock(&mutex_LIST);
+
 	ACTIVE_DISKS_AMOUNT--;
 	DISKS_AMOUNT--;
 	print_Console("CANTIDAD DE DISCOS ACTIVOS: ",ACTIVE_DISKS_AMOUNT,2,true);
@@ -386,7 +385,6 @@ bool PRAID_ACTIVATE_NEXT_SYNCH(void)
 	praid_list_node* aux = PRAID_LIST;
 	while(aux!=NULL){
 		if(aux->ppdStatus == WAIT_SYNCH){
-			//aux->ppdStatus = SYNCHRONIZING;
 			sem_post(&aux->request_list_sem);
 			return true;
 		}
@@ -455,15 +453,14 @@ return NULL;
 
 queueNode_t* PRAID_GET_WRITE_NODE_BY_ID(uint32_t requestID)
 {
-	queueNode_t *cur = WRITE_QUEUE->begin;
-	while (cur != NULL)
+	queueNode_t* current = WRITE_QUEUE->begin;
+	while (current != NULL)
 	{
-		praid_write_content* current_sl_content =((praid_write_content*) cur->data);
-
+		praid_write_content* current_sl_content =((praid_write_content*) current->data);
 		if (current_sl_content->IDrequest == requestID){
-			return cur;
+			return current;
 		}
-		cur = cur->next;
+		current = current->next;
 	}
 	return NULL;
 }
