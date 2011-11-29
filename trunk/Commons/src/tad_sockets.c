@@ -32,6 +32,9 @@ socketInet_t SOCKET_inet_create(uint32_t style,char* address,uint32_t port,uint3
 	sock_addr.sin_port = htons(port);
 	uint32_t sockfd = socket(sock_addr.sin_family, style, 0);
 
+	uint32_t optval = 1;
+	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+
 	if (sockfd < 0)
 	{
 		new_socket.status = errno;
@@ -41,18 +44,7 @@ socketInet_t SOCKET_inet_create(uint32_t style,char* address,uint32_t port,uint3
 
 	 if (mode == MODE_CONNECT)
 	 {
-/*
-		 struct in_addr ipv4addr;
-		 inet_aton(address, &ipv4addr);
 
-		 struct hostent* server = gethostbyaddr((const void* )&ipv4addr,sizeof(ipv4addr),sock_addr.sin_family);
-
-		 if (server == NULL)
-		 {
-				new_socket.status = SOCK_ENOHOST;
-				return new_socket;
-		 }
-*/
 		 sock_addr.sin_addr.s_addr = inet_addr(address);
 
 	    if (connect(sockfd,(struct sockaddr *) &sock_addr,sizeof(sock_addr)) < 0)
@@ -141,4 +133,38 @@ socketUnix_t SOCKET_unix_create(uint32_t style,char* path,uint32_t mode)
 	 	    strncpy(new_socket.path,path,strlen(path));
 	 	    new_socket.address = (struct sockaddr*) &sock_addr;
 	 	    return new_socket;
+}
+
+int32_t SOCKET_sendAll(uint32_t fd, char *buf, uint32_t len)
+{
+	int32_t total = 0;
+	int32_t left = len;
+	int32_t sent = 0;
+
+	while (total < len)
+	{
+		sent = send(fd,buf+total,left,NULL);
+		if (sent == -1) {break;}
+		total += sent;
+		left -= sent;
+	}
+
+	return sent==-1?-1:total;
+}
+
+int32_t SOCKET_recvAll(uint32_t fd, char *buf, uint32_t len)
+{
+	int32_t total = 0;
+	int32_t left = len;
+	int32_t received = 0;
+
+	while (total < len)
+	{
+		received = recv(fd,buf+total,left,NULL);
+		if (received <= 0) {break;}
+		total += received;
+		left -= received;
+	}
+
+	return received<=0?-1:total;
 }

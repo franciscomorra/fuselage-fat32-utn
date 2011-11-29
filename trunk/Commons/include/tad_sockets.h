@@ -43,6 +43,8 @@ typedef struct socketUnix_t
 
 socketInet_t SOCKET_inet_create(uint32_t style,char* address,uint32_t port,uint32_t mode);
 socketUnix_t SOCKET_unix_create(uint32_t style,char* path,uint32_t mode);
+int32_t SOCKET_sendAll(uint32_t fd, char *buf, uint32_t len);
+int32_t SOCKET_recvAll(uint32_t fd, char *buf, uint32_t len);
 
 
 #endif /* TAD_SOCKETS_H_ */
