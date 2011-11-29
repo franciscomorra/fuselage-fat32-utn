@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 {
 	//DIRENTRY_create("santi",5);
 
-	sockets_toPPD = create_connections_pool(10,"127.0.0.1",9034);
+	sockets_toPPD = create_connections_pool(10,"192.168.1.105",9035);
 	if (sockets_toPPD.size == 0) return 1;
 
 	signal(SIGKILL,finish_him);
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 	args.argc = argc;
 	args.argv = argv;
 
-		pthread_t fuselage_thread;
+	pthread_t fuselage_thread;
 	//fuselage_main(0);
 	pthread_create(&fuselage_thread,NULL,fuselage_main,NULL);
 
@@ -78,7 +78,11 @@ int main(int argc, char *argv[])
 
 		if (strcmp(token,"exit") == 0)
 		{
+			/*fflush(stdout);
+			execl("/bin/umount","",(args.argv)[2]);
+			exit(0);*/
 			raise(SIGINT);
+
 		}
 		else if (strcmp(token,"fsinfo") == 0)
 		{

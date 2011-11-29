@@ -32,6 +32,8 @@ t_log *log_file;
 dirEntry_t *opened_file;
 queue_t file_caches;
 
+uint32_t request_id = 1;
+
 
 extern 	struct args
 {
@@ -170,7 +172,7 @@ static int fuselage_getattr(const char *path, struct stat *stbuf)
 	{
 		stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 2;
-		//free(current_file);
+		stbuf->st_size = 4096;
 		; //Libero la memoria de file
 	}
 	else if (current_file->dir_entry.file_attribute.archive == true) //Si es un archivo

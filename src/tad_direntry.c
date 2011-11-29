@@ -63,6 +63,7 @@ queue_t DIRTABLE_interpretFromCluster(cluster_t cluster)
 	while (*((char*) lfn_entry) != 0x00) //Mientras el primer byte de cada 32 bytes que voy recorriendo sea distinto de 0x00 quiere decir que hay una LFN o una DIRENTRY
 	{
 		//Borrado : number = 37
+
 		if (lfn_entry->sequence_no.number == 1 && lfn_entry->sequence_no.deleted == false)				//Si es la ultima LFN del archivo y no esta eliminada (Saltea tambien la DIRENTRY ya que las marca igual que las LFN eliminadas)
 		{
 			//QUEUE_appendNode(lfn_entries,lfn_entry++);
