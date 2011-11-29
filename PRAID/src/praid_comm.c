@@ -119,8 +119,6 @@ uint32_t PRAID_PPD_RECEIVE_REQUEST(char*  msgIn,uint32_t fd)
 	memcpy(&IDrequest,msgIn+3,sizeof(uint32_t));
 	uint32_t sector =0;
 	memcpy(&sector,msgIn+7,sizeof(uint32_t));
-
-	free(msgIn);
 	/*
 	pthread_mutex_lock(&mutex_LIST);
 	uint32_t IDrequest= NIPC_getID(NIPCmsgIn);
@@ -190,4 +188,17 @@ uint32_t PRAID_HANDLE_DOWN_PPD(uint32_t currFD)
 
 return 0;
 
+}
+
+uint32_t COMM_sendErrorHandshake(newPFS_FD)
+{
+	char* handshake = malloc(4);
+	memset(handshake,0,4);
+	handshake[0] = HANDSHAKE;
+	handshake[1] = 0x01;
+	handshake[3] = 0xFF;
+	send(newPFS_FD,handshake,4,0);
+	close(newPFS_FD);
+	free(handshake);
+	return 0;
 }

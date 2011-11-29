@@ -18,6 +18,7 @@ uint32_t PRAID_PFS_RECEIVE_REQUEST(char*,uint32_t);
 uint32_t PRAID_PPD_RECEIVE_REQUEST(char*,uint32_t);
 praid_ppdThreadParam* PRAID_ValidatePPD(char* msgIn, uint32_t newPPD_FD);
 uint32_t PRAID_HANDLE_DOWN_PPD(uint32_t);
+uint32_t COMM_sendErrorHandshake(newPFS_FD);
 
 void error_fd(uint32_t fd);
 #endif /* PRAID_COMM_H_ */
