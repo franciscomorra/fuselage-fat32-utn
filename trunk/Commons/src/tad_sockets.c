@@ -26,6 +26,7 @@ socketInet_t SOCKET_inet_create(uint32_t style,char* address,uint32_t port,uint3
 {
 
 	socketInet_t new_socket;
+
 	struct sockaddr_in sock_addr;
 	memset(&sock_addr,0,sizeof(sock_addr));
 	sock_addr.sin_family = AF_INET;
@@ -135,7 +136,7 @@ socketUnix_t SOCKET_unix_create(uint32_t style,char* path,uint32_t mode)
 	 	    return new_socket;
 }
 
-int32_t SOCKET_sendAll(uint32_t fd, char *buf, uint32_t len)
+int32_t SOCKET_sendAll(uint32_t fd, char *buf, uint32_t len,uint32_t opt)
 {
 	int32_t total = 0;
 	int32_t left = len;
@@ -143,16 +144,26 @@ int32_t SOCKET_sendAll(uint32_t fd, char *buf, uint32_t len)
 
 	while (total < len)
 	{
-		sent = send(fd,buf+total,left,NULL);
-		if (sent == -1) {break;}
+		sent = send(fd,buf+total,left,opt);
+		if (sent <= 0) {break;}
 		total += sent;
 		left -= sent;
 	}
 
-	return sent==-1?-1:total;
+	if (sent == 0)
+		return SOCK_DISCONNECTED;
+	else if (sent == -1)
+	{
+		if (errno == EWOULDBLOCK || errno == EAGAIN)
+			return SOCK_NODATA;
+		else
+			return SOCK_ERROR;
+	}
+
+	return total;
 }
 
-int32_t SOCKET_recvAll(uint32_t fd, char *buf, uint32_t len)
+int32_t SOCKET_recvAll(uint32_t fd, char *buf, uint32_t len,uint32_t opt)
 {
 	int32_t total = 0;
 	int32_t left = len;
@@ -160,11 +171,23 @@ int32_t SOCKET_recvAll(uint32_t fd, char *buf, uint32_t len)
 
 	while (total < len)
 	{
-		received = recv(fd,buf+total,left,NULL);
+		received = recv(fd,buf+total,left,opt);
 		if (received <= 0) {break;}
 		total += received;
 		left -= received;
 	}
 
-	return received<=0?-1:total;
+
+
+	if (received == 0)
+		return SOCK_DISCONNECTED;
+	else if (received == -1)
+	{
+		if (errno == EWOULDBLOCK || errno == EAGAIN)
+			return SOCK_NODATA;
+		else
+			return SOCK_ERROR;
+	}
+
+	return total;
 }
