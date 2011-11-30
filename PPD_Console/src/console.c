@@ -31,12 +31,12 @@ int main (int argc, char *argv[]) {
 	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,sockUnixPath,MODE_CONNECT);		//se coneccta al proceso PPD
 	printf("Connected.\n");
 
-
-//	*Head = 1;
-//	*Sector = 16;
-//	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,"/home/utn_so/CONSOLE_socket",MODE_CONNECT);		//se coneccta al proceso PPD
-//		printf("Connected.\n");
-
+/*
+	*Head = 1;
+	*Sector = 16;
+	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,"/home/utn_so/CONSOLE_socket",MODE_CONNECT);		//se coneccta al proceso PPD
+		printf("Connected.\n");
+*/
 
 
 	printf("Ingrese un Comando\n");
@@ -52,10 +52,12 @@ int main (int argc, char *argv[]) {
 			console_info(ppd_socket.descriptor);									//funcion que hace el info
 
 		if ((strcmp(command,"clean")) == 0){
-			if(len == 2)
+			if((len == 2)&&(atoi(parameters.begin->data) < atoi(parameters.begin->next->data)))
 				console_clean(parameters,ppd_socket.descriptor);					//funcion que hace el clean
-			else
+			else if(len < 2 || len > 2)
 				printf("Cantidad de parametros erronea \n");
+			else if(atoi(parameters.begin->data) > atoi(parameters.begin->next->data))
+				printf("El primer parametro debe ser menor que el segundo\n");
 		}
 
 		if ((strcmp(command,"trace")) == 0)
