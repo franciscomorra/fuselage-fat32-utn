@@ -4,7 +4,7 @@
 #include <semaphore.h>
 #include <unistd.h>
 #include <sys/socket.h>
-
+#include <assert.h>
 #include "ppd_common.h"
 #include "ppd_comm.h"
 #include "comm.h"
@@ -49,15 +49,18 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 		request = TAKER_takeRequest(queue,prevCandidate,&delay);
 
 		char* msg = TAKER_handleRequest(queue,request,delay,getNext,prevCandidate);
-
-		uint32_t a;											//
+	/*	uint32_t a;											//
 		if(request->type != PPDCONSOLE_TRACE)				//
 			memcpy(&a,msg+7,4);								//
 		else												//temporal, muestra los sectores atendidos
 			memcpy(&a,msg+3,4);								//
-		printf("%d\n",a);									//
-		fflush(0);											//
-
+		if(msg[0] == WRITE_SECTORS)
+			printf("W");
+		else
+			printf("R");
+		printf("%d\n",a);
+		fflush(0);
+*/
 		pfs_node_t* out_pfs = PFSLIST_getByFd(pfsList,request->sender);			//antes de devolver el pedido, busca su respectivo semaforo para que no hayan sobrescrituras
 /*		pthread_mutex_lock(&out_pfs->sock_mutex);
 		COMM_send(msg,request->sender);
@@ -65,17 +68,23 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 */
 
 		//sem_wait(&mainMutex);
-		uint32_t sent = 0;
+		int32_t sent = 0;
 		FD_ZERO(&writeFDs);
 		FD_SET(request->sender,&writeFDs);
 		if(select(request->sender +1,NULL,&writeFDs,NULL,NULL) == -1)
 			perror("select");
+		pthread_mutex_lock(&out_pfs->sock_mutex);
 		while(sent == 0){
 			if(FD_ISSET(request->sender,&writeFDs))
-				//pthread_mutex_lock(&out_pfs->sock_mutex);
-				sent = COMM_send(msg,request->sender);
-				//pthread_mutex_unlock(&out_pfs->sock_mutex);
+				assert(*((uint32_t*)(msg+7)) <= 1048576);
+				sent = SOCKET_sendAll(request->sender,msg,*((uint16_t*)(msg+1)) + 3,NULL);
+				assert(sent == 523);
+				//sent = COMM_send(msg,request->sender);
+
+
 		}
+		pthread_mutex_unlock(&out_pfs->sock_mutex);
+
 		//sem_post(&mainMutex);
 
 
@@ -205,8 +214,6 @@ uint32_t TAKER_near(request_t* curr, CHS_t* headP,request_t* candidate,uint32_t 
 	//se fija si la distancia entre A y head Position es menor que la de head Position y B
 	// si es asi devuelve 1
 	// si la distancia entre cilindros es igual lo deja a modo FIFO
-
-	//TODO ver el tema de prioridades
 	switch (condition(*curr->CHS,*headP)+(condition(*candidate->CHS,*headP))*2){
 		case 3:{
 			uint32_t distTrackCurrH = abs(curr->CHS->cylinder - headP->cylinder);

@@ -35,7 +35,8 @@ extern sem_t queueAvailableMutex;
 
 uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 	switch (msgIn[0]) {
-		case HANDSHAKE:{
+		case HANDSHAKE:
+		{
 			uint16_t msgLen;
 			memcpy(&msgLen,msgIn+1,2);
 			if(msgLen == 0)
@@ -71,6 +72,10 @@ uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 
 		default:{ // puede ser tanto de lectura, escritura o de tipo trace
 			request_t* request = TRANSLATE_fromCharToRequest(msgIn,fd);
+			if(*((uint32_t*) (msgIn+3)) != 0)
+			{
+				uint32_t breadk = 0;
+			}
 			char* msgType = COMMON_getTypeByFlag(request->type);
 
 			sem_wait(&queueAvailableMutex);
@@ -166,7 +171,7 @@ void COMM_RaidHandshake(socketInet_t inetListen,uint32_t diskID){
 
 	uint32_t dataReceived = 0;
 	uint32_t len;
-	char* msgIn = COMM_receiveWithAdvise(inetListen.descriptor,&dataReceived,&len);
+	char* msgIn = COMM_receiveAll(inetListen.descriptor,&dataReceived,&len);
 	if(dataReceived > 3){
 		uint16_t len;
 		memcpy(&len,msgIn,2);
