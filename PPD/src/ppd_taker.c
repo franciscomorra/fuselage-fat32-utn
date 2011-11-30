@@ -49,7 +49,8 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 		request = TAKER_takeRequest(queue,prevCandidate,&delay);
 
 		char* msg = TAKER_handleRequest(queue,request,delay,getNext,prevCandidate);
-	/*	uint32_t a;											//
+/*
+		uint32_t a;											//
 		if(request->type != PPDCONSOLE_TRACE)				//
 			memcpy(&a,msg+7,4);								//
 		else												//temporal, muestra los sectores atendidos
@@ -76,9 +77,9 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 		pthread_mutex_lock(&out_pfs->sock_mutex);
 		while(sent == 0){
 			if(FD_ISSET(request->sender,&writeFDs))
-				assert(*((uint32_t*)(msg+7)) <= 1048576);
+//				assert(*((uint32_t*)(msg+7)) <= 1048576);
 				sent = SOCKET_sendAll(request->sender,msg,*((uint16_t*)(msg+1)) + 3,NULL);
-				assert(sent == 523);
+//				assert(sent == 523);
 				//sent = COMM_send(msg,request->sender);
 
 

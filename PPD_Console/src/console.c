@@ -13,6 +13,7 @@
 
 uint32_t* Head;
 uint32_t* Sector;
+uint32_t james;
 
 int main (int argc, char *argv[]) {
 	char* input = malloc(CANTMAX);							//aloco memoria para el ingreso del teclado
@@ -23,6 +24,7 @@ int main (int argc, char *argv[]) {
 	queue_t parameters;
 	QUEUE_initialize(&parameters);							//aloco memoria para guardar los parametros
 	uint32_t len;
+	james = 0;
 
 	*Head = (uint32_t)*argv[0];
 	*Sector = (uint32_t)*argv[1];
@@ -63,6 +65,11 @@ int main (int argc, char *argv[]) {
 		if ((strcmp(command,"trace")) == 0)
 			console_trace(parameters,len,ppd_socket.descriptor);					//funcion que hace el trace
 
+		if((strcmp(command,"james")) ==  0){
+			james = 1;
+			console_info(ppd_socket.descriptor);
+			james = 0;
+		}
 
 		//TODO Si no recosnoce el comando entonces lo informa.
 

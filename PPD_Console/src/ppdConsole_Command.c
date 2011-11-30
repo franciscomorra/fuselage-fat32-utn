@@ -15,12 +15,17 @@
 
 extern uint32_t* Head;
 extern uint32_t* Sector;
+extern uint32_t james;
 
 uint32_t console_info(uint32_t ppdFD) {
 
 	char* msg = malloc(12+3);
 	uint32_t recvLen = 0;
-	NIPC_createCharMsg(msg,PPDCONSOLE_INFO,12,NULL);
+
+	if(james == 0)
+		NIPC_createCharMsg(msg,PPDCONSOLE_INFO,12,NULL);
+	else
+		NIPC_createCharMsg(msg,PPDCONSOLE_INFO,12,"JAMES");
 
     if (COMM_send(msg,ppdFD) == -1) {
         perror("send");
