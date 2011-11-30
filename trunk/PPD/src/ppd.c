@@ -129,6 +129,7 @@ int main(int argc, char *argv[])
 
 	if(startingMode == MODE_CONNECT){
 		char* payload = malloc(8);
+		*((uint32_t*) (payload)) = diskID;
 		*((uint32_t*) (payload+4)) =  Cylinder * Sector * Head;
 		COMM_sendHandshake(inetListen.descriptor,payload,8);
 		free(payload);
