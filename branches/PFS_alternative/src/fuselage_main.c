@@ -136,7 +136,7 @@ int cmd_signal()
 
 int fuselage_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t offset, struct fuse_file_info *fi)
 {
-	queue_t file_list = fat32_readDirectory2(path); //Obtengo una lista de los ficheros que hay en "path"
+	queue_t file_list = fat32_readDirectory(path); //Obtengo una lista de los ficheros que hay en "path"
 	queueNode_t *curr_file_node = file_list.begin;
 	fat32file_t *curr_file;
 	while ((curr_file_node = QUEUE_takeNode(&file_list)) != NULL)
@@ -244,7 +244,7 @@ static int fuselage_flush(const char *path, struct fuse_file_info *fi)
 				cache_block_t *cur_block = (cache_block_t*) cur_cache_block->data;
 				cluster_t *write_cluster = CLUSTER_newCluster(cur_block->data,cur_block->cluster_no);
 				fat32_writeCluster(write_cluster);
-				CLUSTER_free(write_cluster);
+				//CLUSTER_free(write_cluster);
 				free(write_cluster);
 
 				free(cur_block);

@@ -39,9 +39,7 @@ void finish_him()
 
 int main(int argc, char *argv[])
 {
-	//DIRENTRY_create("santi",5);
-
-	sockets_toPPD = create_connections_pool(10,"192.168.1.105",9035);
+	sockets_toPPD = create_connections_pool(10,"192.168.1.102",9035);
 	if (sockets_toPPD.size == 0) return 1;
 
 	signal(SIGKILL,finish_him);

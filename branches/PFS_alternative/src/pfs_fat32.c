@@ -67,36 +67,8 @@ uint32_t fat32_readBootSector(bootSector_t *bs)
 
 }
 
-
 char* fat32_readRawCluster(uint32_t cluster_no)
 {
-	//uint32_t index = 0;
-	//char* buf = malloc(boot_sector.sectors_perCluster*boot_sector.bytes_perSector);
-
-	/* BUSQUEDA EN LA CACHE
-	//queueNode_t *cur_block_node = current_cache->blocks.begin;
-	while (cur_block_node != NULL)
-	{
-		cache_block_t *cur_block = (cache_block_t*) cur_block_node->data;
-		if (cur_block->cluster_no == cluster_no)
-		{
-			cur_block->uses++;
-			memcpy(buf,cur_block->data,boot_sector.bytes_perSector);
-			return buf;
-		}
-		cur_block_node->next;
-	}
-	/*********
-	uint32_t *sectors = (uint32_t*) cluster_to_sectors(cluster_no);
-	uint32_t sector_index;
-
-	for (sector_index = 0; sector_index < 8;sector_index++)
-	{
-		char* tmp_buf = PPDINTERFACE_readSector(*(sectors+sector_index)); //TODO: ARMAR ARRAY DE SECTORES Y MANDARLOS
-		memcpy(buf+(sector_index*boot_sector.bytes_perSector),tmp_buf,boot_sector.bytes_perSector);
-		free(tmp_buf);
-	}
-	*/
 	uint32_t *sectors = (uint32_t*) cluster_to_sectors(cluster_no);
 	char *buf = PPDINTERFACE_readSectors(sectors,boot_sector.sectors_perCluster);
 	free(sectors);
@@ -134,7 +106,7 @@ cluster_t fat32_readCluster(uint32_t cluster_number)
 }
 
 
-cluster_set_t fat32_readClusterChain(uint32_t first_cluster)
+/*cluster_set_t fat32_readClusterChain(uint32_t first_cluster)
 {
 	queue_t clusterNumber_queue = FAT_getClusterChain(&fat,first_cluster);
 	queue_t cluster_list;
@@ -171,7 +143,7 @@ cluster_set_t fat32_readClusterChain(uint32_t first_cluster)
 
 }
 
-queue_t fat32_readDirectory( char* path,cluster_set_t *cluster_chain)
+queue_t fat32_readDirectory2( char* path,cluster_set_t *cluster_chain)
 {
 
 	if (path[strlen(path)-1] == '/' && strlen(path) != 1)
@@ -227,9 +199,9 @@ queue_t fat32_readDirectory( char* path,cluster_set_t *cluster_chain)
 	} while((token = strtok( NULL, "/" )) != NULL && dir_exists == true);
 
 	return file_list;
-}
+}*/
 
-queue_t fat32_readDirectory2(char* path)
+queue_t fat32_readDirectory(char* path)
 {
 	assert(strcmp(path,"") != 0);
 	if (path[strlen(path)-1] == '/' && strlen(path) != 1)
@@ -340,7 +312,7 @@ fat32file_2_t* fat32_getFileEntry(char* path)
 	//log_debug(log_file,"PFS","fat32_getDirEntry() -> fat32_readDirectory(%s)",location);
 	queue_t file_list;
 	QUEUE_initialize(&file_list);
-	file_list = fat32_readDirectory2(location); 										//Obtengo una lista de los ficheros que hay en "location"
+	file_list = fat32_readDirectory(location); 										//Obtengo una lista de los ficheros que hay en "location"
 
 	queueNode_t *curr_file_node; 																//Creo un puntero que apuntara al file_node en proceso
 	free(location); 																			//Libero la memoria de location
@@ -348,7 +320,6 @@ fat32file_2_t* fat32_getFileEntry(char* path)
 	fat32file_2_t *curr_file;																		//Creo un puntero que apuntara al file struct en proceso
 	fat32file_2_t *fileentry_found = NULL;															/* Apunto direntry_found a NULL, si al final de la funcion
 																		 	 	 	 	 sigue en NULL es que no existe el archivo/carpeta */
-
 	while  ((curr_file_node = QUEUE_takeNode(&file_list)) != NULL)						//Mientras voy tomando los nodos de la cola
 	{
 		curr_file = (fat32file_2_t*) curr_file_node->data; 										//Casteo el puntero 'data' del nodo tomado a el puntero file en proceso
@@ -376,7 +347,6 @@ uint32_t fat32_mk(char* fullpath,uint32_t dir_or_archive) //0 o 1
 		lfnEntry_t new_lfn;
 		dirEntry_t new_direntry;
 		FILE_splitNameFromPath(fullpath,&filename,&path);
-
 
 		uint32_t folderTableCluster;
 		if (strcmp(path,"/") != 0)
@@ -469,7 +439,7 @@ uint32_t fat32_mk(char* fullpath,uint32_t dir_or_archive) //0 o 1
 void fat32_writeCluster(cluster_t *cluster)
 {
 	//queueNode_t *cur_sector_node;
-	PPDINTERFACE_writeSectors(cluster->sectors);
+	PPDINTERFACE_writeSectors(cluster->sectors,QUEUE_length(&cluster->sectors));
 	/*while ((cur_sector_node = QUEUE_takeNode(&(cluster->sectors))) != NULL)
 	{
 		PPDINTERFACE_writeSector(*((sector_t*) cur_sector_node->data));
@@ -572,7 +542,7 @@ uint32_t fat32_truncate(char* fullpath,off_t new_size)
 
 void fat32_remove(char* path)
 {
-	fat32file_2_t* file_entry = fat32_getFileEntry(path);
+		fat32file_2_t* file_entry = fat32_getFileEntry(path);
 		cluster_t table_of_entry = fat32_readCluster(file_entry->cluster);
 		*(table_of_entry.data+file_entry->offset) = 0xE5;
 		*(table_of_entry.data+file_entry->offset+sizeof(dirEntry_t)) = 0xE5;
@@ -589,5 +559,5 @@ void fat32_remove(char* path)
 
 		FAT_write(&fat);
 		fat32_writeCluster(&table_of_entry);
-
+		CLUSTER_free(&table_of_entry);
 }
