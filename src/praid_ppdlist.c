@@ -14,9 +14,8 @@ extern pthread_mutex_t ppdlist_mutex;
 extern queue_t ppdlist;
 
 
-void PPDLIST_addNewPPD(uint32_t ppd_fd,pthread_t thread_id)
+ppd_node_t *PPDLIST_addNewPPD(uint32_t ppd_fd,pthread_t thread_id)
 {
-
 	ppd_node_t *new_ppd = malloc(sizeof(ppd_node_t));
 	new_ppd->ppd_fd = ppd_fd;
 	new_ppd->thread_id = thread_id;
@@ -34,6 +33,7 @@ void PPDLIST_addNewPPD(uint32_t ppd_fd,pthread_t thread_id)
 	pthread_mutex_init(&new_ppd->sock_mutex,NULL);
 	sem_init(&new_ppd->request_list_sem,NULL,0);
 	QUEUE_appendNode(&ppdlist,new_ppd);
+	return new_ppd;
 
 }
 

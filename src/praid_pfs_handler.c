@@ -164,6 +164,7 @@ bool PFSRESPONSE_search(queue_t* response_list,uint32_t request_id,uint32_t sect
 		{
 			return true;
 		}
+		cur_node = cur_node->next;
 	}
 	return false;
 }
