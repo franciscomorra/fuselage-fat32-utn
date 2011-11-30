@@ -67,6 +67,7 @@ int main(int argc,char **argv){
 	socketInet_t listenPFS = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",9034,MODE_LISTEN);
 	sleep(1);
 	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,"192.168.1.106",9035,MODE_LISTEN);
+
 	if (listenPPD.status != 0 || listenPFS.status != 0)
 	{
 		printf("ERROR AL ABRIR SOCKETS!");
@@ -78,14 +79,15 @@ int main(int argc,char **argv){
     FD_ZERO(&PFS_fd_set);
 	FD_SET(listenPFS.descriptor,&master_fd_set);  //agrego el descriptor que recibe conexiones al conjunto de FDs
 	FD_SET(listenPPD.descriptor,&master_fd_set);  //agrego el descriptor que recibe conexiones al conjunto de FDs
-	uint32_t FDmax=listenPPD.descriptor;   //   por ahora es este porque no hay otro
-	while(1){
-
+	uint32_t FDmax=listenPPD.descriptor;		//   por ahora es este porque no hay otro
+	while(1)
+	{
 		FD_ZERO(&read_fd_set);
 		read_fd_set = master_fd_set;
 
-		if(select(FDmax+1, &read_fd_set,NULL,NULL,NULL) == -1)
+		if(select(FDmax+1,&read_fd_set,NULL,NULL,NULL) == -1)
 			perror("select");
+
 		for(current_fd = 0; current_fd <= FDmax; current_fd++)
 		{
 			if(FD_ISSET(current_fd,&read_fd_set)){  //hay datos nuevos
@@ -142,10 +144,11 @@ int main(int argc,char **argv){
 						total_sectors = *((uint32_t*) (handshake+7));
 						COMM_sendHandshake(newPPD_FD,NULL,0);
 						free(handshake);
+
 						pthread_t new_thread_id;
 						pthread_mutex_lock(&ppdlist_mutex);
-						pthread_create(&new_thread_id,NULL,ppd_handler_thread,NULL);
-						PPDLIST_addNewPPD(newPPD_FD,new_thread_id);
+							ppd_node_t* new_ppd = PPDLIST_addNewPPD(newPPD_FD,new_thread_id);
+							pthread_create(&new_thread_id,NULL,ppd_handler_thread,(void*) new_ppd);
 						pthread_mutex_unlock(&ppdlist_mutex);
 					}
 				}
@@ -157,8 +160,9 @@ int main(int argc,char **argv){
 						uint32_t msg_len = 0;
 
 						pfs_node_t	*pfs = PFSLIST_getByFd(pfslist,current_fd);
+
 						pthread_mutex_lock(&pfs->sock_mutex);
-						char* msg_buf = COMM_receiveAll(current_fd,&dataReceived,&msg_len);
+							char* msg_buf = COMM_receiveAll(current_fd,&dataReceived,&msg_len);
 						pthread_mutex_unlock(&pfs->sock_mutex);
 
 						if (msg_buf != NULL)
@@ -182,18 +186,18 @@ int main(int argc,char **argv){
 					}
 					else if (FD_ISSET(current_fd,&PPD_fd_set))
 					{
-						uint32_t dataReceived = 0;
-						uint32_t msg_len = 0;
+						//uint32_t dataReceived = 0;
+						//uint32_t msg_len = 0;
 						ppd_node_t* ppd = PPDLIST_getByFd(ppdlist,current_fd);
 						pthread_mutex_lock(&ppd->sock_mutex);
 
 						char* msg_buf = malloc(3);
-						int32_t result = SOCKET_recvAll(current_fd,msg_buf,3,NULL);
+						int32_t result = SOCKET_recvAll(current_fd,msg_buf,3,0);
 						if (result == 3)
 						{
 							//assert(*((uint16_t*)(msg_buf+1)) == 520 || *((uint16_t*)(msg_buf+1)) == 8);
 							msg_buf = realloc(msg_buf,*((uint16_t*)(msg_buf+1)) + 3);
-							result = SOCKET_recvAll(current_fd,msg_buf+3,*((uint16_t*)(msg_buf+1)),NULL);
+							result = SOCKET_recvAll(current_fd,msg_buf+3,*((uint16_t*)(msg_buf+1)),0);
 							//assert(result == 520);
 
 							/*if (*msg_buf == 0x02)
@@ -213,9 +217,9 @@ int main(int argc,char **argv){
 
 							if (result != SOCK_DISCONNECTED && result != SOCK_ERROR)
 							{
-								assert(*((uint32_t*)(msg_buf+7)) <= 1048576);
+								//assert(*((uint32_t*)(msg_buf+7)) <= 1048576);
 								pthread_mutex_lock(&responselist_mutex);
-								PFSHANDLER_sendResponse(current_fd,msg_buf);
+									PFSHANDLER_sendResponse(current_fd,msg_buf);
 								pthread_mutex_unlock(&responselist_mutex);
 								free(msg_buf);
 							}
@@ -234,7 +238,7 @@ int main(int argc,char **argv){
 									queueNode_t *last_ppd_node = QUEUE_takeNode(&ppdlist);
 									ppd_node_t *last_ppd = (ppd_node_t*) last_ppd_node->data;
 									pthread_mutex_lock(&last_ppd->request_list_mutex);
-									sem_init(&last_ppd->request_list_sem,NULL,0);
+									sem_init(&last_ppd->request_list_sem,0,0);
 									queueNode_t *cur_request_node;
 									while ((cur_request_node = QUEUE_takeNode(&last_ppd->request_list)) != NULL)
 									{
