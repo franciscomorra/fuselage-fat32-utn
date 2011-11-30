@@ -20,33 +20,23 @@
 #include "praid_synchronize.h"
 #include "tad_sockets.h"
 #include <assert.h>
+
+
+
 /*extern uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
 extern pthread_mutex_t mutex_LIST;
 extern t_log *raid_log_file;*/
 
-extern queue_t ppdlist;
-extern queue_t responselist;
-extern pthread_mutex_t responselist_mutex;
+extern queue_t ppd_list;
+extern queue_t pending_request_list;
+extern pthread_mutex_t pending_request_list_mutex;
 extern pthread_mutex_t sync_mutex;
 
 void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 {
-	/*pthread_mutex_lock(&ppdlist_mutex);
-	ppd_node_t *thread_info_node;
-	queueNode_t *new_request_node;
-	pfs_request_t *new_request;
-	queueNode_t *cur_ppdnode = ppdlist.begin;
-	while (cur_ppdnode != NULL)
-	{
-		if (((ppd_node_t*) cur_ppdnode->data)->thread_id == pthread_self())
-		{
-			thread_info_node = (ppd_node_t*) cur_ppdnode->data;
-			break;
-		}
-		cur_ppdnode = cur_ppdnode->next;
-	}
-	pthread_mutex_unlock(&ppdlist_mutex);*/
+
 	ppd_node_t *thread_info_node = (ppd_node_t*) data;
+
 	if (thread_info_node->status == WAIT_SYNCH)
 	{
 		pthread_mutex_lock(&sync_mutex);
@@ -83,7 +73,7 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 			}
 			*/
 			//assert(*((uint32_t*)(new_request->msg+7)) <= 1048576);
-			sent = SOCKET_sendAll(thread_info_node->ppd_fd,new_request->msg,*((uint16_t*)(new_request->msg+1))+3,NULL);
+			sent = SOCKET_sendAll(thread_info_node->ppd_fd,new_request->msg,*((uint16_t*)(new_request->msg+1))+3,0);
 			/*assert(*((uint16_t*)(new_request->msg+1))+3 == 523 || *((uint16_t*)(new_request->msg+1))+3 == 11);
 			assert(sent == 523 || sent == 11);
 			//sent = COMM_send(new_request->msg,thread_info_node->ppd_fd);
@@ -104,29 +94,26 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 
 		if (sent > 0)
 		{
-			pthread_mutex_lock(&responselist_mutex);
+			pthread_mutex_lock(&pending_request_list_mutex);
 
-			//if (PFSRESPONSE_search(&responselist,new_request->request_id,*((uint32_t*) (new_request->msg+7))) == false)
+			if (pfs_pending_request_exist(&pending_request_list,new_request->request_id,*((uint32_t*) (new_request->msg+7))) == false)
 			{
-				pfs_response_t *new_response = malloc(sizeof(pfs_response_t));
-				new_response->pfs_fd = new_request->pfs_fd;
-				new_response->request_id = new_request->request_id;
-				new_response->ppd_fd = thread_info_node->ppd_fd;
-				new_response->write_count = 0;
-				new_response->sector = *((uint32_t*) (new_request->msg+7));
+				pfs_pending_request_t *new_pending_request = malloc(sizeof(pfs_pending_request_t));
+				new_pending_request->pfs_fd = new_request->pfs_fd;
+				new_pending_request->request_id = new_request->request_id;
+				new_pending_request->ppd_fd = thread_info_node->ppd_fd;
+				new_pending_request->sector = *((uint32_t*) (new_request->msg+7));
 
-				if (thread_info_node->status == WAIT_SYNCH)
-					new_response->sync_write_response = true;
-				else
-					new_response->sync_write_response = false;
+				new_pending_request->write_count = (new_request->request_id == 0) ? 0 : QUEUE_length(&ppd_list);
+				new_pending_request->sync_write_response = (thread_info_node->status == WAIT_SYNCH) ? true : false;
 
-				QUEUE_appendNode(&responselist,new_response);
+				QUEUE_appendNode(&pending_request_list,new_pending_request);
 			}
-			pthread_mutex_unlock(&responselist_mutex);
+			pthread_mutex_unlock(&pending_request_list_mutex);
 		 }
 		 pthread_mutex_unlock(&thread_info_node->sock_mutex);
 
-		 PFSREQUEST_free(new_request);
+		 pfs_request_free(new_request);
 		 free(new_request_node);
 
 	}

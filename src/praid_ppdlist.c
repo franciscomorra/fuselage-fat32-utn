@@ -10,8 +10,8 @@
 #include "tad_queue.h"
 #include <semaphore.h>
 
-extern pthread_mutex_t ppdlist_mutex;
-extern queue_t ppdlist;
+extern pthread_mutex_t ppd_list_mutex;
+extern queue_t ppd_list;
 
 
 ppd_node_t *PPDLIST_addNewPPD(uint32_t ppd_fd,pthread_t thread_id)
@@ -19,7 +19,7 @@ ppd_node_t *PPDLIST_addNewPPD(uint32_t ppd_fd,pthread_t thread_id)
 	ppd_node_t *new_ppd = malloc(sizeof(ppd_node_t));
 	new_ppd->ppd_fd = ppd_fd;
 	new_ppd->thread_id = thread_id;
-	if (QUEUE_length(&ppdlist) == 0)
+	if (QUEUE_length(&ppd_list) == 0)
 	{
 		new_ppd->status=READY;
 	}
@@ -32,12 +32,12 @@ ppd_node_t *PPDLIST_addNewPPD(uint32_t ppd_fd,pthread_t thread_id)
 	pthread_mutex_init(&new_ppd->request_list_mutex,NULL);
 	pthread_mutex_init(&new_ppd->sock_mutex,NULL);
 	sem_init(&new_ppd->request_list_sem,NULL,0);
-	QUEUE_appendNode(&ppdlist,new_ppd);
+	QUEUE_appendNode(&ppd_list,new_ppd);
 	return new_ppd;
 
 }
 
-void PFSREQUEST_addNew(uint32_t pfs_fd,char* msgFromPFS)
+void pfs_request_addNew(uint32_t pfs_fd,char* msgFromPFS)
 {
 	//nipcMsg_t new_request_msg = NIPC_toMsg(msgFromPFS);
 
@@ -50,11 +50,11 @@ void PFSREQUEST_addNew(uint32_t pfs_fd,char* msgFromPFS)
 	new_pfsrequest->msg = msg;
 	new_pfsrequest->pfs_fd = pfs_fd;
 
-	queueNode_t *cur_ppd_node = ppdlist.begin;
+	queueNode_t *cur_ppd_node = ppd_list.begin;
 
 	if (*msg == WRITE_SECTORS)
 	{
-		pthread_mutex_lock(&ppdlist_mutex);
+		pthread_mutex_lock(&ppd_list_mutex);
 
 		while (cur_ppd_node != NULL)
 		{
@@ -68,7 +68,7 @@ void PFSREQUEST_addNew(uint32_t pfs_fd,char* msgFromPFS)
 			}
 			cur_ppd_node = cur_ppd_node->next;
 		}
-		pthread_mutex_unlock(&ppdlist_mutex);
+		pthread_mutex_unlock(&ppd_list_mutex);
 	}
 	else
 	{
@@ -81,7 +81,7 @@ void PFSREQUEST_addNew(uint32_t pfs_fd,char* msgFromPFS)
 	return;
 }
 
-void PFSREQUEST_free(pfs_request_t *request)
+void pfs_request_free(pfs_request_t *request)
 {
 	free(request->msg);
 	free(request);
@@ -90,8 +90,8 @@ void PFSREQUEST_free(pfs_request_t *request)
 
 ppd_node_t* PPDLIST_selectByLessRequests()
 {
-	pthread_mutex_lock(&ppdlist_mutex);
-	queueNode_t *cur_ppdnode = ppdlist.begin;
+	pthread_mutex_lock(&ppd_list_mutex);
+	queueNode_t *cur_ppdnode = ppd_list.begin;
 	uint32_t less = 9999999;
 	ppd_node_t *selected_one = NULL;
 	while (cur_ppdnode != NULL)
@@ -109,7 +109,7 @@ ppd_node_t* PPDLIST_selectByLessRequests()
 
 		cur_ppdnode = cur_ppdnode->next;
 	}
-	pthread_mutex_unlock(&ppdlist_mutex);
+	pthread_mutex_unlock(&ppd_list_mutex);
 	return selected_one;
 }
 
@@ -126,9 +126,9 @@ ppd_node_t* PPDLIST_getByFd(queue_t ppdlist,uint32_t fd)
 
 void PPDLIST_reorganizeRequests(uint32_t ppd_fd)
 {
-	queueNode_t *cur_ppd_node = ppdlist.begin;
+	queueNode_t *cur_ppd_node = ppd_list.begin;
 	queueNode_t *prev_ppd_node = NULL;
-	pthread_mutex_lock(&ppdlist_mutex);
+	pthread_mutex_lock(&ppd_list_mutex);
 	while (cur_ppd_node != NULL)
 	{
 		if (((ppd_node_t*)cur_ppd_node->data)->ppd_fd == ppd_fd)
@@ -136,14 +136,14 @@ void PPDLIST_reorganizeRequests(uint32_t ppd_fd)
 			if (prev_ppd_node != NULL)
 			{
 				prev_ppd_node->next = cur_ppd_node->next;
-				if (prev_ppd_node->next == NULL) ppdlist.end = prev_ppd_node;
+				if (prev_ppd_node->next == NULL) ppd_list.end = prev_ppd_node;
 			}
 			else
 			{
-				ppdlist.begin = cur_ppd_node->next;
-				if (ppdlist.begin == NULL)
+				ppd_list.begin = cur_ppd_node->next;
+				if (ppd_list.begin == NULL)
 				{
-					ppdlist.end = NULL;
+					ppd_list.end = NULL;
 				}
 			}
 			break;
@@ -151,7 +151,7 @@ void PPDLIST_reorganizeRequests(uint32_t ppd_fd)
 		prev_ppd_node = cur_ppd_node;
 		cur_ppd_node = cur_ppd_node->next;
 	}
-	pthread_mutex_unlock(&ppdlist_mutex);
+	pthread_mutex_unlock(&ppd_list_mutex);
 
 			ppd_node_t *selected_ppd = (ppd_node_t*) cur_ppd_node->data;
 			pthread_mutex_lock(&selected_ppd->request_list_mutex);

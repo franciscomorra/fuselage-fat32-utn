@@ -40,8 +40,8 @@ typedef struct pfs_request
 
 
 ppd_node_t* PPDLIST_addNewPPD(uint32_t ppd_fd,pthread_t thread_id);
-void PFSREQUEST_addNew(uint32_t pfs_fd,char* msgFromPFS);
-void PFSREQUEST_free(pfs_request_t *request);
+void pfs_request_addNew(uint32_t pfs_fd,char* msgFromPFS);
+void pfs_request_free(pfs_request_t *request);
 ppd_node_t* PPDLIST_selectByLessRequests();
 ppd_node_t* PPDLIST_getByFd(queue_t ppdlist,uint32_t fd);
 void PPDLIST_reorganizeRequests(uint32_t ppd_fd);
