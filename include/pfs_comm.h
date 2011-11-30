@@ -12,6 +12,7 @@
 #include "nipc.h"
 #include "tad_sockets.h"
 #include <semaphore.h>
+#include "tad_queue.h"
 
 typedef struct socketPool_t
 {
@@ -23,6 +24,8 @@ typedef struct socketPool_t
 
 
 char* PPDINTERFACE_readSectors(uint32_t* sectors_array, size_t sectors_array_len);
+
+char* PPDINTERFACE_writeSectors(queue_t sectors_toWrite, size_t sectors_toWrite_len);
 
 socketPool_t create_connections_pool(uint32_t max_conn,char* address,uint32_t port);
 

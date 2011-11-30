@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include "pfs_comm.h"
 #include "comm.h"
 
@@ -29,7 +30,7 @@ extern bootSector_t boot_sector;
 extern socketPool_t sockets_toPPD;
 extern uint32_t request_id;
 
-char* PPDINTERFACE_readSectors2(uint32_t* sectors_array, size_t sectors_array_len)
+char* PPDINTERFACE_readSectors(uint32_t* sectors_array, size_t sectors_array_len)
 {
 	/* BUSQUEDA DE UN SOCKET LIBRE */
 	sem_wait(&sockets_toPPD.free_sockets);
@@ -43,23 +44,31 @@ char* PPDINTERFACE_readSectors2(uint32_t* sectors_array, size_t sectors_array_le
 
 	for (;sector_index < sectors_array_len;sector_index++)
 	{
-		char *msg_buf = malloc(response_message_len);
-		int32_t received = SOCKET_recvAll(ppd_socket->descriptor,msg_buf,response_message_len,MSG_DONTWAIT);
+		char *msg_buf;
+		int32_t readable_bytes = 0;
 
-		if (received > 0)
+		if (ioctl(ppd_socket->descriptor,FIONREAD,&readable_bytes) == 0)
 		{
-			memcpy(buffer+(responses_received*response_message_len),msg_buf,response_message_len);
-			responses_received++;
-		}
-		else if (received == SOCK_DISCONNECTED || received == SOCK_ERROR)
-		{
-			free(msg_buf);
-			free(buffer);
-			printf("ERROR: Se perdio la conexion con el otro extremo.\n");
-			exit(-1);
-		}
-		free(msg_buf);
+			if (readable_bytes >= 523)
+			{
+				msg_buf = malloc(response_message_len);
+				int32_t received = SOCKET_recvAll(ppd_socket->descriptor,msg_buf,response_message_len,MSG_DONTWAIT);
 
+				if (received > 0)
+				{
+					memcpy(buffer+(responses_received*response_message_len),msg_buf,response_message_len);
+					responses_received++;
+				}
+				else if (received == SOCK_DISCONNECTED || received == SOCK_ERROR)
+				{
+					free(msg_buf);
+					free(buffer);
+					printf("ERROR: Se perdio la conexion con el otro extremo.\n");
+					exit(-1);
+				}
+				free(msg_buf);
+			}
+		}
 
 		msg_buf = malloc(11);
 
@@ -96,6 +105,7 @@ char* PPDINTERFACE_readSectors2(uint32_t* sectors_array, size_t sectors_array_le
 		free(msg_buf);
 	}
 
+	ppd_socket->status = SOCK_FREE;
 	pthread_mutex_unlock(&ppd_socket->sock_mutex);
 	sem_post(&sockets_toPPD.free_sockets);
 	char *final_buffer = splitAndSort(buffer,sectors_array,sectors_array_len);
@@ -103,7 +113,7 @@ char* PPDINTERFACE_readSectors2(uint32_t* sectors_array, size_t sectors_array_le
 	return final_buffer;
 }
 
-char* PPDINTERFACE_readSectors(uint32_t* sectors_toRead, size_t sectors_toRead_len)
+char* PPDINTERFACE_readSectors2(uint32_t* sectors_toRead, size_t sectors_toRead_len)
 {
 
 	/* BUSQUEDA DE UN SOCKET LIBRE */
@@ -122,7 +132,7 @@ char* PPDINTERFACE_readSectors(uint32_t* sectors_toRead, size_t sectors_toRead_l
 	uint32_t received_responses = 0;
 
 	uint32_t sectors_toRead_index = 0;
-	uint32_t received_response_len=0;
+	uint32_t received_response_len = 0;
 
 	for(sectors_toRead_index = 0;sectors_toRead_index < sectors_toRead_len;sectors_toRead_index++)
 	{
@@ -189,102 +199,94 @@ char* PPDINTERFACE_readSectors(uint32_t* sectors_toRead, size_t sectors_toRead_l
 	return sectors_readed_messages;
 }
 
-char* PPDINTERFACE_writeSectors3(uint32_t* sectors_toRead, size_t sectors_toRead_len)
+char* PPDINTERFACE_writeSectors(queue_t sectors_toWrite,size_t sectors_toWrite_len)
 {
-
 	/* BUSQUEDA DE UN SOCKET LIBRE */
-	uint32_t sockets_toPPD_index = 0;
-
 	sem_wait(&sockets_toPPD.free_sockets);
-	for (;sockets_toPPD_index < sockets_toPPD.size;sockets_toPPD_index++)
-	{
-		if (sockets_toPPD.sockets[sockets_toPPD_index].status == SOCK_FREE)
-		{
-			sockets_toPPD.sockets[sockets_toPPD_index].status = SOCK_NOTFREE;
-			break;
-		}
-	}
-	pthread_mutex_lock(&sockets_toPPD.sockets[sockets_toPPD_index].sock_mutex);
+	socketInet_t *ppd_socket = PPDINTERFACE_getFreeSocket();
+	pthread_mutex_lock(&ppd_socket->sock_mutex);
 	/* FIN BUSQUEDA DE SOCKET LIBRE */
 
-	size_t one_message_len = 11; //TIPO + LEN + PAYLOAD (ID PEDIDO, NUMERO SECTOR)
-	size_t received_data_len = (boot_sector.bytes_perSector + one_message_len) * sectors_toRead_len;
+	size_t sector_index = 0,responses_received = 0;
+	size_t response_message_len = 523;
+	queueNode_t *cur_sector_node = sectors_toWrite->begin;
+	//char *buffer = malloc(response_message_len*sectors_array_len);
 
-	char* sectors_toRead_responses = malloc(received_data_len);
-	char* sector_toRead_response;
-
-	fd_set read_sockets_set;
-	uint32_t received_responses = 0;
-
-	uint32_t sectors_toRead_index = 0;
-	uint32_t received_response_len=0;
-
-	for(sectors_toRead_index = 0;sectors_toRead_index < sectors_toRead_len;sectors_toRead_index++)
+	for (;sector_index < sectors_toWrite_len;sector_index++)
 	{
-		struct timeval val;
-		val.tv_sec = 0;
-		val.tv_usec = 0;
+		char *msg_buf;
+		int32_t readable_bytes = 0;
 
-		FD_ZERO(&read_sockets_set);
-		FD_SET(sockets_toPPD.sockets[sockets_toPPD_index].descriptor,&read_sockets_set);
-
-		if (select(sockets_toPPD.sockets[sockets_toPPD_index].descriptor+1, &read_sockets_set,NULL,NULL,&val) > 0)
+		if (ioctl(ppd_socket->descriptor,FIONREAD,&readable_bytes) == 0)
 		{
-			if(FD_ISSET(sockets_toPPD.sockets[sockets_toPPD_index].descriptor,&read_sockets_set))
+			if (readable_bytes >= 523)
 			{
-				sector_toRead_response = COMM_receive(sockets_toPPD.sockets[sockets_toPPD_index].descriptor,(uint32_t*) &received_response_len);
+				msg_buf = malloc(response_message_len);
+				int32_t received = SOCKET_recvAll(ppd_socket->descriptor,msg_buf,response_message_len,MSG_DONTWAIT);
 
-				if (received_response_len == -1)
+				if (received > 0)
 				{
-					perror("recv");
-					exit(1);
+					responses_received++;
 				}
-				else
+				else if (received == SOCK_DISCONNECTED || received == SOCK_ERROR)
 				{
-					memcpy(sectors_toRead_responses+(received_responses*received_response_len),sector_toRead_response,received_response_len);
-					received_responses++;
-					free(sector_toRead_response);
+					free(msg_buf);
+					printf("ERROR: Se perdio la conexion con el otro extremo.\n");
+					exit(-1);
 				}
-
+				free(msg_buf);
 			}
 		}
 
-		char* sector_toRead_request = createRequest(READ_SECTORS,sizeof(uint32_t),(char*) (sectors_toRead+sectors_toRead_index));
+		sector_t *sector_toWrite = (sector_t*) cur_sector_node->data;
 
-		if (COMM_send(sector_toRead_request,sockets_toPPD.sockets[sockets_toPPD_index].descriptor) == -1)
+		msg_buf = malloc(523);
+
+		*msg_buf = WRITE_SECTORS;
+		*((uint16_t*) (msg_buf+1)) = 520;
+		*((uint32_t*) (msg_buf+3)) = request_id;
+		*((uint32_t*) (msg_buf+7)) = sector_toWrite->number;
+		memcpy(msg_buf+11,sector_toWrite->data,boot_sector.bytes_perSector);
+
+
+		int32_t sent = SOCKET_sendAll(ppd_socket->descriptor,msg_buf,response_message_len,NULL);
+		if (sent == SOCK_DISCONNECTED || sent == SOCK_ERROR)
 		{
-			perror("send");
-			exit(1);
+			printf("ERROR: Se perdio la conexion con el otro extremo.\n");
+			exit(-1);
 		}
+		free(msg_buf);
 
-		free(sector_toRead_request);
+		cur_sector_node = cur_sector_node->next;
 	}
 
-	received_response_len=0;
-
-	for(;received_responses<sectors_toRead_len;received_responses++)
+	for (;responses_received<sectors_toWrite_len;responses_received++)
 	{
-		sector_toRead_response = COMM_receive(sockets_toPPD.sockets[sockets_toPPD_index].descriptor,&received_response_len);
-		if (received_response_len == -1)
+		char *msg_buf = malloc(response_message_len);
+		int32_t received = SOCKET_recvAll(ppd_socket->descriptor,msg_buf,response_message_len,NULL);
+
+		if (received > 0)
 		{
-			perror("recv");
-			exit(1);
+
 		}
-		memcpy(sectors_toRead_responses+(received_responses*received_response_len),sector_toRead_response,received_response_len);
-		free(sector_toRead_response);
+		else if (received == SOCK_DISCONNECTED || received == SOCK_ERROR)
+		{
+			free(msg_buf);
+			printf("ERROR: Se perdio la conexion con el otro extremo.\n");
+			exit(-1);
+		}
+		free(msg_buf);
 	}
 
-	char *sectors_readed_messages = splitAndSort(sectors_toRead_responses,sectors_toRead,sectors_toRead_len);
-	free(sectors_toRead_responses);
-
-
-	sockets_toPPD.sockets[sockets_toPPD_index].status = SOCK_FREE;
-	pthread_mutex_unlock(&sockets_toPPD.sockets[sockets_toPPD_index].sock_mutex);
+	ppd_socket->status = SOCK_FREE;
+	pthread_mutex_unlock(&ppd_socket->sock_mutex);
 	sem_post(&sockets_toPPD.free_sockets);
-	return sectors_readed_messages;
+
+
+	return NULL;
 }
 
-char* PPDINTERFACE_writeSectors(queue_t sectors)
+char* PPDINTERFACE_writeSectors2(queue_t sectors)
 {
 	uint32_t sock_index = 0;
 	uint32_t sector_count = QUEUE_length(&sectors);
@@ -435,7 +437,6 @@ char* createRequest(NIPC_type msg_type,uint32_t payload_len,char* payload)
 socketInet_t* PPDINTERFACE_getFreeSocket()
 {
 	uint32_t sockets_toPPD_index = 0;
-
 
 	for (;sockets_toPPD_index < sockets_toPPD.size;sockets_toPPD_index++)
 	{
