@@ -50,11 +50,12 @@ void PFSREQUEST_addNew(uint32_t pfs_fd,char* msgFromPFS)
 	new_pfsrequest->msg = msg;
 	new_pfsrequest->pfs_fd = pfs_fd;
 
+	queueNode_t *cur_ppd_node = ppdlist.begin;
 
 	if (*msg == WRITE_SECTORS)
 	{
 		pthread_mutex_lock(&ppdlist_mutex);
-		queueNode_t *cur_ppd_node = ppdlist.begin;
+
 		while (cur_ppd_node != NULL)
 		{
 			ppd_node_t *cur_ppd = (ppd_node_t*) cur_ppd_node->data;
@@ -73,8 +74,8 @@ void PFSREQUEST_addNew(uint32_t pfs_fd,char* msgFromPFS)
 	{
 		ppd_node_t *selected_ppd = PPDLIST_selectByLessRequests();
 		pthread_mutex_lock(&selected_ppd->request_list_mutex);
-		QUEUE_appendNode(&selected_ppd->request_list,new_pfsrequest);
-		sem_post(&selected_ppd->request_list_sem);
+			QUEUE_appendNode(&selected_ppd->request_list,new_pfsrequest);
+			sem_post(&selected_ppd->request_list_sem);
 		pthread_mutex_unlock(&selected_ppd->request_list_mutex);
 	}
 	return;
