@@ -12,126 +12,84 @@
 #include <stdint.h>
 #include <pthread.h>
 #include "tad_queue.h"
+#include <assert.h>
 
 extern queue_t ppdlist;
 extern pthread_mutex_t ppdlist_mutex;
 extern queue_t pfslist;
 extern queue_t responselist;
-extern pthread_mutex_t responselist_mutex;
 extern uint32_t sync_write_count;
-extern sem_t sync_ready_sem;
-extern pthread_mutex_t prueba_mutex;
+extern pthread_mutex_t sync_mutex;
+
 
 void* PFSHANDLER_sendResponse(uint32_t ppd_fd,char* msg)
 {
 	uint32_t sector = *((uint32_t*) (msg+7));
 	uint16_t msg_len = *((uint16_t*) (msg+1));
 	uint32_t request_id = *((uint32_t*) (msg+3));
-	queueNode_t *cur_response_node =	responselist.begin;
-	queueNode_t *next_response_node = cur_response_node->next;
 
-	pfs_response_t *first_response = (pfs_response_t*) cur_response_node->data;
-	if (first_response->request_id == request_id && first_response->sector == sector)
+	pfs_response_t *response_found = PFSRESPONSE_searchAndTake(&responselist,request_id,sector);
+
+	//assert(response_found->request_id == 0);
+	if (response_found != NULL)
 	{
-		if (first_response->write_count > 0)
-			{first_response->write_count--;}
-
-		if (first_response->write_count == 0)
+		if (response_found->write_count > 0)
 		{
-			if (first_response->sync_write_response == false && first_response->request_id == 0)
+				response_found->write_count--;
+				QUEUE_appendNode(&responselist,response_found);
+		}
+
+		if (response_found->write_count == 0)
+		{
+			if (response_found->sync_write_response == false && response_found->request_id == 0)
 			{
-				msg[0] = WRITE_SECTORS;
-				first_response->sync_write_response = true;
-				//printf("W%d -> PPD: %d\n",sector,first_response->pfs_fd);
 				pthread_mutex_lock(&ppdlist_mutex);
-				ppd_node_t *ppd = PPDLIST_getByFd(ppdlist,first_response->pfs_fd);
+				ppd_node_t *ppd = PPDLIST_getByFd(ppdlist,response_found->pfs_fd);
 				pthread_mutex_unlock(&ppdlist_mutex);
-				pthread_mutex_lock(&ppd->sock_mutex);
-				send(first_response->pfs_fd,msg,(msg_len+3),NULL);
-				pthread_mutex_unlock(&ppd->sock_mutex);
-				pthread_mutex_unlock(&prueba_mutex);
+
+				pfs_request_t *new_pfsrequest = malloc(sizeof(pfs_request_t));
+
+				msg[0] = WRITE_SECTORS;
+				new_pfsrequest->request_id = 0;
+				new_pfsrequest->msg = malloc(msg_len+3);
+				memcpy(new_pfsrequest->msg,msg,msg_len+3);
+				new_pfsrequest->pfs_fd = response_found->pfs_fd;
+
+				pthread_mutex_lock(&ppd->request_list_mutex);
+				QUEUE_appendNode(&ppd->request_list,new_pfsrequest);
+				sem_post(&ppd->request_list_sem);
+				pthread_mutex_unlock(&ppd->request_list_mutex);
 			}
-			else if (first_response->sync_write_response == true && first_response->request_id == 0)
+			else if (response_found->sync_write_response == true && response_found->request_id == 0)
 			{
 				sync_write_count--;
 				if (sync_write_count == 0)
 				{
-					sem_post(&sync_ready_sem);
+					pthread_mutex_unlock(&sync_mutex);
+					//HABILITAR DISCO, TERMINO DE SINCRONIZAR
 				}
+
 			}
 			else
 			{
-				pfs_node_t* pfs = PFSLIST_getByFd(pfslist,first_response->pfs_fd);
-				pthread_mutex_lock(&pfs->sock_mutex);
-				if (send(first_response->pfs_fd,msg,(msg_len+3),NULL) != (msg_len+3))
-				{
-						uint32_t santi = 2;	//ERROR AL ENVIAR
-				}
+				pfs_node_t* pfs = PFSLIST_getByFd(pfslist,response_found->pfs_fd);
+
+
+				 fd_set write_set;
+				 FD_ZERO(&write_set);
+				 FD_SET(response_found->pfs_fd,&write_set);
+				 select(response_found->pfs_fd+1,NULL,&write_set,NULL,NULL);
+
+				 pthread_mutex_lock(&pfs->sock_mutex);
+				 int32_t sent = 0;
+
+		 			if(FD_ISSET(response_found->pfs_fd,&write_set))
+ 						sent = COMM_send(msg,response_found->pfs_fd);
+
 				pthread_mutex_unlock(&pfs->sock_mutex);
-				responselist.begin = next_response_node;
-				if (responselist.begin == NULL) responselist.end = NULL;
-				free(cur_response_node->data);
-				free(cur_response_node);
 			}
 		}
-
-	}
-	else
-	{
-		while (next_response_node != NULL)
-		{
-			pfs_response_t *next_response = (pfs_response_t*) next_response_node->data;
-			if (next_response->request_id == request_id && next_response->sector == sector)
-			{
-				if (next_response->write_count > 0) {
-					next_response->write_count--;
-				}
-
-				if (next_response->write_count == 0)
-				{
-					if (next_response->sync_write_response == false && next_response->request_id == 0)
-					{
-						msg[0] = WRITE_SECTORS;
-						next_response->sync_write_response = true;
-						pthread_mutex_lock(&ppdlist_mutex);
-						ppd_node_t *ppd = PPDLIST_getByFd(ppdlist,next_response->pfs_fd);
-						pthread_mutex_unlock(&ppdlist_mutex);
-						pthread_mutex_lock(&ppd->sock_mutex);
-						send(next_response->pfs_fd,msg,(msg_len+3),NULL);
-						pthread_mutex_unlock(&ppd->sock_mutex);
-						pthread_mutex_unlock(&prueba_mutex);
-
-						//printf("W%d -> PPD: %d\n",sector,next_response->pfs_fd);
-					}
-					else if (next_response->sync_write_response == true && next_response->request_id == 0)
-					{
-						sync_write_count--;
-						if (sync_write_count == 0)
-						{
-							sem_post(&sync_ready_sem);
-						}
-					}
-					else
-					{
-						pfs_node_t* pfs = PFSLIST_getByFd(pfslist,first_response->pfs_fd);
-						pthread_mutex_lock(&pfs->sock_mutex);
-						if (send(next_response->pfs_fd,msg,(msg_len+3),NULL) != (msg_len+3))
-						{
-							uint32_t santi = 2;
-						}
-						pthread_mutex_unlock(&pfs->sock_mutex);
-						cur_response_node->next = next_response_node->next;
-						if (cur_response_node->next == NULL) responselist.end = cur_response_node;
-						free(next_response_node->data);
-						free(next_response);
-					}
-				}
-				break;
-
-			}
-			cur_response_node = next_response_node;
-			next_response_node = next_response_node->next;
-		}
+		free(response_found);
 	}
 }
 
@@ -163,4 +121,49 @@ void PFSREQUEST_removeAll()
 
 		cur_ppd_node = cur_ppd_node->next;
 	}
+}
+
+pfs_response_t* PFSRESPONSE_searchAndTake(queue_t* response_list,uint32_t request_id,uint32_t sector)
+{
+	queueNode_t *cur_node = response_list->begin;
+	queueNode_t *prev_node = cur_node;
+	while (cur_node != NULL)
+	{
+		pfs_response_t *cur_response = (pfs_response_t*) cur_node->data;
+
+		if (cur_response->sector == sector && cur_response->request_id == request_id)
+		{
+			if (prev_node == cur_node)
+			{
+				response_list->begin = cur_node->next;
+				if (response_list->begin == NULL) response_list->end = NULL;
+			}
+			else
+			{
+				prev_node->next = cur_node->next;
+				if (prev_node->next == NULL) response_list->end = prev_node;
+			}
+			free(cur_node);
+			return cur_response;
+		}
+		prev_node = cur_node;
+		cur_node = cur_node->next;
+	}
+	return NULL;
+}
+
+bool PFSRESPONSE_search(queue_t* response_list,uint32_t request_id,uint32_t sector)
+{
+	queueNode_t *cur_node = response_list->begin;
+
+	while (cur_node != NULL)
+	{
+		pfs_response_t *cur_response = (pfs_response_t*) cur_node->data;
+
+		if (cur_response->sector == sector && cur_response->request_id == request_id)
+		{
+			return true;
+		}
+	}
+	return false;
 }

@@ -14,7 +14,8 @@ pfs_node_t* PFSLIST_getByFd(queue_t pfslist,uint32_t fd)
 	while (cur_pfs_node != NULL)
 	{
 		pfs_node_t* cur_pfs = (pfs_node_t*) cur_pfs_node->data;
-		if (cur_pfs->sock_fd == fd) return cur_pfs;
+		if (cur_pfs->sock_fd == fd)
+			return cur_pfs;
 		cur_pfs_node = cur_pfs_node->next;
 	}
 }
