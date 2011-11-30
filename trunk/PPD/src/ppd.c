@@ -12,6 +12,7 @@
 #include <sys/time.h>		// select
 #include <unistd.h>			// select
 #include <netinet/in.h>
+#include <assert.h>
 
 #include "log.h"
 #include "nipc.h"
@@ -126,7 +127,14 @@ int main(int argc, char *argv[])
 	inetListen = SOCKET_inet_create(SOCK_STREAM,IP,port,startingMode);										//crea un descriptor de socket encargado de recibir conexiones entrantes
 
 	if(startingMode == MODE_CONNECT){
-		COMM_RaidHandshake(inetListen,diskID);
+		char* payload = malloc(8);
+		*((uint32_t*) (payload+4)) =  Cylinder * Sector * Head;
+		COMM_sendHandshake(inetListen.descriptor,payload,8);
+		free(payload);
+		uint32_t recv = 0;
+		char* hndshk = COMM_receiveHandshake(inetListen.descriptor,&recv);
+		free(hndshk);
+		//COMM_RaidHandshake(inetListen,diskID);
 		PFSLIST_addNew(&pfsList,inetListen.descriptor);
 	}
 	FD_ZERO(&masterFDs);
@@ -163,29 +171,41 @@ int main(int argc, char *argv[])
 					if(newSocket.descriptor > FDmax)
 						FDmax = newSocket.descriptor;
 					PFSLIST_addNew(&pfsList,newSocket.descriptor);
-					}
-				else { 																						//datos de un cliente
+				}
+				else
+				{ 																						//datos de un cliente
 					uint32_t dataRecieved = 0;
 					uint32_t msg_len = 0;
 					pfs_node_t *in_pfs = PFSLIST_getByFd(pfsList,currFD);
 
-//					pthread_mutex_lock(&in_pfs->sock_mutex);
-					char* msg_buf = COMM_receiveWithAdvise(currFD,&dataRecieved,&msg_len);
-//					pthread_mutex_unlock(&in_pfs->sock_mutex);
+					pthread_mutex_lock(&in_pfs->sock_mutex);
 
-					if (msg_buf != NULL)
+					//char* msg_buf = COMM_receiveAll(currFD,&dataRecieved,&msg_len);
+					char* msg_buf = malloc(3);													//version santi
+					recv(currFD,msg_buf,3,0);
+					msg_buf = realloc(msg_buf,*((uint16_t*)(msg_buf+1)) + 3);
+					int32_t result = SOCKET_recvAll(currFD,msg_buf+3,*((uint16_t*)(msg_buf+1)),NULL);
+					assert(result == 520 || result == 8);
+					assert(*((uint32_t*)(msg_buf+7)) <= 1048576);
+
+					pthread_mutex_unlock(&in_pfs->sock_mutex);
+
+					if (result != SOCK_DISCONNECTED && result != SOCK_ERROR)
 					{
-						uint32_t msg_count = dataRecieved/msg_len;
-						uint32_t msg_index = 0;
-
-						for(;msg_index < msg_count;msg_index++)
-						{
 //							uint32_t numero;
 //							memcpy(&numero,(msg_buf+(msg_index*msg_len))+7,4);
 //							printf("entrada: %d\n",numero);
 //							fflush(0);
-							exit = COMM_handleReceive(msg_buf+(msg_index*msg_len),currFD);
-						}
+							if (diskID == 2 && *(msg_buf)!=0x02)
+							{
+								uint32_t santi = 0;
+							}
+							else if (diskID == 1 && *(msg_buf)!=0x01)
+							{
+								uint32_t santi = 0;
+							}
+							exit = COMM_handleReceive(msg_buf,currFD);
+
 						free(msg_buf);
 					}
 					else
@@ -193,6 +213,7 @@ int main(int argc, char *argv[])
 						close(currFD);
 						FD_CLR(currFD,&masterFDs);
 					}
+
 				}
 			}
 		}
