@@ -28,6 +28,7 @@
 #include "tad_sockets.h"
 #include "ppd_FSCAN.h"
 #include "ppd_pfsList.h"
+#include "ppd_io.h"
 
 uint32_t Cylinder;
 uint32_t Head;
@@ -162,8 +163,15 @@ int main(int argc, char *argv[])
 						FD_SET(newFD,&masterFDs);
 						if(newFD > FDmax)
 							FDmax = newFD;
+						char* handshake = malloc(3);
+						int32_t result = SOCKET_recvAll(newFD,handshake,3,NULL);
+						if (handshake[0] == HANDSHAKE && *((uint16_t*) (handshake+1)) == 0){
+							SOCKET_sendAll(newFD,handshake,3,0);
+							PFSLIST_addNew(&pfsList,newFD);
 						}
-					PFSLIST_addNew(&pfsList,newFD);
+						}
+
+
 				}
 				else if (currFD == consoleListen.descriptor){												//nueva conexion tipo UNIX
 					newSocket = COMM_ConsoleAccept(consoleListen);
@@ -171,6 +179,8 @@ int main(int argc, char *argv[])
 					if(newSocket.descriptor > FDmax)
 						FDmax = newSocket.descriptor;
 					PFSLIST_addNew(&pfsList,newSocket.descriptor);
+					close(consoleListen.descriptor);
+					FD_CLR(currFD,&masterFDs);
 				}
 				else
 				{ 																						//datos de un cliente
@@ -182,11 +192,13 @@ int main(int argc, char *argv[])
 
 					//char* msg_buf = COMM_receiveAll(currFD,&dataRecieved,&msg_len);
 					char* msg_buf = malloc(3);													//version santi
-					recv(currFD,msg_buf,3,0);
+					int32_t result = SOCKET_recvAll(currFD,msg_buf,3,NULL);
+//					assert(*((uint16_t*)(msg_buf+1)) == 8 || *((uint16_t*)(msg_buf+1)) == 520);
 					msg_buf = realloc(msg_buf,*((uint16_t*)(msg_buf+1)) + 3);
-					int32_t result = SOCKET_recvAll(currFD,msg_buf+3,*((uint16_t*)(msg_buf+1)),NULL);
-					assert(result == 520 || result == 8);
-					assert(*((uint32_t*)(msg_buf+7)) <= 1048576);
+					if(*((uint16_t*)(msg_buf+1)) != 0)
+						result = SOCKET_recvAll(currFD,msg_buf+3,*((uint16_t*)(msg_buf+1)),NULL);
+//					assert(result == 520 || result == 8);
+//					assert(*((uint32_t*)(msg_buf+7)) <= 1048576);
 
 					pthread_mutex_unlock(&in_pfs->sock_mutex);
 
@@ -196,14 +208,7 @@ int main(int argc, char *argv[])
 //							memcpy(&numero,(msg_buf+(msg_index*msg_len))+7,4);
 //							printf("entrada: %d\n",numero);
 //							fflush(0);
-							if (diskID == 2 && *(msg_buf)!=0x02)
-							{
-								uint32_t santi = 0;
-							}
-							else if (diskID == 1 && *(msg_buf)!=0x01)
-							{
-								uint32_t santi = 0;
-							}
+
 							exit = COMM_handleReceive(msg_buf,currFD);
 
 						free(msg_buf);
@@ -221,12 +226,9 @@ int main(int argc, char *argv[])
 		if(exit == 1)
 			break;
 	}
-	log_destroy(Log);
+	if(logFlag != OFF)
+		log_destroy(Log);
 	free(IP);
-	free(sockUnixPath);
-	free(diskFilePath);
-	free(consolePath);
-	free(logPath);
 	QMANAGER_freeRequests(multiQueue->queue1);
 	QUEUE_destroyQueue(multiQueue->queue1);
 	if(Algorithm != SSTF)

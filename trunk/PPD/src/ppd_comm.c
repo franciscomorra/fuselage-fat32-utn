@@ -35,7 +35,7 @@ extern sem_t queueAvailableMutex;
 
 uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 	switch (msgIn[0]) {
-		case HANDSHAKE:
+/*		case HANDSHAKE:
 		{
 			uint16_t msgLen;
 			memcpy(&msgLen,msgIn+1,2);
@@ -55,7 +55,11 @@ uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 			}
 			break;
 		}
+*/
 		case PPDCONSOLE_INFO:{
+			if(strcmp(msgIn+3,"JAMES")==0)
+				HeadPosition = 7;
+
 			CHS_t* CHSPosition = COMMON_turnToCHS(HeadPosition);
 
 			memcpy(msgIn+3,&CHSPosition->cylinder,4);

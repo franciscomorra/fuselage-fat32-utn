@@ -116,7 +116,7 @@ socketUnix_t SOCKET_unix_create(uint32_t style,char* path,uint32_t mode)
 
 		 }
 
-		 if (listen(sockfd, 5) == -1) //MAX_CONNECTIONS
+		 if (listen(sockfd,1) == -1) //MAX_CONNECTIONS
 		 {
 		     perror("listen");
 		 }
