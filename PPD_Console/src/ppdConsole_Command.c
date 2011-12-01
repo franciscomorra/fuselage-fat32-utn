@@ -140,7 +140,7 @@ uint32_t console_trace(queue_t parameters,uint32_t len,uint32_t ppdFD){
 	}
 	free(payload);
 	free(msgOut);
-	free(msgIn); //rompe
+	free(msgIn);
 
 	return 1;
 }

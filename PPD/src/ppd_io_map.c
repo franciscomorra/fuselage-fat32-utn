@@ -10,7 +10,7 @@
 #include "ppd_io.h"
 #include "log.h"
 
-#define MAX_WRITINGS_PERSYNC 5000
+#define MAX_WRITINGS_PERSYNC 10000
 
 extern uint32_t bytes_perSector;
 extern uint32_t ReadTime;
@@ -37,7 +37,7 @@ uint32_t IO_openDisk(char* diskFilePath){
 		log_error(Log,"Principal","Error al mappear el disco a memoria");
 		exit(1);
 	}
-	posix_madvise(Map,diskSize,POSIX_MADV_RANDOM);
+	posix_madvise(Map,diskSize,POSIX_MADV_SEQUENTIAL);
 	return file_descriptor;
 }
 

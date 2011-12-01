@@ -170,11 +170,9 @@ int main(int argc, char *argv[])
 							SOCKET_sendAll(newFD,handshake,3,0);
 							PFSLIST_addNew(&pfsList,newFD);
 						}
-						}
-
-
+					}
 				}
-				else if (currFD == consoleListen.descriptor){												//nueva conexion tipo UNIX
+				else if ((currFD == consoleListen.descriptor)&&(consoleListen.status != SOCK_DISCONNECTED)){												//nueva conexion tipo UNIX
 					newSocket = COMM_ConsoleAccept(consoleListen);
 					FD_SET(newSocket.descriptor,&masterFDs);
 					if(newSocket.descriptor > FDmax)
@@ -182,6 +180,7 @@ int main(int argc, char *argv[])
 					PFSLIST_addNew(&pfsList,newSocket.descriptor);
 					close(consoleListen.descriptor);
 					FD_CLR(currFD,&masterFDs);
+					consoleListen.status = SOCK_DISCONNECTED;
 				}
 				else
 				{ 																						//datos de un cliente
@@ -217,6 +216,7 @@ int main(int argc, char *argv[])
 					else
 					{
 						close(currFD);
+						PFSLIST_destroyNode(in_pfs,pfsList);
 						FD_CLR(currFD,&masterFDs);
 					}
 

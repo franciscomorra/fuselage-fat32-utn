@@ -243,18 +243,18 @@ uint32_t TAKER_getNextNode(queue_t* queue,uint32_t headPosition, queueNode_t** p
 	CHS_t* headPCHS = COMMON_turnToCHS(headPosition);
 
 	while(currNode->next != NULL){
-			if(*prevCandidate == NULL){																											//si apunta a NULL quiere decir que el candidato a sacar es el primero de la cola
+			if(*prevCandidate == NULL){																					//si apunta a NULL quiere decir que el candidato a sacar es el primero de la cola
 				if(TAKER_near((request_t*)currNode->next->data,headPCHS,(request_t*)queue->begin->data,condition)>0){	//se fija si es preferible sacar el siguiente nodo al auxiliar que el primero de la cola
-					*prevCandidate = currNode;																									//si es conveniente sacarlo, le asigna al anterior al candidato el auxiliar
-					currNode = currNode->next;																											//avanza el auxiliar
+					*prevCandidate = currNode;																			//si es conveniente sacarlo, le asigna al anterior al candidato el auxiliar
+					currNode = currNode->next;																			//avanza el auxiliar
 				} else
-					currNode = currNode->next;																									//si no es conveniente solo avanza el auxiliar
+					currNode = currNode->next;																			//si no es conveniente solo avanza el auxiliar
 			} else {
 				if(TAKER_near((request_t*)currNode->next->data,headPCHS,(request_t*)(*prevCandidate)->next->data,condition)>0){	//se fija si es preferible sacar el siguiente nodo al auxiliar que el siguiente nodo al anterior al candidato
-					*prevCandidate = currNode;																											//si es conveniente sacarlo, le asigna al anterior al candidato el auxiliar
-					currNode = currNode->next;																										//avanza el auxiliar
+					*prevCandidate = currNode;																					//si es conveniente sacarlo, le asigna al anterior al candidato el auxiliar
+					currNode = currNode->next;																					//avanza el auxiliar
 				} else
-					currNode = currNode->next;																											//si no es conveniente solo avanza el auxiliar
+					currNode = currNode->next;																					//si no es conveniente solo avanza el auxiliar
 		}
 	}
 	if((*prevCandidate == NULL) && ((condition(*((request_t*)queue->begin->data)->CHS,*headPCHS)) == 0)){
