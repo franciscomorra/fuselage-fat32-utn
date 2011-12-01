@@ -39,8 +39,6 @@ int main (int argc, char *argv[]) {
 	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,"/home/utn_so/CONSOLE_socket",MODE_CONNECT);		//se coneccta al proceso PPD
 		printf("Connected.\n");
 */
-
-
 	printf("Ingrese un Comando\n");
 	if (fgets(input,CANTMAX,stdin) == 0 )
 		printf("error fgets\n");
@@ -96,6 +94,7 @@ int main (int argc, char *argv[]) {
 	free(sockUnixPath);
 	free(Head);
 	free(Sector);
+	free(ppd_socket.path);
 	//hacer frees necesarios
 	return EXIT_SUCCESS;
 }
