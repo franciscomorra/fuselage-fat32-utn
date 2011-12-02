@@ -48,4 +48,8 @@
 
 	uint32_t shiftbytes_left(char* buf,size_t size,size_t positions);
 
+	void uppercase(char *string);
+
+	uint32_t getMicroseconds();
+
 #endif /* UTILS_H_ */

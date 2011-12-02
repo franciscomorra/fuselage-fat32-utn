@@ -15,7 +15,7 @@ char* COMM_receive(uint32_t currFD,uint32_t* dataReceived)
 	{
 
 		uint16_t len = 0;
-		uint32_t left = 0;
+		int32_t left = 0;
 		int32_t last_received = 0;
 		memcpy(&len,msgHeader+1,2);
 		left = len;//copio el len en un int para poder usarlo
@@ -36,19 +36,22 @@ char* COMM_receive(uint32_t currFD,uint32_t* dataReceived)
 	return msgIn;
 }
 
-uint32_t COMM_send(char* msg,uint32_t fd)
+int32_t COMM_send(char* msg,uint32_t fd)
 {
 	uint16_t len = *((uint16_t*) (msg+1));
 	uint32_t dataSent = 0;
 	int32_t sent = 0;
+	int32_t left = len+3;
 
 	while (dataSent < len+3)
 	{
-		sent = send(fd,msg,len+3,MSG_DONTWAIT);
-		if (sent > 0)
+		sent = send(fd,msg+dataSent,left,MSG_DONTWAIT);
+		if (sent == -1) { break; }
 			dataSent += sent;
+			left -= sent;
 	}
-	return dataSent;
+
+	return sent==-1?-1:dataSent;
 }
 
 char* COMM_receiveAll(uint32_t socket_fd,uint32_t* dataReceived,size_t *msg_len)
@@ -145,6 +148,7 @@ void COMM_sendHandshake(uint32_t fd,char* payload,uint32_t payload_len)
 		memcpy(handshake+3,payload,payload_len);
 
 	send(fd,handshake,payload_len+3,NULL);
+	free(handshake);
 }
 
 char* COMM_receiveHandshake(uint32_t fd,uint32_t* received)

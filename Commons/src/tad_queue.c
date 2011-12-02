@@ -135,5 +135,18 @@ void QUEUE_cleanQueue(queue_t *line){
 }
 
 
+void QUEUE_appendQueue(queue_t* queue_1,queue_t* queue_toAppend)
+{
+	if (queue_1->begin != NULL && queue_1->end != NULL)
+	{
+		queue_1->end->next	= queue_toAppend->begin;
+		queue_1->end = queue_toAppend->end;
+	}
+	else
+	{
+		queue_1->begin = queue_toAppend->begin;
+		queue_1->end = queue_toAppend->end;
+	}
+}
 
 

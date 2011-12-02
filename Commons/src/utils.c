@@ -4,6 +4,8 @@
 #include <string.h>
 #include <unicode/utypes.h>
 #include <unicode/ustring.h>
+#include <time.h>
+#include <sys/time.h>
 #include "utils.h"
 
 //! Byte swap unsigned short
@@ -184,6 +186,16 @@ void uppercase(char *string)
 	}
 
 return;
+}
+
+uint32_t getMicroseconds()
+{
+	struct timeval tv;
+	struct timezone tz;
+	struct tm *tm;
+	gettimeofday(&tv, &tz);
+	return tv.tv_usec+(tv.tv_sec*1000000);
+
 }
 
 
