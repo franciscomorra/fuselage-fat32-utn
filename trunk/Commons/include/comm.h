@@ -11,7 +11,9 @@
 
 char* COMM_receive(uint32_t currFD,uint32_t* dataReceived);
 
-uint32_t COMM_send(char* msg,uint32_t fd);
+int32_t COMM_send(char* msg,uint32_t fd);
+
+int sendall(int s, char *buf, int *len);
 
 char* COMM_receiveAll(uint32_t socket_fd,uint32_t* dataReceived,size_t *msg_len);
 

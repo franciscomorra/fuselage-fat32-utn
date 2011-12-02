@@ -80,6 +80,8 @@ socketInet_t SOCKET_inet_create(uint32_t style,char* address,uint32_t port,uint3
 	 }
 
 
+	 	 	new_socket.style = style;
+	 	 	new_socket.mode = mode;
 	 	    new_socket.descriptor = sockfd;
 	 	    new_socket.status = SOCK_OK;
 	 	    new_socket.port = port;
