@@ -25,6 +25,7 @@ static int fuselage_mkdir(const char *, mode_t);
 static int fuselage_rmdir(const char *);
 static int fuselage_unlink(const char *);
 
+
 /*
 
 

@@ -9,9 +9,12 @@
 #include "file_cache.h"
 #include "tad_cluster.h"
 #include "tad_queue.h"
+#include <string.h>
 #include <time.h>
 
-cluster_t* CACHE_writeFile(queue_t *file_caches,char* path,cluster_t cluster)
+extern uint32_t cache_size_inBytes;
+
+cluster_t* CACHE_writeFile(queue_t *file_caches,const char* path,cluster_t cluster)
 {
 	queueNode_t	*curr_cache_node = file_caches->begin;
 	bool cache_exists = false;
@@ -42,7 +45,7 @@ cluster_t* CACHE_writeFile(queue_t *file_caches,char* path,cluster_t cluster)
 				uint32_t max_blocks = cache->cache_size/4096;
 				if (QUEUE_length(&cache->blocks) == max_blocks)
 				{
-					cache_block_t *selected_block = CACHE_getLRU(&cache);
+					cache_block_t *selected_block = CACHE_getLRU(cache);
 
 					//SACAR DE ACA?
 
@@ -81,15 +84,16 @@ cluster_t* CACHE_writeFile(queue_t *file_caches,char* path,cluster_t cluster)
 		new_cache->path = malloc(strlen(path));
 		strcpy(new_cache->path,path);
 		new_cache->blocks.begin = new_cache->blocks.end	= NULL;
-		new_cache->cache_size = 32768;
+		new_cache->cache_size = cache_size_inBytes;
 		QUEUE_appendNode(file_caches,new_cache);
 		return CACHE_writeFile(file_caches,path,cluster);
 
 	}
+	return NULL;
 }
 
 
-cache_block_t* CACHE_readFile(queue_t *file_caches,char* path,uint32_t cluster_no)
+cache_block_t* CACHE_readFile(queue_t *file_caches,const char* path,uint32_t cluster_no)
 {
 	queueNode_t *curr_cache_node = file_caches->begin;
 	bool cache_exists = false;
@@ -128,7 +132,7 @@ cache_block_t* CACHE_readFile(queue_t *file_caches,char* path,uint32_t cluster_n
 		new_cache->path = malloc(strlen(path));
 		strcpy(new_cache->path,path);
 		new_cache->blocks.begin = new_cache->blocks.end	= NULL;
-		new_cache->cache_size = 32768;
+		new_cache->cache_size = cache_size_inBytes;
 		QUEUE_appendNode(file_caches,new_cache);
 		return CACHE_readFile(file_caches,path,cluster_no);
 	}

@@ -28,8 +28,8 @@ typedef struct cache_block
 
 } cache_block_t;
 
-cluster_t* CACHE_writeFile(queue_t *file_caches,char* path,cluster_t cluster);
-cache_block_t* CACHE_readFile(queue_t *files_cache,char* path,uint32_t cluster_no);
+cluster_t* CACHE_writeFile(queue_t *file_caches,const char* path,cluster_t cluster);
+cache_block_t* CACHE_readFile(queue_t *files_cache,const char* path,uint32_t cluster_no);
 cache_block_t *CACHE_getLRU(file_cache_t *cache);
 //TODO: Implementar algoritmos de reemplazo de datos en la cache
 //TODO: Implementar funciones de agregar, buscar y quitar nodos

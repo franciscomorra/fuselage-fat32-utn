@@ -9,10 +9,11 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include "log.h"
 
 
-fat32file_t* FILE_createStruct(char* filename,dirEntry_t *dirEntry)
+/*fat32file_t* FILE_createStruct(char* filename,dirEntry_t *dirEntry)
 {
 			assert(dirEntry != NULL);
 			fat32file_t *new_file = malloc(sizeof(fat32file_t));
@@ -34,8 +35,8 @@ fat32file_t* FILE_createStruct2(char* filename,dirEntry_t *dirEntry)
 			return new_file;
 }
 
-
-void FILE_free(fat32file_t *file)
+*/
+void FILE_free(fat32file_2_t *file)
 {
 	free(file->long_file_name);
 	/*queueNode_t *lfn_node;
@@ -59,10 +60,10 @@ void FILE_freeQueue(queue_t* file_queue)
 	}
 }
 
-void FILE_splitNameFromPath(char *path,char **ret_filename,char **ret_path_to_filename)
+void FILE_splitNameFromPath(const char *path,char **ret_filename,char **ret_path_to_filename)
 {
 
-	char *aux = path + strlen(path) - 1;
+	char *aux = path + (strlen(path) - 1);
 	uint32_t char_count = 0;
 
 	while (*aux != '/')

@@ -7,11 +7,12 @@
 
 
 #include "fuselage_main.h"
+#include "config_manager.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <signal.h>
 #include <stdint.h>
-
+#include <string.h>
 
 #include "pfs_fat32.h"
 #include <sys/socket.h>
@@ -29,6 +30,8 @@
 char* cmd_received;
 pthread_mutex_t signal_lock = PTHREAD_MUTEX_INITIALIZER;
 socketPool_t sockets_toPPD;
+config_param *config_param_list;
+uint32_t cache_size_inBytes;
 
 void finish_him()
 {
@@ -39,8 +42,20 @@ void finish_him()
 
 int main(int argc, char *argv[])
 {
-	sockets_toPPD = create_connections_pool(10,"192.168.1.102",9035);
-	if (sockets_toPPD.size == 0) return 1;
+	CONFIG_read("/home/utn_so/Desarrollo/Workspace/PFS/config/pfs.config",&config_param_list);
+
+	char* ip = CONFIG_getValue(config_param_list,"IP");
+	uint32_t port = atoi(CONFIG_getValue(config_param_list,"PORT"));
+	uint32_t max_connections = atoi(CONFIG_getValue(config_param_list,"MAX_CONNECTIONS"));
+	cache_size_inBytes = atoi(CONFIG_getValue(config_param_list,"CACHE_SIZE_INBYTES"));
+	sockets_toPPD = create_connections_pool(max_connections,ip,port);
+
+	if (sockets_toPPD.size == 0)
+	{
+		printf("¡¡ ERROR DE CONEXION CON EL OTRO EXTREMO !!");
+		exit(-1);
+	}
+
 
 	signal(SIGKILL,finish_him);
 	signal(SIGINT,finish_him);
@@ -72,7 +87,7 @@ int main(int argc, char *argv[])
 			char_index++;
 		}
 
-		char* token = strtok(cmd," ");
+		char* token = (char*) strtok(cmd," ");
 
 		if (strcmp(token,"exit") == 0)
 		{
