@@ -35,14 +35,16 @@ cluster_set_t fat32_readClusterChain(uint32_t first_cluster);
 
 void fat32_writeCluster(cluster_t *cluster);
 
-queue_t fat32_readDirectory(char* path);
+queue_t fat32_readDirectory(const char* path);
 
-fat32file_2_t* fat32_getFileEntry(char* path);
+fat32file_2_t* fat32_getFileEntry(const char* path);
 
 cluster_t fat32_readCluster(uint32_t cluster_number);
 
-uint32_t fat32_truncate(char* fullpath,off_t new_size);
+uint32_t fat32_truncate(const char* fullpath,off_t new_size);
 
-void fat32_remove(char* path);
+void fat32_remove(const char* path);
+
+uint32_t fat32_mk(const char* fullpath,uint32_t dir_or_archive);
 
 #endif /* PFS_FAT32_H_ */

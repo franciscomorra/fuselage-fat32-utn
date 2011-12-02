@@ -35,6 +35,8 @@ void CLUSTER_freeChain(cluster_set_t *cluster_chain);
 
 uint32_t CLUSTER_setModified(char *addr,cluster_set_t *cluster_chain,size_t len_modified);
 
+void CLUSTER_free(cluster_t* cluster);
+
 #endif /* TAD_CLUSTER_H_ */
 
 

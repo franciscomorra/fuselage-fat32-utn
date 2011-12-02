@@ -16,9 +16,7 @@ extern bootSector_t boot_sector;
 
 void CLUSTER_freeQueue(queue_t *cluster_queue)
 {
-	queueNode_t *cur_cluster_node, *cur_sector_node;
-	queue_t sector_queue;
-	sector_t *cur_sector;
+	queueNode_t *cur_cluster_node;
 	cluster_t *cur_cluster;
 	while ((cur_cluster_node = QUEUE_takeNode(cluster_queue)) != NULL)
 	{
@@ -47,7 +45,7 @@ cluster_t* CLUSTER_newCluster(char* startOfData,uint32_t numberOfCluster)
 	queue_t sector_queue;
 	QUEUE_initialize(&sector_queue);
 	uint32_t sector_index = 0;
-	queueNode_t *new_sector_node;
+
 	sector_t *new_sector;
 	uint32_t *sectors = cluster_to_sectors(numberOfCluster);
 
@@ -99,14 +97,13 @@ uint32_t CLUSTER_setModified2(char *addr,cluster_set_t *cluster_chain,size_t len
 {
 		queue_t cluster_queue = cluster_chain->clusters;
 		queueNode_t *cluster_node = (queueNode_t*) cluster_queue.begin;
-		bool found = false;
+
 
 	while (cluster_node != NULL)
 		{
 			cluster_t *cluster = (cluster_t*) cluster_node->data;
 			queue_t sector_queue = cluster->sectors;
 			queueNode_t *sector_node = (queueNode_t*)  sector_queue.begin;
-
 
 
 			while (sector_node != NULL)

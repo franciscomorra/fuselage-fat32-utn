@@ -34,8 +34,10 @@ typedef struct fat32file_2_t
 
 fat32file_t* FILE_createStruct(char* filename,dirEntry_t *dirEntry);
 
-void FILE_free(fat32file_t *file);
+void FILE_free(fat32file_2_t *file);
 
 void FILE_freeQueue(queue_t* file_queue);
+
+void FILE_splitNameFromPath(const char *path,char **ret_filename,char **ret_path_to_filename);
 
 #endif /* TAD_FILE_H_ */

@@ -22,7 +22,7 @@ queue_t FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 
 	uint32_t root_cluster = 0x0FFFFFF8;
 	uint32_t  *cluster_number, cluster_no = init_cluster;
-	queueNode_t *new_cluster_node;
+
 	queue_t cluster_list;
 	QUEUE_initialize(&cluster_list);
 	uint32_t *casted_table = (uint32_t*) fat->table;
@@ -43,7 +43,6 @@ queue_t FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 		{
 			cluster_number = malloc(sizeof(uint32_t));
 			*cluster_number = cluster_no;
-			log_debug(log_file,"PFS","FAT_getClusterChain() -> LIST_addNode(0x%x,0x%x)",cluster_list,cluster_number);
 			QUEUE_appendNode(&cluster_list,cluster_number);
 
 			cluster_no = casted_table[cluster_no];
@@ -51,7 +50,6 @@ queue_t FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 
 		cluster_number = malloc(sizeof(uint32_t));
 		*cluster_number = cluster_no;
-		log_debug(log_file,"PFS","FAT_getClusterChain() -> LIST_addNode(0x%x,0x%x)",cluster_list,cluster_number);
 		QUEUE_appendNode(&cluster_list,cluster_number);
 	}
 
@@ -60,10 +58,11 @@ queue_t FAT_getClusterChain(fatTable_t *fat,uint32_t init_cluster)
 }
 
 queue_t FAT_getFreeClusters(fatTable_t* fat) {
-	uint32_t cluster_no, *cluster_number;
+	uint32_t cluster_no = 2, *cluster_number;
 
 	queue_t cluster_list;
 	QUEUE_initialize(&cluster_list);
+
 	uint32_t *casted_table = (uint32_t*) fat->table;
 	for(cluster_no = 2;cluster_no < fat->size;cluster_no++)
 	{
@@ -94,20 +93,26 @@ uint32_t FAT_getFreeCluster(fatTable_t* fat)
 	return 0; //DISCO LLENO
 }
 
-uint32_t FAT_setUsed(fatTable_t* fat,uint32_t clusterToSet)
+void FAT_setUsed(fatTable_t* fat,uint32_t clusterToSet)
+{
+
+	uint32_t *casted_table = (uint32_t*) fat->table;
+	casted_table[clusterToSet] = fat->EOC;
+
+	sector_t *modified_sector = FAT_searchSectorByPointer(fat->sectors,(char*) (casted_table+clusterToSet));
+
+	modified_sector->modified = true;
+}
+
+void FAT_setFree(fatTable_t* fat,uint32_t clusterToSet)
 {
 	uint32_t cluster_no;
 	uint32_t *casted_table = (uint32_t*) fat->table;
-	casted_table[clusterToSet] = fat->EOC;
-	/*for(cluster_no = 2;cluster_no < fat->size;cluster_no++)
-	{
-		if(casted_table[cluster_no] == clusterToSet)
-		{
-			casted_table[cluster_no] = fat->EOC;
-			return 0;
-		}
-	}*/
-	return 1;
+	casted_table[clusterToSet] = 0;
+
+	sector_t *modified_sector = FAT_searchSectorByPointer(fat->sectors,(char*) (casted_table+clusterToSet));
+	modified_sector->modified = true;
+
 }
 
 uint32_t FAT_read(fatTable_t *fat)
@@ -115,24 +120,18 @@ uint32_t FAT_read(fatTable_t *fat)
 	//log_debug(log_file,"PFS","Leyendo FAT Table");
 	uint32_t bytes_perFATentry = 4;
 
-
-	//Luego se reemplazara esto  por el envio del mensaje al PPD/PRAID
 	queue_t sectors;
 	QUEUE_initialize(&sectors);
 	uint32_t first_sector = 32;
 	uint32_t last_sector =  31+boot_sector.sectors_perFat32;
 	uint32_t cur_sector;
-	//uint32_t sectors[boot_sector.sectors_perFat32];
-
 
 	fat->size = (boot_sector.bytes_perSector*boot_sector.sectors_perFat32) / bytes_perFATentry;
-	//fat->table = malloc(fat->size * 4);
+
 	uint32_t sector_array[boot_sector.sectors_perFat32];
 	for (cur_sector = first_sector; cur_sector <= last_sector; cur_sector++)
 	{
 		sector_array[cur_sector-32] = cur_sector;
-		 //TODO: ARMAR UN ARRAY DE SECTORES Y MANDARLO A LA FUNCION PPDINTERFACE_readSectorS
-
 	}
 	uint32_t count = 0;
 	fat->table = PPDINTERFACE_readSectors(sector_array,boot_sector.sectors_perFat32);
@@ -148,13 +147,9 @@ uint32_t FAT_read(fatTable_t *fat)
 		count++;
 
 	}
-	uint32_t len = QUEUE_length(&sectors);
-
-
 
 
 	fat->sectors = sectors;
-
 	fat->EOC = *(((uint32_t*) fat->table)+1);
 
 	assert(*((char*) fat->table) == boot_sector.media_descriptor);
@@ -166,72 +161,127 @@ uint32_t FAT_read(fatTable_t *fat)
 
 void FAT_write(fatTable_t *fat)
 {
+	queue_t sectors_to_write;
+	QUEUE_initialize(&sectors_to_write);
+
 	queueNode_t *cur_sector_node = fat->sectors.begin;
-	PPDINTERFACE_writeSectors(fat->sectors,QUEUE_length(&fat->sectors));
+	size_t sectors_to_write_count = 0;
+	while (cur_sector_node != NULL)
+	{
+		sector_t *cur_sector = (sector_t*) cur_sector_node->data;
+		if (cur_sector->modified == true)
+		{
+			QUEUE_appendNode(&sectors_to_write,cur_sector);
+			cur_sector->modified = false;
+			sectors_to_write_count++;
+
+		}
+		cur_sector_node = cur_sector_node->next;
+	}
+
+	PPDINTERFACE_writeSectors(sectors_to_write,sectors_to_write_count);
+
+	cur_sector_node = sectors_to_write.begin;
+	queueNode_t *aux;
+	while (cur_sector_node != NULL)
+	{
+		aux = cur_sector_node->next;
+			free(cur_sector_node);
+		cur_sector_node = aux;
+	}
 	/*while (cur_sector_node != NULL)
 	{
 		sector_t *cur_sector = (sector_t*) cur_sector_node->data;
 		//if (cur_sector->modified)
-		PPDINTERFACE_writeSector(*cur_sector);
+		PPDINTERFACE_writeSectors(*cur_sector);
 		cur_sector_node = cur_sector_node->next;
 	}*/
 }
 
-uint32_t FAT_appendCluster(fatTable_t fat,uint32_t first_cluster_of_chain)
+uint32_t FAT_appendCluster(fatTable_t *fat,uint32_t first_cluster_of_chain)
 {
-	uint32_t *casted_table = (uint32_t*) fat.table;
-	queue_t free_clusters = FAT_getFreeClusters(&fat);
-	queue_t cluster_chain = FAT_getClusterChain(&fat,first_cluster_of_chain);
+	queue_t modified_sectors;
+	QUEUE_initialize(&modified_sectors);
+
+	uint32_t *casted_table = (uint32_t*) fat->table;
+	queue_t free_clusters = FAT_getFreeClusters(fat);
+	queue_t cluster_chain = FAT_getClusterChain(fat,first_cluster_of_chain);
 	queueNode_t *cur_free_cluster,*cur_cluster_node;
 	uint32_t last_cluster;
 
 	while ((cur_cluster_node = QUEUE_takeNode(&cluster_chain)) != NULL)
 	{
 		last_cluster = *((uint32_t*) cur_cluster_node->data);
-		QUEUE_freeNode(cur_cluster_node);
+		free(cur_cluster_node->data);
+		free(cur_cluster_node);
 	}
-
 
 
 	if ((cur_free_cluster = QUEUE_takeNode(&free_clusters)) != NULL)
 	{
-		uint32_t appended_cl = casted_table[last_cluster] = *((uint32_t*) cur_free_cluster->data);
-		casted_table[casted_table[last_cluster]] = fat.EOC;
+		uint32_t appended_cluster_number = casted_table[last_cluster] = *((uint32_t*) cur_free_cluster->data);
+		casted_table[casted_table[last_cluster]] = fat->EOC;
+		free(cur_free_cluster->data);
+		free(cur_free_cluster);
+
+
 		while ((cur_free_cluster = QUEUE_takeNode(&free_clusters)) != NULL)
 		{
-			QUEUE_freeNode(cur_free_cluster);
+			free(cur_free_cluster->data);
+			free(cur_free_cluster);
+
 		}
-		return appended_cl;
+
+		//DEVOLVER SECTORES MODIFICADOS
+		sector_t *sector_modified = FAT_searchSectorByPointer(fat->sectors,(char*) (casted_table+last_cluster));
+		//QUEUE_appendNode(&modified_sectors,sector_modified);
+		sector_modified->modified = true;
+		return appended_cluster_number;
+		//------------------------------------
 	}
 	return 1;
 }
 
-uint32_t FAT_removeCluster(fatTable_t fat,uint32_t first_cluster_of_chain)
+uint32_t FAT_removeCluster(fatTable_t *fat,uint32_t first_cluster_of_chain)
 {
-		uint32_t *casted_table = (uint32_t*) fat.table;
-		queue_t cluster_chain = FAT_getClusterChain(&fat,first_cluster_of_chain);
-		queueNode_t *cur_free_cluster,*cur_cluster_node;
-		uint32_t last_cluster,before_lastcluster;
+	queue_t modified_sectors;
+	QUEUE_initialize(&modified_sectors);
 
-		while ((cur_cluster_node = QUEUE_takeNode(&cluster_chain)) != NULL)
-		{
-			last_cluster = *((uint32_t*) cur_cluster_node->data);
-			if (cur_cluster_node->next == cluster_chain.end && cluster_chain.end != NULL) before_lastcluster = last_cluster;
-			QUEUE_freeNode(cur_cluster_node);
-		}
+	uint32_t *casted_table = (uint32_t*) fat->table;
+	queue_t cluster_chain = FAT_getClusterChain(fat,first_cluster_of_chain);
+	queueNode_t *cur_cluster_node;
+	uint32_t last_cluster,before_lastcluster;
 
-		casted_table[last_cluster] = 0;
-		casted_table[before_lastcluster] = fat.EOC;
+	while ((cur_cluster_node = QUEUE_takeNode(&cluster_chain)) != NULL)
+	{
+		last_cluster = *((uint32_t*) cur_cluster_node->data);
+		if (cur_cluster_node->next == cluster_chain.end && cluster_chain.end != NULL) before_lastcluster = last_cluster;
+		QUEUE_freeNode(cur_cluster_node);
+	}
+
+	casted_table[last_cluster] = 0;
+	uint32_t removed_cluster = casted_table[before_lastcluster];
+	casted_table[before_lastcluster] = fat->EOC;
+
+	sector_t *first_sector_modified = FAT_searchSectorByPointer(fat->sectors,(char*) (casted_table+before_lastcluster));
+	sector_t *second_sector_modified = FAT_searchSectorByPointer(fat->sectors,(char*) (casted_table+last_cluster));
+
+	first_sector_modified->modified = true;
+	second_sector_modified->modified = true;
+	//QUEUE_appendNode(&modified_sectors,first_sector_modified);
+	//QUEUE_appendNode(&modified_sectors,second_sector_modified);
+
+	return removed_cluster;
 }
 
-uint32_t FAT_getNextAssociated(fatTable_t fat,uint32_t cluster_no)
+uint32_t FAT_getNextAssociated(fatTable_t *fat,uint32_t cluster_no)
 {
-	if (cluster_no == fat.EOC) return fat.EOC;
-	uint32_t *casted_table = (uint32_t*) fat.table;
-	queue_t cluster_chain = FAT_getClusterChain(&fat,cluster_no);
+	if (cluster_no == fat->EOC) return fat->EOC;
+	//uint32_t *casted_table = (uint32_t*) fat->table;
+	queue_t cluster_chain = FAT_getClusterChain(fat,cluster_no);
 
-	queueNode_t *cur_free_cluster,*cur_cluster_node;
-	uint32_t cur_cluster,before_lastcluster;
+	queueNode_t *cur_cluster_node;
+	uint32_t cur_cluster;
 
 	while ((cur_cluster_node = QUEUE_takeNode(&cluster_chain)) != NULL)
 	{
@@ -239,5 +289,31 @@ uint32_t FAT_getNextAssociated(fatTable_t fat,uint32_t cluster_no)
 		if (cur_cluster == cluster_no) return *((uint32_t*) cur_cluster_node->next->data);
 		QUEUE_freeNode(cur_cluster_node);
 	}
+	return 0;
 
+}
+
+//UTIL PARA SOLO ESCRIBIR LOS SECTORES QUE SE MODIFICAN
+sector_t* FAT_searchSectorByPointer(queue_t fat_sector_list,char* pointer_to_search)
+{
+	queueNode_t* cur_sector_node = fat_sector_list.begin;
+
+	uint32_t max_fatentry_in_sector = boot_sector.bytes_perSector / sizeof(uint32_t);
+
+	while (cur_sector_node != NULL)
+	{
+		sector_t *cur_sector = (sector_t*) cur_sector_node->data;
+
+		uint32_t fatentry_in_sector_index = 0;
+		for (;fatentry_in_sector_index < max_fatentry_in_sector;fatentry_in_sector_index++)
+		{
+			if (cur_sector->data+(fatentry_in_sector_index*sizeof(uint32_t)) == pointer_to_search)
+			{
+				return cur_sector;
+			}
+		}
+
+		cur_sector_node = cur_sector_node->next;
+	}
+	return NULL;
 }

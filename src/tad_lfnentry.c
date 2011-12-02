@@ -6,6 +6,7 @@
  */
 #include "tad_lfnentry.h"
 #include <stdlib.h>
+#include <string.h>
 #include "utils.h"
 
 size_t LFNENTRY_getString(lfnEntry_t lfn,char* ret_longfilename) {

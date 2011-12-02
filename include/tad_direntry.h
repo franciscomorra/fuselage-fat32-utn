@@ -91,4 +91,6 @@ date_bytes DIRENTRY_getDate();
 
 time_bytes DIRENTRY_getTime();
 
+void DIRENTRY_setDosName(dirEntry_t *entry,char* filename);
+
 #endif /* DIR_ENTRY_H_ */

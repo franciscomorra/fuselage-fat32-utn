@@ -18,7 +18,7 @@
 #include "utils.h"
 #include <time.h>
 
-extern bootSector_t boot_sector;
+//extern bootSector_t boot_sector;
 extern t_log *log_file;
 
 uint32_t DIRENTRY_getClusterNumber(dirEntry_t *entry)
@@ -82,6 +82,10 @@ queue_t DIRTABLE_interpretFromCluster(cluster_t cluster)
 		{
 			lfn_entry++; 		//Incremento 32 bytes para saltearla
 		}
+		else
+		{
+			lfn_entry++;
+		}
 
 
 	}
@@ -89,7 +93,7 @@ queue_t DIRTABLE_interpretFromCluster(cluster_t cluster)
 	return file_list; //Retorno un puntero a la estructura de la cola
 }
 
-queue_t DIRENTRY_interpretTableData(cluster_set_t cluster_chain)
+/*queue_t DIRENTRY_interpretTableData(cluster_set_t cluster_chain)
 {
 	lfnEntry_t *lfn_entry = (lfnEntry_t*) cluster_chain.data; //Uso este puntero para recorrer el cluster_data de a 32 bytes cada vez que incremento en 1 este puntero
 
@@ -159,7 +163,7 @@ queue_t DIRENTRY_interpretTableData(cluster_set_t cluster_chain)
 
 	return file_list; //Retorno un puntero a la estructura de la cola
 }
-
+*/
 dirEntry_t DIRENTRY_create(char* filename,uint32_t cluster,uint32_t attr)
 {
 	dirEntry_t new_entry;
