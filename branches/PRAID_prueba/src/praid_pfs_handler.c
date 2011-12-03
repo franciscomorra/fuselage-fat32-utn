@@ -21,7 +21,8 @@ extern queue_t pfs_list;
 extern queue_t pending_request_list;
 extern uint32_t pending_writes_forSyncronization;
 extern pthread_mutex_t sync_mutex;
-
+extern uint32_t ACTIVE_DISKS_AMOUNT;
+extern uint32_t DISKS_AMOUNT;
 
 void pfs_pending_request_attendTo(uint32_t ppd_fd,char* msg)
 {
@@ -65,10 +66,19 @@ void pfs_pending_request_attendTo(uint32_t ppd_fd,char* msg)
 			else if (pending_request->sync_write_response == true && pending_request->request_id == 0)
 			{
 				pending_writes_forSyncronization--;
+				print_Console("pending_writes_forSyncronization:",pending_writes_forSyncronization,1,true);
+
 				if (pending_writes_forSyncronization == 0)
 				{
-					pthread_mutex_unlock(&sync_mutex);
-					//HABILITAR DISCO, TERMINO DE SINCRONIZAR
+					pthread_mutex_lock(&ppd_list_mutex);
+					ppd_node_t *ppd = PPDLIST_getByStatus(ppd_list,SYNCHRONIZING);//Dame el que se termino de sincronizar recien
+					ppd->status = READY;//Cambialo a ready
+					pthread_mutex_unlock(&ppd_list_mutex);
+					ACTIVE_DISKS_AMOUNT++;
+					pthread_mutex_unlock(&sync_mutex);//Que se sincronize el proximo
+					print_Console("FIN SINCRONZIACION:",ppd->disk_ID,1,true);
+					PRAID_WRITE_LOG("FIN SINCRONZIACION");
+					//HABILITO DISCO, TERMINO DE SINCRONIZAR
 				}
 
 			}
@@ -86,7 +96,7 @@ void pfs_pending_request_attendTo(uint32_t ppd_fd,char* msg)
 				 int32_t sent = 0;
 
 		 			if(FD_ISSET(pending_request->pfs_fd,&write_set))
- 						sent = COMM_send(msg,pending_request->pfs_fd);
+ 						sent = COMM_send(msg,pending_request->pfs_fd);//sendall? que pasa si el pfs se dio de baja?
 
 				pthread_mutex_unlock(&pfs->sock_mutex);
 			}
@@ -118,8 +128,10 @@ void pfs_pending_request_removeAll()
 		{
 			free(((pfs_request_t*) cur_request_node->data)->msg);
 			free(cur_request_node->data);
-			free(cur_request_node);
+			queueNode_t* aux = cur_request_node;
 			cur_request_node = cur_request_node->next;
+			free(aux);
+
 		}
 
 		cur_ppd_node = cur_ppd_node->next;
@@ -128,7 +140,7 @@ void pfs_pending_request_removeAll()
 
 pfs_pending_request_t* pfs_pending_request_searchAndTake(queue_t* response_list,uint32_t request_id,uint32_t sector)
 {
-	queueNode_t *cur_node = response_list->begin;
+	queueNode_t *cur_node = response_list->begin;//RESPONSE LIST ES GLOBAL, SE PASA POR PARAMETRO?
 	queueNode_t *prev_node = cur_node;
 	while (cur_node != NULL)
 	{
