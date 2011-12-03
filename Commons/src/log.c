@@ -247,7 +247,7 @@ void log_showTrace(char* msg,FILE* stream,uint32_t Sector,uint32_t Head,t_log* l
 	uint32_t i;
 	fprintf(stream,"Sectores Recorridos: ");
 	for(i=0;i<=distance;i++)
-		fprintf(stream,"%d:%d:%d ",CHS.cylinder,CHS.head,(sector+i)%16);
+		fprintf(stream,"%d:%d:%d ",CHS.cylinder,CHS.head,(sector+i)%Sector);
 
 	uint32_t delay;
 	memcpy(&delay,msg+15,4);
