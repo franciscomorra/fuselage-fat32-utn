@@ -26,16 +26,18 @@ int main (int argc, char *argv[]) {
 	uint32_t len;
 	james = 0;
 
-	*Head = (uint32_t)*argv[0];
-	*Sector = (uint32_t)*argv[1];
-	strcpy(sockUnixPath,argv[2]);
+	//*Head = (uint32_t)*argv[0];
+	//*Sector = (uint32_t)*argv[1];
+	strcpy(sockUnixPath,argv[3]);
+	*Head = atoi(argv[2]);
+	*Sector = atoi(argv[1]);
 
 	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,sockUnixPath,MODE_CONNECT);		//se coneccta al proceso PPD
 	printf("Connected.\n");
 
 /*
 	*Head = 1;
-	*Sector = 16;
+	*Sector = 512;
 	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,"/home/utn_so/CONSOLE_socket",MODE_CONNECT);		//se coneccta al proceso PPD
 		printf("Connected.\n");
 */
@@ -69,7 +71,6 @@ int main (int argc, char *argv[]) {
 			james = 0;
 		}
 
-		//TODO Si no recosnoce el comando entonces lo informa.
 
 		memset(command,0,6);
 		QUEUE_cleanQueue(&parameters);

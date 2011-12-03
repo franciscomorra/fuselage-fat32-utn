@@ -1,3 +1,6 @@
+//#define _FILE_OFFSET_BITS 64
+//#define _USE_LARGEFILE64
+
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -30,11 +33,13 @@ uint32_t IO_openDisk(char* diskFilePath){
 
 	if((file_descriptor = open(diskFilePath,O_RDWR)) == -1){
 		log_error(Log,"Principal","Error al asociar el disco con el proceso");
+		perror("open");
 		exit(1);
 	}
 	Map = mmap(NULL,diskSize, PROT_READ | PROT_WRITE, MAP_SHARED, file_descriptor,0);
 	if(Map==MAP_FAILED){
 		log_error(Log,"Principal","Error al mappear el disco a memoria");
+		perror("mmap");
 		exit(1);
 	}
 	posix_madvise(Map,diskSize,POSIX_MADV_SEQUENTIAL);
@@ -46,7 +51,7 @@ void IO_readDisk(uint32_t sector,char* buf){
 
 	memcpy(buf,Map+(sector*bytes_perSector),bytes_perSector);
 
-	sleep(ReadTime/1000);
+	usleep(ReadTime*1000);
 }
 
 void IO_writeDisk(uint32_t sector,char* buf){
@@ -59,7 +64,7 @@ void IO_writeDisk(uint32_t sector,char* buf){
 		msync(Map,diskSize,MS_ASYNC);
 		writings = 0;
 	}
-	sleep(WriteTime/1000);
+	usleep(WriteTime*1000);
 }
 
 void IO_closeDisk(uint32_t file_descriptor){

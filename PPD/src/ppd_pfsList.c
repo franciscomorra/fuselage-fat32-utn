@@ -28,8 +28,10 @@ void PFSLIST_destroyNode(pfs_node_t* candidateData,queue_t pfsList){
 	queueNode_t* previousCandidate = pfsList.begin;
 	queueNode_t* candidate;
 
-	if(previousCandidate->data == candidateData)
+	if(previousCandidate->data == candidateData){
+		candidate = pfsList.begin;
 		pfsList.begin = previousCandidate->next;
+	}
 	else {
 		while(previousCandidate->next->data != candidateData)
 			previousCandidate = previousCandidate->next;

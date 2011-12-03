@@ -88,7 +88,7 @@ uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 			sem_wait(&queueMutex);
 			if(Log->log_levels == INFO){
 				log_writeHeaderWithoutMutex(Log,"Principal",Log->log_levels);
-				fprintf(Log->file,"Ingreso de pedido de sector: (%d:%d:%d) de tipo: %s\n",request->CHS->cylinder,request->CHS->head,request->CHS->sector,msgType);
+				fprintf(Log->file,"Ingreso de pedido de sector: (%d:%d:%d) de tipo: %s\n\n",request->CHS->cylinder,request->CHS->head,request->CHS->sector,msgType);
 			}
 			sem_post(&multiQueue->queueElemSem);
 			queue_t* queue = QMANAGER_selectPassiveQueue(multiQueue);
