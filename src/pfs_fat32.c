@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include <sys/mman.h>
 #include <assert.h>
+#include <stdarg.h>
 
 #include "tad_sector.h"
 #include "tad_cluster.h"
@@ -25,6 +26,8 @@
 #include "tad_lfnentry.h"
 #include "log.h"
 #include "file_cache.h"
+#include "pfs_addressing.h"
+
 extern bootSector_t boot_sector;
 extern fatTable_t fat;
 extern t_log *log_file;
@@ -62,10 +65,10 @@ cluster_t fat32_readCluster(uint32_t cluster_number)
 	new_cluster.number= cluster_number;
 	new_cluster.size = boot_sector.bytes_perSector*boot_sector.sectors_perCluster;
 
-	printf("READ RAW CLUSTER: ");
-	uint32_t rest = getMicroseconds();
+	//printf("READ RAW CLUSTER: ");
+	//uint32_t rest = getMicroseconds();
 		new_cluster.data = fat32_readRawCluster(cluster_number);
-	printf("%d\n",(getMicroseconds() - rest));
+	//printf("%d\n",(getMicroseconds() - rest));
 
 
 	uint32_t index_sector;
@@ -89,33 +92,32 @@ cluster_t fat32_readCluster(uint32_t cluster_number)
 	return new_cluster;
 }
 
-queue_t fat32_readDirectory(const char* path)
+/*queue_t fat32_readDirectory2(const char* path)
 {
+
+	//TODO HACERLO RECURSIVO???
 	assert(strcmp(path,"") != 0);
 	char *fullpath =  malloc(strlen(path)+1);
 	memset(fullpath,0,strlen(path)+1);
 	if (path[strlen(path)-1] == '/' && strlen(path) != 1)
 	{
-
 		memcpy(fullpath,path,(strlen(path)-1));
-
 	}
 	else
 	{
-
 		memcpy(fullpath,path,strlen(path));
 	}
-
 
 	char *token;
 	bool dir_exists = false;
 
-
 	queue_t cluster_list = FAT_getClusterChain(&fat,2);
 	queueNode_t *next_cluster,*cluster = cluster_list.begin;
 	cluster_t cluster_data;
+
 	queue_t partial_list;
 	QUEUE_initialize(&partial_list);
+
 	queue_t file_list;
 	QUEUE_initialize(&file_list);
 
@@ -141,7 +143,119 @@ queue_t fat32_readDirectory(const char* path)
 		cluster = next_cluster;
 	}
 
-	if (strcmp(fullpath,"/") == 0) return file_list;
+	if (strcmp(fullpath,"/") == 0)
+	{
+		free(fullpath);
+		return file_list;
+	}
+	token = strtok(fullpath,"/");
+
+	queueNode_t *cur_file_node;
+	bool directory_exists = false;
+
+	while ((cur_file_node = QUEUE_takeNode(&file_list)) != NULL)
+	{
+		fat32file_2_t *cur_file = (fat32file_2_t*) cur_file_node->data;
+		if (strcmp(cur_file->long_file_name,token) == 0 && cur_file->dir_entry.file_attribute.subdirectory == true)
+		{
+			directory_exists = true;
+
+			FILE_freeQueue(&file_list);
+			cluster_list = FAT_getClusterChain(&fat, DIRENTRY_getClusterNumber(&cur_file->dir_entry) );
+
+			while (cluster != NULL)
+			{
+				cluster_data = fat32_readCluster(*((uint32_t*) cluster->data));
+				partial_list = DIRTABLE_interpretFromCluster(cluster_data);
+				CLUSTER_free(&cluster_data);
+
+				if (file_list.begin == 0x0)
+				{
+					file_list.begin = partial_list.begin;
+					file_list.end = partial_list.end;
+				}
+				else
+				{
+					file_list.end->next = partial_list.begin;
+					file_list.end = partial_list.end;
+				}
+
+				next_cluster = cluster->next;
+				free(cluster->data);
+				free(cluster);
+				cluster = next_cluster;
+			}
+
+		}
+		free(cur_file->long_file_name);
+		free(cur_file);
+		free(cur_file_node);
+
+		if (dir_exists == false)
+		{
+			free(fullpath);
+			return NULL;
+		}
+
+	}
+}*/
+
+queue_t fat32_readDirectory(const char* path)
+{
+
+	//TODO HACERLO RECURSIVO???
+	assert(strcmp(path,"") != 0);
+	char *fullpath =  malloc(strlen(path)+1);
+	memset(fullpath,0,strlen(path)+1);
+	if (path[strlen(path)-1] == '/' && strlen(path) != 1)
+	{
+		memcpy(fullpath,path,(strlen(path)-1));
+	}
+	else
+	{
+		memcpy(fullpath,path,strlen(path));
+	}
+
+	char *token;
+	bool dir_exists = false;
+
+	queue_t cluster_list = FAT_getClusterChain(&fat,2);
+	queueNode_t *next_cluster,*cluster = cluster_list.begin;
+	cluster_t cluster_data;
+
+	queue_t partial_list;
+	QUEUE_initialize(&partial_list);
+
+	queue_t file_list;
+	QUEUE_initialize(&file_list);
+
+	while (cluster != NULL)
+	{
+		cluster_data = fat32_readCluster(*((uint32_t*) cluster->data));
+		partial_list = DIRTABLE_interpretFromCluster(cluster_data);
+		CLUSTER_free(&cluster_data);
+
+		if (file_list.begin == 0x0)
+		{
+			file_list.begin = partial_list.begin;
+			file_list.end = partial_list.end;
+		}
+		else
+		{
+			file_list.end->next = partial_list.begin;
+			file_list.end = partial_list.end;
+		}
+		next_cluster = cluster->next;
+		free(cluster->data);
+		free(cluster);
+		cluster = next_cluster;
+	}
+
+	if (strcmp(fullpath,"/") == 0)
+	{
+		free(fullpath);
+		return file_list;
+	}
 
 	token = strtok(fullpath,"/");
 
@@ -156,11 +270,11 @@ queue_t fat32_readDirectory(const char* path)
 			if (strcmp(curr_file->long_file_name,token) == 0 && (curr_file->dir_entry.file_attribute.subdirectory) == true)
 			{
 				dir_exists=true;
-				log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyList(0x%x,FAT32FILE_T)",file_list);
-				uint32_t first_cluster = DIRENTRY_getClusterNumber(&curr_file->dir_entry);
 				FILE_freeQueue(&file_list);
-//TODO CUANDO SE BORRA UN ARCHIVO BORRAR LOS DATOS DEL CLUSTER
-				cluster_list = FAT_getClusterChain(&fat,first_cluster);
+
+				//TODO CUANDO SE BORRA UN ARCHIVO BORRAR LOS DATOS DEL CLUSTER
+
+				cluster_list = FAT_getClusterChain(&fat,  DIRENTRY_getClusterNumber(&curr_file->dir_entry) );
 				cluster = cluster_list.begin;
 
 				while (cluster != NULL)
@@ -187,12 +301,13 @@ queue_t fat32_readDirectory(const char* path)
 				break;
 			}
 			FILE_free(curr_file);
+			free(curr_file);
 			free(curr_file_node);
 		}
 
 		if (dir_exists == false)
 		{
-			log_debug(log_file,"PFS","fat32_readDirectory() -> LIST_destroyList(0x%x),FAT32FILE_T)",file_list);
+			free(fullpath);
 			return file_list;
 		}
 
@@ -226,8 +341,13 @@ fat32file_2_t* fat32_getFileEntry(const char* path)
 		{
 			fileentry_found = curr_file;
 		}
+		else
+		{
+			FILE_free(curr_file);
+			free(curr_file);
+		}
 
-		FILE_free(curr_file);
+
 		free(curr_file_node);
 
 		if (fileentry_found != NULL) break; 														//Si encontro algo, salgo del ciclo while
@@ -383,10 +503,10 @@ uint32_t fat32_truncate(const char* fullpath,off_t new_size)
 
 			for(index=0;index < clusters_to_append;index++)
 			{
-				printf("   -- APPEND CLUSTER: ");
-				time = getMicroseconds();
+				//printf("   -- APPEND CLUSTER: ");
+				//time = getMicroseconds();
 							appended_cl = FAT_appendCluster(&fat,first_cluster_no);
-				printf("%d\n",(getMicroseconds() - time));
+				//printf("%d\n",(getMicroseconds() - time));
 
 
 				cluster_t new_cluster = fat32_readCluster(appended_cl);

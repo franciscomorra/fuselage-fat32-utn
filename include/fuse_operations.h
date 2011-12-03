@@ -24,6 +24,7 @@ static int fuselage_create(const char *, mode_t, struct fuse_file_info *);
 static int fuselage_mkdir(const char *, mode_t);
 static int fuselage_rmdir(const char *);
 static int fuselage_unlink(const char *);
+static int fuselage_release(const char *, struct fuse_file_info *);
 
 
 /*
@@ -51,6 +52,7 @@ struct fuse_operations fuselage_oper = {
    .mkdir = fuselage_mkdir,
    .rmdir = fuselage_rmdir,
    .unlink = fuselage_unlink,
+   .release = fuselage_release,
    /*
 
    .create = fuselage_create,

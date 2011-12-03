@@ -74,7 +74,6 @@ queue_t FAT_getFreeClusters(fatTable_t* fat) {
 		}
 	}
 
-
 	return cluster_list;
 }
 
@@ -145,9 +144,7 @@ uint32_t FAT_read(fatTable_t *fat)
 		new_sector->data = fat->table+((cur_sector-32)*boot_sector.bytes_perSector);
 		QUEUE_appendNode(&sectors,new_sector);
 		count++;
-
 	}
-
 
 	fat->sectors = sectors;
 	fat->EOC = *(((uint32_t*) fat->table)+1);
@@ -189,13 +186,6 @@ void FAT_write(fatTable_t *fat)
 			free(cur_sector_node);
 		cur_sector_node = aux;
 	}
-	/*while (cur_sector_node != NULL)
-	{
-		sector_t *cur_sector = (sector_t*) cur_sector_node->data;
-		//if (cur_sector->modified)
-		PPDINTERFACE_writeSectors(*cur_sector);
-		cur_sector_node = cur_sector_node->next;
-	}*/
 }
 
 uint32_t FAT_appendCluster(fatTable_t *fat,uint32_t first_cluster_of_chain)
@@ -204,7 +194,7 @@ uint32_t FAT_appendCluster(fatTable_t *fat,uint32_t first_cluster_of_chain)
 	QUEUE_initialize(&modified_sectors);
 
 	uint32_t *casted_table = (uint32_t*) fat->table;
-	queue_t free_clusters = FAT_getFreeClusters(fat);
+	//queue_t free_clusters = FAT_getFreeClusters(fat);
 	queue_t cluster_chain = FAT_getClusterChain(fat,first_cluster_of_chain);
 	queueNode_t *cur_free_cluster,*cur_cluster_node;
 	uint32_t last_cluster;
@@ -216,8 +206,18 @@ uint32_t FAT_appendCluster(fatTable_t *fat,uint32_t first_cluster_of_chain)
 		free(cur_cluster_node);
 	}
 
+	uint32_t free_cluster_number = FAT_getFreeCluster(fat);
+	uint32_t appended_cluster_number = casted_table[last_cluster] = free_cluster_number;
+	casted_table[free_cluster_number] = fat->EOC;
 
-	if ((cur_free_cluster = QUEUE_takeNode(&free_clusters)) != NULL)
+	sector_t *sector_modified = FAT_searchSectorByPointer(fat->sectors,(char*) (casted_table+last_cluster));
+	sector_modified->modified = true;
+	sector_modified = FAT_searchSectorByPointer(fat->sectors,(char*) (casted_table+free_cluster_number));
+	sector_modified->modified = true;
+
+	return appended_cluster_number;
+
+	/*if ((cur_free_cluster = QUEUE_takeNode(&free_clusters)) != NULL)
 	{
 		uint32_t appended_cluster_number = casted_table[last_cluster] = *((uint32_t*) cur_free_cluster->data);
 		casted_table[casted_table[last_cluster]] = fat->EOC;
@@ -238,7 +238,7 @@ uint32_t FAT_appendCluster(fatTable_t *fat,uint32_t first_cluster_of_chain)
 		sector_modified->modified = true;
 		return appended_cluster_number;
 		//------------------------------------
-	}
+	}*/
 	return 1;
 }
 

@@ -13,8 +13,8 @@
 #include <time.h>
 
 extern uint32_t cache_size_inBytes;
-
-cluster_t* CACHE_writeFile(queue_t *file_caches,const char* path,cluster_t cluster)
+/*
+cluster_t* CACHE_writeFile2(queue_t *file_caches,const char* path,cluster_t cluster)
 {
 	queueNode_t	*curr_cache_node = file_caches->begin;
 	bool cache_exists = false;
@@ -52,6 +52,7 @@ cluster_t* CACHE_writeFile(queue_t *file_caches,const char* path,cluster_t clust
 					cluster_t* cluster_to_write = CLUSTER_newCluster(selected_block->data,selected_block->cluster_no);
 
 					selected_block->cluster_no = cluster.number;
+					selected_block->data = malloc(4096);
 					memcpy(selected_block->data,cluster.data,4096);
 					selected_block->uses = 0;
 					selected_block->timestamp = time(NULL);
@@ -78,13 +79,15 @@ cluster_t* CACHE_writeFile(queue_t *file_caches,const char* path,cluster_t clust
 			curr_cache_node = curr_cache_node->next;
 	}
 
-	if (cache_exists == false)
+	if (cache_exists == false && cache_size_inBytes != 0)
 	{
 		file_cache_t *new_cache = malloc(sizeof(file_cache_t));
 		new_cache->path = malloc(strlen(path));
 		strcpy(new_cache->path,path);
 		new_cache->blocks.begin = new_cache->blocks.end	= NULL;
 		new_cache->cache_size = cache_size_inBytes;
+		pthread_mutex_init(&new_cache->write_mutex,NULL);
+		new_cache->open_files = 0;
 		QUEUE_appendNode(file_caches,new_cache);
 		return CACHE_writeFile(file_caches,path,cluster);
 
@@ -93,7 +96,7 @@ cluster_t* CACHE_writeFile(queue_t *file_caches,const char* path,cluster_t clust
 }
 
 
-cache_block_t* CACHE_readFile(queue_t *file_caches,const char* path,uint32_t cluster_no)
+cache_block_t* CACHE_readFile2(queue_t *file_caches,const char* path,uint32_t cluster_no)
 {
 	queueNode_t *curr_cache_node = file_caches->begin;
 	bool cache_exists = false;
@@ -126,18 +129,20 @@ cache_block_t* CACHE_readFile(queue_t *file_caches,const char* path,uint32_t clu
 		curr_cache_node = curr_cache_node->next;
 	}
 
-	if (cache_exists == false)
+	if (cache_exists == false && cache_size_inBytes != 0)
 	{
 		file_cache_t *new_cache = malloc(sizeof(file_cache_t));
 		new_cache->path = malloc(strlen(path));
 		strcpy(new_cache->path,path);
 		new_cache->blocks.begin = new_cache->blocks.end	= NULL;
 		new_cache->cache_size = cache_size_inBytes;
+		pthread_mutex_init(&new_cache->write_mutex,NULL);
+		new_cache->open_files = 0;
 		QUEUE_appendNode(file_caches,new_cache);
 		return CACHE_readFile(file_caches,path,cluster_no);
 	}
 	return NULL;
-}
+}*/
 
 cache_block_t* CACHE_getLRU(file_cache_t *cache)
 {
@@ -155,4 +160,107 @@ cache_block_t* CACHE_getLRU(file_cache_t *cache)
 		curr_block_node = curr_block_node->next;
 	}
 	return selected_block;
+}
+
+cache_block_t* CACHE_getFileCache(queue_t *file_caches,const char* path)
+{
+	queueNode_t *filecache_node = file_caches->begin;
+	while (filecache_node != NULL)
+	{
+		file_cache_t * file_cache = (file_cache_t*) filecache_node->data;
+
+		if (strcmp(file_cache->path,path) == 0)
+		{
+			return file_cache;
+		}
+		filecache_node = filecache_node->next;
+	}
+	return NULL;
+}
+
+cache_block_t* CACHE_readFile(file_cache_t *file_cache,uint32_t cluster_no)
+{
+	bool block_exists = true;
+	queueNode_t *curr_block_node = file_cache->blocks.begin;
+
+	while (curr_block_node != NULL)
+	{
+		cache_block_t* cur_block = (cache_block_t*) curr_block_node->data;
+		if (cur_block->cluster_no == cluster_no)
+		{
+			cur_block->uses++;
+			return cur_block;
+		}
+		curr_block_node = curr_block_node->next;
+	}
+	return NULL;
+}
+
+cluster_t* CACHE_writeFile(file_cache_t *file_cache,cluster_t cluster)
+{
+	queueNode_t *curr_block_node = file_cache->blocks.begin;
+	bool block_exists = false;
+
+	while (curr_block_node != NULL)
+	{
+		cache_block_t* cur_block = (cache_block_t*) curr_block_node->data;
+		if (cur_block->cluster_no == cluster.number)
+		{
+			block_exists = true;
+			memcpy(cur_block->data,cluster.data,4096);
+			cur_block->uses++;
+			return NULL;
+		}
+		curr_block_node = curr_block_node->next;
+	}
+
+	if (block_exists == false)
+	{
+		uint32_t max_blocks = file_cache->cache_size/4096;
+		if (QUEUE_length(&file_cache->blocks) == max_blocks)
+		{
+			cache_block_t *selected_block = CACHE_getLRU(file_cache);
+
+			cluster_t* cluster_to_write = CLUSTER_newCluster(selected_block->data,selected_block->cluster_no);
+
+			selected_block->cluster_no = cluster.number;
+			selected_block->data = malloc(4096);
+			memcpy(selected_block->data,cluster.data,4096);
+			selected_block->uses = 0;
+			selected_block->timestamp = time(NULL);
+
+			return cluster_to_write;
+		}
+		else
+		{
+			cache_block_t* new_block = malloc(sizeof(cache_block_t));
+			new_block->cluster_no = cluster.number;
+			new_block->timestamp = time(NULL);
+			new_block->uses = 0;
+			new_block->written = false;
+			new_block->data = malloc(4096);
+			memcpy(new_block->data,cluster.data,4096);
+
+			QUEUE_appendNode(&file_cache->blocks,new_block);
+			return NULL;
+		}
+	}
+	return NULL;
+}
+
+file_cache_t* CACHE_createCache(queue_t *file_caches,const char *path)
+{
+	if (cache_size_inBytes != 0)
+	{
+		file_cache_t *new_cache = malloc(sizeof(file_cache_t));
+		new_cache->path = malloc(strlen(path));
+		strcpy(new_cache->path,path);
+		new_cache->blocks.begin = new_cache->blocks.end	= NULL;
+		new_cache->cache_size = cache_size_inBytes;
+		pthread_mutex_init(&new_cache->write_mutex,NULL);
+		new_cache->open_files = 1;
+		QUEUE_appendNode(file_caches,new_cache);
+		return new_cache;
+	}
+	return NULL;
 }
