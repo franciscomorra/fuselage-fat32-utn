@@ -156,10 +156,10 @@ int main(int argc,char **argv)
 					}
 					else
 					{
-						FD_SET(newPPD_FD,&master_fd_set);
-						FD_SET(newPPD_FD,&PPD_fd_set);
-						if(newPPD_FD > FDmax)
-							FDmax = newPPD_FD;
+						//FD_SET(newPPD_FD,&master_fd_set);
+						//FD_SET(newPPD_FD,&PPD_fd_set);
+						//if(newPPD_FD > FDmax)
+							//FDmax = newPPD_FD;
 
 						print_Console("NUEVA CONEXION DE DISCO, SOCKET:",newPPD_FD,1,true);
 						PRAID_WRITE_LOG("NUEVA CONEXION DE DISCO");
@@ -182,15 +182,12 @@ int main(int argc,char **argv)
 							COMM_sendHandshake(newPPD_FD,NULL,0);
 							free(handshake);
 							//-----------------
-
 							pthread_t new_thread_id;
-
 							ppd_node_t* new_ppd = PPDLIST_addNewPPD(newPPD_FD,new_thread_id,diskID);
 							pthread_create(&new_thread_id,NULL,ppd_handler_thread,(void*) new_ppd);
-							//pthread_setname_np(new_thread_id,"DISK");
-
-						}else{
-							//HANDSHAKE VINO MAL
+						}
+						else
+						{
 							print_Console("ERROR DE CONEXION DEL DISCO: DISK ID EXISTENTE:",diskID,1,true);
 							 handshake = 0xFF;
 							COMM_sendHandshake(newPPD_FD,&handshake,1);

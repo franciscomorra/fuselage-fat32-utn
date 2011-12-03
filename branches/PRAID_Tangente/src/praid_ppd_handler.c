@@ -20,6 +20,7 @@
 #include "praid_synchronize.h"
 #include "tad_sockets.h"
 #include <assert.h>
+#include <sys/ioctl.h>
 
 /*extern uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
 extern pthread_mutex_t mutex_LIST;
@@ -48,61 +49,36 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 
 	while (1)
 	{
+		char *msg_buf;
+		int32_t readable_bytes = 0;
 
-		//if (sync_write_count == 0) thread_info_node->status = READY;
-		sem_wait(&thread_info_node->request_list_sem);
-
-		pthread_mutex_lock(&thread_info_node->request_list_mutex);
-			queueNode_t *new_request_node = QUEUE_takeNode(&thread_info_node->request_list);
-			pfs_request_t *new_request = (pfs_request_t*) new_request_node->data;
-		pthread_mutex_unlock(&thread_info_node->request_list_mutex);
-
-		if ((new_request->request_id != 0) || (new_request->request_id == 0 && PPDLIST_getByFd(ppd_list,new_request->pfs_fd) != NULL))
+		if (ioctl(thread_info_node->ppd_fd,FIONREAD,&readable_bytes) == 0)
 		{
-			fd_set write_set;
-			FD_ZERO(&write_set);
-			FD_SET(thread_info_node->ppd_fd,&write_set);
-			select(thread_info_node->ppd_fd+1,NULL,&write_set,NULL,NULL);
-
-			pthread_mutex_lock(&thread_info_node->sock_mutex);
-
-			int32_t	sent = 0;
-
-			if(FD_ISSET(thread_info_node->ppd_fd,&write_set))
+			if (readable_bytes >= 523)
 			{
-				//TODO VER BROKEN PIPE. SI SE DESCONECTA EL DISCO CUANDO SE LE ESTABA MANDANDO ALGO.
-				//usar PPDLIST_handleDownPPD(thread_info_node);
-				sent = SOCKET_sendAll(thread_info_node->ppd_fd,new_request->msg,*((uint16_t*)(new_request->msg+1))+3,0);
-			}
-
-			pthread_mutex_unlock(&thread_info_node->sock_mutex);
-
-			if (sent > 0)
-			{
-				pthread_mutex_lock(&pending_request_list_mutex);
-
-				if (pfs_pending_request_exist(&pending_request_list,new_request->request_id,*((uint32_t*) (new_request->msg+7))) == false)
+				msg_buf = malloc(523);
+				int32_t res = SOCKET_recvAll(thread_info_node->ppd_fd,msg_buf,523,0);
+				if (res == SOCK_DISCONNECTED || res == SOCK_ERROR)
 				{
-					pfs_pending_request_t *new_pending_request = malloc(sizeof(pfs_pending_request_t));
-					new_pending_request->pfs_fd = new_request->pfs_fd;
-					new_pending_request->request_id = new_request->request_id;
-					new_pending_request->ppd_fd = thread_info_node->ppd_fd;
-					new_pending_request->sector = *((uint32_t*) (new_request->msg+7));
-					new_pending_request->write_count = (new_request->request_id == 0) ? 0 : QUEUE_length(&ppd_list);
-					new_pending_request->sync_write_response = (thread_info_node->status == SYNCHRONIZING) ? true : false;
 
-					QUEUE_appendNode(&pending_request_list,new_pending_request);
 				}
-				pthread_mutex_unlock(&pending_request_list_mutex);
-			 }
+				else
+				{
+					//TODO BUSCAR EL PENDIENTE
+					uint32_t request_id = *((uint32_t) (msg_buf+3));
+					uint32_t sector = *((uint32_t) (msg_buf+7));
 
+					if (request_id == 0)
+					{
+
+					}
+					pfs_pending_request_t *pending_request  = pfs_pending_request_searchAndTake(&pending_request_list,request_id,sector);
+					pending_request
+
+				}
+			}
 		}
-		 pfs_request_free(new_request);
-		 free(new_request_node);
-
 	}
-
-	return NULL;
 }
 
 
@@ -121,4 +97,14 @@ void printTime()
 	printf("%s\n", buf);
 }
 
+
+void PPD_handleWriteResponse()
+{
+
+}
+
+void PPD_handleReadResponse()
+{
+
+}
 
