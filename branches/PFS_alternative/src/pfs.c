@@ -42,6 +42,7 @@ void finish_him()
 
 int main(int argc, char *argv[])
 {
+
 	CONFIG_read("/home/utn_so/Desarrollo/Workspace/PFS/config/pfs.config",&config_param_list);
 
 	char* ip = CONFIG_getValue(config_param_list,"IP");

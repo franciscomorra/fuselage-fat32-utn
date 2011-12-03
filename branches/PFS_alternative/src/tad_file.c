@@ -56,6 +56,7 @@ void FILE_freeQueue(queue_t* file_queue)
 	{
 		cur_file = (fat32file_t*) cur_file_node->data;
 		free(cur_file->long_file_name);
+		free(cur_file);
 		free(cur_file_node);
 	}
 }
