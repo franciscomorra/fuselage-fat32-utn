@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <assert.h>
+#include <math.h>
+
 #include "ppd_common.h"
 #include "ppd_comm.h"
 #include "comm.h"
@@ -273,8 +275,9 @@ uint32_t TAKER_reachedSector(uint32_t cylinder,CHS_t* headPosCHS){
 	uint32_t reachedSector;
 	if(cDistance == 0)
 		reachedSector = headPosCHS->sector;
-	else
-		reachedSector = ((cDistance*(TrackJumpTime/SectorJumpTime))%Sector + headPosCHS->sector)%Sector;
-
+	else{
+		uint32_t timeReachedSector = (TrackJumpTime-1)/(SectorJumpTime)+1;
+		reachedSector = ((cDistance*(uint32_t)timeReachedSector)%Sector + headPosCHS->sector)%Sector;
+	}
 	return reachedSector;
 }

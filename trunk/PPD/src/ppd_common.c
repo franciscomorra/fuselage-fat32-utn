@@ -174,13 +174,13 @@ void COMMON_readPPDConfig(uint32_t* port, uint32_t* diskID,uint32_t* startingMod
 	Cylinder   = atoi(CONFIG_getValue(ppd_config,"Cylinder"));			//
 	Head =  atoi(CONFIG_getValue(ppd_config,"Head"));					//
 	Sector =  atoi(CONFIG_getValue(ppd_config,"Sector"));				//
-	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));	//	leer archivo de configuración
-	HeadPosition = atoi(CONFIG_getValue(ppd_config,"HeadPosition"));	//
-	uint32_t RPM = atoi(CONFIG_getValue(ppd_config,"RPM"));						//
-	*port = atoi(CONFIG_getValue(ppd_config,"Port"));
-	*diskID = atoi(CONFIG_getValue(ppd_config,"DiskID"));
-	ReadTime = atoi(CONFIG_getValue(ppd_config,"ReadTime"));
-	WriteTime = atoi(CONFIG_getValue(ppd_config,"WriteTime"));
+	TrackJumpTime = atoi(CONFIG_getValue(ppd_config,"TrackJumpTime"));	//
+	HeadPosition = atoi(CONFIG_getValue(ppd_config,"HeadPosition"));	//	leer archivo de configuración
+	uint32_t RPM = atoi(CONFIG_getValue(ppd_config,"RPM"));				//
+	*port = atoi(CONFIG_getValue(ppd_config,"Port"));					//
+	*diskID = atoi(CONFIG_getValue(ppd_config,"DiskID"));				//
+	ReadTime = atoi(CONFIG_getValue(ppd_config,"ReadTime"));			//
+	WriteTime = atoi(CONFIG_getValue(ppd_config,"WriteTime"));			//
 
 	*IP = malloc(strlen(CONFIG_getValue(ppd_config,"IP")));
 	strncpy(*IP,CONFIG_getValue(ppd_config,"IP"),strlen(CONFIG_getValue(ppd_config,"IP")));
@@ -190,11 +190,11 @@ void COMMON_readPPDConfig(uint32_t* port, uint32_t* diskID,uint32_t* startingMod
 	*consolePath = CONFIG_getValue(ppd_config,"ConsolePath");
 	*logPath = CONFIG_getValue(ppd_config,"LogPath");
 
-	if(strcmp("SSTF",CONFIG_getValue(ppd_config,"Algorithm")) == 0)		//
+	if(strcmp("SSTF",CONFIG_getValue(ppd_config,"Algorithm")) == 0)
 		Algorithm = SSTF;
 	else
 		Algorithm = FSCAN;
-	if(strcmp("LISTEN",CONFIG_getValue(ppd_config,"StartingMode")) == 0)		//
+	if(strcmp("LISTEN",CONFIG_getValue(ppd_config,"StartingMode")) == 0)
 		*startingMode = MODE_LISTEN;
 	else
 		*startingMode = MODE_CONNECT;

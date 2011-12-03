@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 	e_message_level logFlag;
 	socketUnix_t consoleListen;			//estructura socket de escucha correspondiente a la consola
 	socketInet_t inetListen;			//estructura socket de escucha correspondiente a la consola
-	socketUnix_t newSocket;				//nueva estructura de socket que contendra datos de una nueva conexión
+	socketUnix_t consoleFD;				//nueva estructura de socket que contendra datos de una nueva conexión
 	struct sockaddr_in remoteaddr;		//struct correspondiente a una nueva conexion
 	fd_set masterFDs;					//conjunto total de FDs que queremos administrar
 	fd_set readFDs;						//conjunto de FDs de los que deseamos recibir datos
@@ -87,10 +87,16 @@ int main(int argc, char *argv[])
 	COMMON_readPPDConfig(&port,&diskID,&startingMode,&IP,
 		&sockUnixPath,&diskFilePath,&consolePath,&logPath,&initialDirection,&logFlag);
 
+	const char arg0[10];
+	const char arg1[10];
+	sprintf(arg0,"%d",Sector);
+	sprintf(arg1,"%d",Head);
+
 	switch(fork()){ 																	//ejecuta la consola
-		case 0: 																		//si crea un nuevo proceso entra por esta rama
-			execl(consolePath,(char*)&Head,(char*)&Sector,sockUnixPath,NULL); 			//ejecuta la consola en el nuevo proceso
+		case 0: {																		//si crea un nuevo proceso entra por esta rama
+			execl(consolePath,consolePath,arg0,arg1,sockUnixPath,NULL); 			//ejecuta la consola en el nuevo proceso
 			break;
+		}
 		case -1:
 			log_error(Log,"Principal","Error en la creación del fork()");
 			break;
@@ -136,7 +142,6 @@ int main(int argc, char *argv[])
 		uint32_t recv = 0;
 		char* hndshk = COMM_receiveHandshake(inetListen.descriptor,&recv);
 		free(hndshk);
-		//COMM_RaidHandshake(inetListen,diskID);
 		PFSLIST_addNew(&pfsList,inetListen.descriptor);
 	}
 	FD_ZERO(&masterFDs);
@@ -147,7 +152,16 @@ int main(int argc, char *argv[])
 		FDmax = inetListen.descriptor;
 	else
 		FDmax = consoleListen.descriptor;
-
+/* PRUEBA
+	char* msgPrueba = malloc(20+3);
+	char* payload = malloc(20);
+	uint32_t i = 0;
+	memcpy(payload,&i,sizeof(uint32_t));
+	memcpy(payload+4,&i,sizeof(uint32_t));
+	memcpy(payload+8,"JAMES BOND",sizeof("JAMES BOND"));
+	NIPC_createCharMsg(msgPrueba,WRITE_SECTORS,20,payload);
+	COMM_handleReceive(msgPrueba,0);
+*/
 	while(1){
 		FD_ZERO(&readFDs);
 		readFDs = masterFDs;
@@ -173,11 +187,11 @@ int main(int argc, char *argv[])
 					}
 				}
 				else if ((currFD == consoleListen.descriptor)&&(consoleListen.status != SOCK_DISCONNECTED)){												//nueva conexion tipo UNIX
-					newSocket = COMM_ConsoleAccept(consoleListen);
-					FD_SET(newSocket.descriptor,&masterFDs);
-					if(newSocket.descriptor > FDmax)
-						FDmax = newSocket.descriptor;
-					PFSLIST_addNew(&pfsList,newSocket.descriptor);
+					consoleFD = COMM_ConsoleAccept(consoleListen);
+					FD_SET(consoleFD.descriptor,&masterFDs);
+					if(consoleFD.descriptor > FDmax)
+						FDmax = consoleFD.descriptor;
+					PFSLIST_addNew(&pfsList,consoleFD.descriptor);
 					close(consoleListen.descriptor);
 					FD_CLR(currFD,&masterFDs);
 					consoleListen.status = SOCK_DISCONNECTED;
@@ -204,12 +218,12 @@ int main(int argc, char *argv[])
 
 					if (result != SOCK_DISCONNECTED && result != SOCK_ERROR)
 					{
-//							uint32_t numero;
-//							memcpy(&numero,(msg_buf+(msg_index*msg_len))+7,4);
-//							printf("entrada: %d\n",numero);
-//							fflush(0);
+//						uint32_t numero;
+//						memcpy(&numero,(msg_buf+(msg_index*msg_len))+7,4);
+//						printf("entrada: %d\n",numero);
+//						fflush(0);
 
-							exit = COMM_handleReceive(msg_buf,currFD);
+						exit = COMM_handleReceive(msg_buf,currFD);
 
 						free(msg_buf);
 					}
@@ -224,8 +238,11 @@ int main(int argc, char *argv[])
 			}
 		}
 	//	sem_post(&mainMutex);
-		if(exit == 1)
+		if(exit == 1){
+			pfs_node_t *in_pfs = PFSLIST_getByFd(pfsList,consoleFD.descriptor);
+			PFSLIST_destroyNode(in_pfs,pfsList);
 			break;
+		}
 	}
 	if(logFlag != OFF)
 		log_destroy(Log);
