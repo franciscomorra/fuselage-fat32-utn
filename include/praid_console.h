@@ -13,8 +13,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <stdbool.h>
 
-uint32_t print_Console (char *message, pthread_t threadID);
+uint32_t print_Console (char *message, uint32_t number, uint32_t priority, bool display_int);
+uint32_t PRAID_WRITE_LOG(char* msg);
 
 /*
 uint32_t print_Console (char *);

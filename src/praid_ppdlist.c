@@ -12,21 +12,27 @@
 
 extern pthread_mutex_t ppd_list_mutex;
 extern queue_t ppd_list;
-
-
-ppd_node_t *PPDLIST_addNewPPD(uint32_t ppd_fd,pthread_t thread_id)
+extern uint32_t sectors_perDisk;
+extern uint32_t ACTIVE_DISKS_AMOUNT;
+extern uint32_t DISKS_AMOUNT;
+extern uint32_t pending_writes_forSyncronization;
+ppd_node_t *PPDLIST_addNewPPD(uint32_t ppd_fd,pthread_t thread_id,uint32_t diskID)
 {
 	ppd_node_t *new_ppd = malloc(sizeof(ppd_node_t));
 	new_ppd->ppd_fd = ppd_fd;
 	new_ppd->thread_id = thread_id;
-	if (QUEUE_length(&ppd_list) == 0)
+	new_ppd->disk_ID = diskID;
+	//if (QUEUE_length(&ppd_list) == 0)
+	if (DISKS_AMOUNT == 0)
 	{
 		new_ppd->status=READY;
+		ACTIVE_DISKS_AMOUNT++;
 	}
 	else
 	{
 		new_ppd->status=WAIT_SYNCH;
 	}
+	DISKS_AMOUNT++;
 
 	QUEUE_initialize(&new_ppd->request_list);
 	pthread_mutex_init(&new_ppd->request_list_mutex,NULL);
@@ -37,7 +43,7 @@ ppd_node_t *PPDLIST_addNewPPD(uint32_t ppd_fd,pthread_t thread_id)
 
 }
 
-void pfs_request_addNew(uint32_t pfs_fd,char* msgFromPFS)
+void pfs_request_addNew(uint32_t pfs_fd,char* msgFromPFS, bool toSynchronize)
 {
 	//nipcMsg_t new_request_msg = NIPC_toMsg(msgFromPFS);
 
@@ -47,6 +53,8 @@ void pfs_request_addNew(uint32_t pfs_fd,char* msgFromPFS)
 
 	pfs_request_t *new_pfsrequest = malloc(sizeof(pfs_request_t));
 	new_pfsrequest->request_id =  *((uint32_t*) (msg+3));
+	uint32_t sector = *((uint32_t*) (msg+7));
+
 	new_pfsrequest->msg = msg;
 	new_pfsrequest->pfs_fd = pfs_fd;
 
@@ -59,7 +67,7 @@ void pfs_request_addNew(uint32_t pfs_fd,char* msgFromPFS)
 		while (cur_ppd_node != NULL)
 		{
 			ppd_node_t *cur_ppd = (ppd_node_t*) cur_ppd_node->data;
-			if (cur_ppd->status == READY)
+			if ((cur_ppd->status == READY) ||(cur_ppd->status == SYNCHRONIZING && toSynchronize == true && sector < pending_writes_forSyncronization ))//Si llegan de WRITE mientras se sincroniza
 			{
 				pthread_mutex_lock(&cur_ppd->request_list_mutex);
 				QUEUE_appendNode(&cur_ppd->request_list,new_pfsrequest);
@@ -88,7 +96,7 @@ void pfs_request_free(pfs_request_t *request)
 	return;
 }
 
-ppd_node_t* PPDLIST_selectByLessRequests()
+ppd_node_t* PPDLIST_selectByLessRequests()//Recorre todos los pedidos (puede ser numero muy grande y consume tiempo)
 {
 	pthread_mutex_lock(&ppd_list_mutex);
 	queueNode_t *cur_ppdnode = ppd_list.begin;
@@ -122,14 +130,69 @@ ppd_node_t* PPDLIST_getByFd(queue_t ppdlist,uint32_t fd)
 		if (cur_ppd->ppd_fd == fd) return cur_ppd;
 		cur_ppd_node = cur_ppd_node->next;
 	}
+	return NULL;
 }
+
+
+ppd_node_t* PPDLIST_getByID(queue_t ppdlist,uint32_t diskID)
+{
+	queueNode_t *cur_ppd_node = ppdlist.begin;
+	while (cur_ppd_node != NULL)
+	{
+		ppd_node_t* cur_ppd = (ppd_node_t*) cur_ppd_node->data;
+		if (cur_ppd->disk_ID == diskID) return cur_ppd;
+		cur_ppd_node = cur_ppd_node->next;
+	}
+	return NULL;
+}
+
+ppd_node_t* PPDLIST_getByStatus(queue_t ppdlist,uint32_t status)
+{
+	queueNode_t *cur_ppd_node = ppdlist.begin;
+	while (cur_ppd_node != NULL)
+	{
+		ppd_node_t* cur_ppd = (ppd_node_t*) cur_ppd_node->data;
+		if (cur_ppd->status == status) return cur_ppd;
+		cur_ppd_node = cur_ppd_node->next;
+	}
+	return NULL;
+}
+
+bool PRAID_ValidatePPD(uint32_t diskID, uint32_t received_Sectors_Amount)
+{
+	if(sectors_perDisk > 0 ){
+		if(sectors_perDisk < received_Sectors_Amount){
+			print_Console("ERROR, DISCO CON MENOR CANTIDAD DE SECTORES",received_Sectors_Amount,1,true);
+			return false;
+		}
+	}else{
+		if(received_Sectors_Amount > 0){
+			sectors_perDisk = received_Sectors_Amount; //No hace falta un mutex, el select va a hacer de a un pedido
+		}else{
+			print_Console("ERROR, CANTIDAD DE SECTORES NO VALIDA",pthread_self(),1,false);
+			return false;
+		}
+		if(PPDLIST_getByID(ppd_list,diskID) != NULL){
+			print_Console("ID DE DISCO YA EXISTENTE",diskID,1,true);
+			return false;
+		}
+	}
+	return true;
+}
+
+
 
 void PPDLIST_reorganizeRequests(uint32_t ppd_fd)
 {
 	queueNode_t *cur_ppd_node = ppd_list.begin;
+	//queueNode_t *cur_ppd_node = PPDLIST_getByFd(ppd_list,ppd_fd);
 	queueNode_t *prev_ppd_node = NULL;
+/*
+	pthread_mutex_lock(&pending_request_list_mutex);
+	pthread_mutex_unlock(&pending_request_list_mutex);
+*/
 	pthread_mutex_lock(&ppd_list_mutex);
-	while (cur_ppd_node != NULL)
+	while (cur_ppd_node != NULL)//TODO SI EL PPD ESTABA EN SINC QUE FLETE LOS PEDIDOS QUE SEAN DE SINC EN PENDING QUEUE
 	{
 		if (((ppd_node_t*)cur_ppd_node->data)->ppd_fd == ppd_fd)
 		{
@@ -153,7 +216,7 @@ void PPDLIST_reorganizeRequests(uint32_t ppd_fd)
 	}
 	pthread_mutex_unlock(&ppd_list_mutex);
 
-			ppd_node_t *selected_ppd = (ppd_node_t*) cur_ppd_node->data;
+			ppd_node_t *selected_ppd = (ppd_node_t*) cur_ppd_node->data;//OJO Si no lo encuentra puede tirar SEG FAULT
 			pthread_mutex_lock(&selected_ppd->request_list_mutex);
 			queueNode_t *cur_request_node;
 			while ((cur_request_node = QUEUE_takeNode(&selected_ppd->request_list)) != NULL)
@@ -178,3 +241,8 @@ void PPDLIST_reorganizeRequests(uint32_t ppd_fd)
 			free(cur_ppd_node->data);
 			free(cur_ppd_node);
 }
+
+void PPDLIST_handleDownPPD(queueNode_t* cur_ppd_node)
+{
+}
+

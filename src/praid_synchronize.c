@@ -25,7 +25,7 @@ void *synchronize_thread(void *ppd_info)
 		*((uint16_t*) (sync_msg+1)) = 8;
 		*((uint32_t*) (sync_msg+3)) = 0;
 		*((uint32_t*) (sync_msg+7)) = sector;
-		pfs_request_addNew(ppd_node->ppd_fd,sync_msg);
+		pfs_request_addNew(ppd_node->ppd_fd,sync_msg,true);
 		free(sync_msg);
 	}
 

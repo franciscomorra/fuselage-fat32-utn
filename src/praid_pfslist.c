@@ -18,6 +18,7 @@ pfs_node_t* PFSLIST_getByFd(queue_t pfslist,uint32_t fd)
 			return cur_pfs;
 		cur_pfs_node = cur_pfs_node->next;
 	}
+	return NULL;
 }
 
 void PFSLIST_addNew(queue_t *pfslist,uint32_t fd)

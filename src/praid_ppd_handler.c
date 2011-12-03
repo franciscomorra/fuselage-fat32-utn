@@ -40,8 +40,11 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 	if (thread_info_node->status == WAIT_SYNCH)
 	{
 		pthread_mutex_lock(&sync_mutex);
+		thread_info_node->status = SYNCHRONIZING;
 		pthread_t synchronize_tid;
-		printf("Comenzando sincronizacion\n");
+		//printf("Comenzando sincronizacion\n");
+		print_Console("INICIO SINCRONZIACION:",thread_info_node->disk_ID,1,true);
+		PRAID_WRITE_LOG("INICIO SINCRONZIACION");
 		pthread_create(&synchronize_tid,NULL,synchronize_thread,(void*) thread_info_node);
 	}
 
@@ -66,6 +69,9 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 		int32_t	sent = 0;
 
 		if(FD_ISSET(thread_info_node->ppd_fd,&write_set))
+			//TODO VER BROKEN PIPE. SI SE DESCONECTA EL DISCO CUANDO SE LE ESTABA MANDANDO ALGO.
+			//usar PPDLIST_handleDownPPD(thread_info_node);
+
 		{
 			/*if (*(new_request->msg) == 0x00)
 			{
@@ -73,6 +79,7 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 			}
 			*/
 			//assert(*((uint32_t*)(new_request->msg+7)) <= 1048576);
+
 			sent = SOCKET_sendAll(thread_info_node->ppd_fd,new_request->msg,*((uint16_t*)(new_request->msg+1))+3,0);
 			/*assert(*((uint16_t*)(new_request->msg+1))+3 == 523 || *((uint16_t*)(new_request->msg+1))+3 == 11);
 			assert(sent == 523 || sent == 11);
@@ -105,7 +112,7 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 				new_pending_request->sector = *((uint32_t*) (new_request->msg+7));
 
 				new_pending_request->write_count = (new_request->request_id == 0) ? 0 : QUEUE_length(&ppd_list);
-				new_pending_request->sync_write_response = (thread_info_node->status == WAIT_SYNCH) ? true : false;
+				new_pending_request->sync_write_response = (thread_info_node->status == SYNCHRONIZING) ? true : false;
 
 				QUEUE_appendNode(&pending_request_list,new_pending_request);
 			}
