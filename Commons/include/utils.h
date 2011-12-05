@@ -52,4 +52,9 @@
 
 	uint32_t getMicroseconds();
 
+	int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1);
+
+	void timeval_print(struct timeval *tv);
+
+
 #endif /* UTILS_H_ */
