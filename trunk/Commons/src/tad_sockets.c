@@ -204,5 +204,5 @@ uint32_t SOCKET_canSend(uint32_t fd)
 	FD_ZERO(&write_set);
 	FD_SET(fd,&write_set);
 
-	return select(fd+1,NULL,&write_set,NULL,&timeout) == 0 ? 0 : 1;
+	return select(fd+1,NULL,&write_set,NULL,&timeout) <= 0 ? 0 : 1;
 }
