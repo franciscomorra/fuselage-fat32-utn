@@ -14,10 +14,14 @@
 #include <semaphore.h>
 #include <stdbool.h>
 #include "nipc.h"
-
+/*
 #define SYNCHRONIZING 1
 #define WAIT_SYNCH 2
 #define READY 3
+#define DISCONNECTED 4*/
+typedef enum {
+        READY=0, SYNCHRONIZING=1, WAIT_SYNCH=2, DISCONNECTED=3
+} PRAID_PPDthread_status;
 
 typedef struct ppd_node
 {
@@ -29,7 +33,8 @@ typedef struct ppd_node
 	pthread_mutex_t request_list_mutex;
 	pthread_mutex_t sock_mutex;
 	sem_t request_list_sem;
-	uint32_t status;
+	PRAID_PPDthread_status status;
+	bool disconnected;
 } ppd_node_t;
 
 typedef struct pfs_request
@@ -51,7 +56,7 @@ ppd_node_t* PPDLIST_getByStatus(queue_t ppdlist,uint32_t status);
 bool PRAID_ValidatePPD(uint32_t diskID, uint32_t received_Sectors_Amount);
 
 void PPDLIST_reorganizeRequests(uint32_t ppd_fd);
-void PPDLIST_handleDownPPD(queueNode_t* cur_ppd_node);
+void PPDLIST_handleDownPPD(ppd_node_t* cur_ppd_node);
 
 
 

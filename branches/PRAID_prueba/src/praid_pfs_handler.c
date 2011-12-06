@@ -66,7 +66,7 @@ void pfs_pending_request_attendTo(uint32_t ppd_fd,char* msg)
 			else if (pending_request->sync_write_response == true && pending_request->request_id == 0)
 			{
 				pending_writes_forSyncronization--;
-				print_Console("pending_writes_forSyncronization:",pending_writes_forSyncronization,1,true);
+				//print_Console("pending_writes_forSyncronization:",pending_writes_forSyncronization,1,true);
 
 				if (pending_writes_forSyncronization == 0)
 				{

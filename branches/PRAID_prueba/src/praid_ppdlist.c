@@ -22,6 +22,7 @@ ppd_node_t *PPDLIST_addNewPPD(uint32_t ppd_fd,pthread_t thread_id,uint32_t diskI
 	new_ppd->ppd_fd = ppd_fd;
 	new_ppd->thread_id = thread_id;
 	new_ppd->disk_ID = diskID;
+	new_ppd->disconnected = false;
 	//if (QUEUE_length(&ppd_list) == 0)
 	if (DISKS_AMOUNT == 0)
 	{
@@ -242,7 +243,30 @@ void PPDLIST_reorganizeRequests(uint32_t ppd_fd)
 			free(cur_ppd_node);
 }
 
-void PPDLIST_handleDownPPD(queueNode_t* cur_ppd_node)
+void PPDLIST_handleDownPPD(ppd_node_t* cur_ppd_node)
 {
-}
 
+
+
+	if(cur_ppd_node->status == READY)
+	{
+		if(ACTIVE_DISKS_AMOUNT<2){
+			print_Console("Disco master desconectado",cur_ppd_node->disk_ID,1,true);
+			exit(0);
+		}else{
+			//Redistribuir todos los pedidos
+		}
+
+	}
+	else if(cur_ppd_node->status == SYNCHRONIZING)
+	{
+		//Resetear sincronizacion (eliminar pedidos )
+		//Redistribuir pedidos
+
+	}
+	else
+	{
+		//Esta en wait, eliminalo nomas
+	}
+
+}
