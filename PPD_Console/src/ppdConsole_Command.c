@@ -12,6 +12,7 @@
 #include "nipc.h"
 #include "comm.h"
 #include "log.h"
+#include "tad_sockets.h"
 
 extern uint32_t* Head;
 extern uint32_t* Sector;
@@ -51,45 +52,36 @@ uint32_t console_clean(queue_t parameters,uint32_t ppdFD){
 	uint32_t i;
 	char* payload = malloc(520);
 	char* msgOut = malloc(523);
-	char* msgIn;
-	fd_set readFDs;
+	char* msgIn = malloc(523);
+	//fd_set readFDs;
 	uint32_t recvs = 0;
+	int32_t recvLen=0;
 
 	uint32_t firstSector = atoi(parameters.begin->data);
 	uint32_t lastSector = atoi(parameters.end->data);
 	uint32_t totalSectors = (lastSector - firstSector)+1;
 
 	for(i=firstSector;i<=lastSector;i++){
-		uint32_t recvLen=0;
-		struct timeval val;
-		val.tv_sec = 0;
-		val.tv_usec = 0;
-		FD_ZERO(&readFDs);
-		FD_SET(ppdFD,&readFDs);
-		if(select(ppdFD+1, &readFDs,NULL,NULL,&val) > 0){
-			if(FD_ISSET(ppdFD,&readFDs)){
-				recvs++;
-				msgIn = COMM_receive(ppdFD,&recvLen);
-				free(msgIn);
-				if(recvLen == -1){
-					perror("recv");
-					exit(1);
-				}
-			}
-		}
 		memset(payload,0,sizeof(uint32_t));
 		memcpy(payload+4,&i,sizeof(uint32_t));
 		memset(payload+8,'\0',512);
 		NIPC_createCharMsg(msgOut,WRITE_SECTORS,520,payload);
-	    if (COMM_send(msgOut,ppdFD) == -1) {
-	        perror("send");
-	        exit(1);
+		char* msgIn = malloc(523);
+		while(SOCKET_canSend(ppdFD) == 0)
+		{
+			if(SOCKET_recvAll(ppdFD,msgIn,523,0)<0){
+				perror("recv");
+				exit(1);
+			}
+			recvs++;
+		}
+		if (COMM_send(msgOut,ppdFD) == -1) {
+			perror("send");
+			exit(1);
 	    }
 	}
-	uint32_t recvLen=0;
 	for(;recvs<totalSectors;recvs++){
-		msgIn = COMM_receive(ppdFD,&recvLen);
-		free(msgIn);
+		recvLen = SOCKET_recvAll(ppdFD,msgIn,523,0);
 			if(recvLen == -1){
 				perror("recv");
 				exit(1);
@@ -104,6 +96,7 @@ uint32_t console_clean(queue_t parameters,uint32_t ppdFD){
 
 	printf("Se borro desde el sector: %d hasta el: %d\n",firstSector,lastSector);
 	free(payload);
+	free(msgIn);
 	free(msgOut);
 	return 1;
 }

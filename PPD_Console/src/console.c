@@ -28,6 +28,7 @@ int main (int argc, char *argv[]) {
 
 	//*Head = (uint32_t)*argv[0];
 	//*Sector = (uint32_t)*argv[1];
+
 	strcpy(sockUnixPath,argv[3]);
 	*Head = atoi(argv[2]);
 	*Sector = atoi(argv[1]);
