@@ -24,7 +24,7 @@ extern uint32_t WriteTime;
 extern flag_t Algorithm;
 extern multiQueue_t* multiQueue;
 extern t_log* Log;
-extern sem_t mainMutex;
+//extern sem_t mainMutex;
 
 CHS_t* COMMON_turnToCHS(uint32_t sectorNum){
 	CHS_t* CHS = malloc(sizeof(CHS_t));
@@ -169,7 +169,7 @@ char* COMMON_writeInLog(queue_t* queue,queueNode_t* prevCandidate,request_t* req
 void COMMON_readPPDConfig(uint32_t* port, uint32_t* diskID,uint32_t* startingMode, char** IP,
 		char** sockUnixPath,char** diskFilePath,char** consolePath,char** logPath,flag_t* initialDirection,e_message_level* logFlag){
 	config_param *ppd_config;
-	CONFIG_read("/home/utn_so/Desktop/trabajos/PPD/config/ppd.config",&ppd_config);
+	CONFIG_read("/home/utn_so/Desarrollo/Workspace/PPD/config/ppd.config",&ppd_config);
 
 	Cylinder   = atoi(CONFIG_getValue(ppd_config,"Cylinder"));			//
 	Head =  atoi(CONFIG_getValue(ppd_config,"Head"));					//
