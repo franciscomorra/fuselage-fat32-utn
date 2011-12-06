@@ -6,7 +6,7 @@
  */
 #include <pthread.h>
 #include <sys/ioctl.h>
-#include <sockets.h>
+#include <sys/socket.h>
 #include "tad_sockets.h"
 #include "nipc.h"
 #include "ppd_thread.h"

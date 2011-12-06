@@ -54,7 +54,7 @@ int main(int argc,char **argv)
 
 	socketInet_t listenPFS = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",9034,MODE_LISTEN);
 	sleep(1);//Porque el sleep?
-	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,"192.168.1.107",9035,MODE_LISTEN);
+	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",9035,MODE_LISTEN);
 
 	// Escuchar Sockets (select)
 
