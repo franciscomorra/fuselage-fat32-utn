@@ -7,7 +7,7 @@
 
 #ifndef PPD_SYNCHRONIZER_H_
 #define PPD_SYNCHRONIZER_H_
-
+#include <stdint.h>
 
 void* ppd_synchronizer(void *data);
 

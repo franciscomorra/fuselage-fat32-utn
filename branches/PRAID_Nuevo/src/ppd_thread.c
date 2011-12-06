@@ -14,10 +14,13 @@
 #include "ppd_synchronizer.h"
 #include "request_handler.h"
 #include "utils.h"
+#include "log.h"
+#include <stdlib.h>
+#include <string.h>
 
 extern pthread_mutex_t PPD_SYNCHRONIZING_MUTEX;
-uint32_t one_sector_read_time;
-uint32_t one_sector_write_time;
+extern t_log *raid_log;
+
 
 void* ppd_thread(void *data)
 {
@@ -75,6 +78,7 @@ void* ppd_thread(void *data)
 				}
 				else
 				{
+					log_info(raid_log,"MAIN_THREAD","DESCONEXION DISCO [ID: %d]",ppd_info->disk_id);
 					//REORGANIZAR REQUESTS DE ESTE DISCO
 				}
 				free(request_received);
