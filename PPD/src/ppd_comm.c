@@ -9,6 +9,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/un.h>
+#include <assert.h>
 
 #include "nipc.h"
 #include "ppd_SSTF.h"
@@ -76,6 +77,7 @@ uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 
 		default:{ // puede ser tanto de lectura, escritura o de tipo trace
 			request_t* request = TRANSLATE_fromCharToRequest(msgIn,fd);
+			assert(request->ID==0);
 			if(*((uint32_t*) (msgIn+3)) != 0)
 			{
 				uint32_t breadk = 0;

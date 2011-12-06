@@ -211,10 +211,6 @@ int main(int argc, char *argv[])
 					msg_buf = realloc(msg_buf,*((uint16_t*)(msg_buf+1)) + 3);
 					if(*((uint16_t*)(msg_buf+1)) != 0)
 						result = SOCKET_recvAll(currFD,msg_buf+3,*((uint16_t*)(msg_buf+1)),NULL);
-//					assert(result == 520 || result == 8);
-//					assert(*((uint32_t*)(msg_buf+7)) <= 1048576);
-
-					//pthread_mutex_unlock(&in_pfs->sock_mutex);
 
 					if (result != SOCK_DISCONNECTED && result != SOCK_ERROR)
 					{
@@ -230,17 +226,13 @@ int main(int argc, char *argv[])
 					else
 					{
 						close(currFD);
-						//PFSLIST_destroyNode(in_pfs,pfsList);
 						FD_CLR(currFD,&masterFDs);
 					}
 
 				}
 			}
 		}
-	//	sem_post(&mainMutex);
 		if(exit == 1){
-			//pfs_node_t *in_pfs = PFSLIST_getByFd(pfsList,consoleFD.descriptor);
-			//PFSLIST_destroyNode(in_pfs,pfsList);
 			break;
 		}
 	}

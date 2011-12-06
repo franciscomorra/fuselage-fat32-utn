@@ -21,26 +21,27 @@
 #include "ppd_pfsList.h"
 
 extern uint32_t Sector;
-extern uint32_t file_descriptor;
 extern uint32_t bytes_perSector;
 extern uint32_t TrackJumpTime;
 extern uint32_t TracePosition;
 extern uint32_t SectorJumpTime;
 extern multiQueue_t* multiQueue;
-extern sem_t mainMutex;
-extern queue_t pfsList;
 extern uint32_t HeadPosition;
-extern sem_t queueMutex;
 extern sem_t queueAvailableMutex;
-
 t_log* Log;
+//extern sem_t mainMutex;
+//extern queue_t pfsList;
+//extern sem_t queueMutex;
+//extern uint32_t file_descriptor;
+
+
+
 
 void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 {
 	fd_set writeFDs;
 	while(1){
 		sem_wait(&multiQueue->queueElemSem);
-
 
 		TracePosition = HeadPosition;
 		request_t* request;
@@ -71,18 +72,16 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 			perror("select");
 		while(sent == 0){
 			if(FD_ISSET(request->sender,&writeFDs))
-				sent = SOCKET_sendAll(request->sender,msg,*((uint16_t*)(msg+1)) + 3,NULL);
+				sent = SOCKET_sendAll(request->sender,msg,*((uint16_t*)(msg+1)) + 3,0);
 				//sent = COMM_send(msg,request->sender);
-
-
 		}
 		sem_post(&queueAvailableMutex);
 		free(msg);
 		free(request->payload);
 		free(request->CHS);
-	//	free(request);
-
+		free(request);
 	}
+	return NULL;
 }
 
 char* TAKER_handleRequest(queue_t* queue, request_t* request,uint32_t delay,uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t),queueNode_t* prevCandidate){
