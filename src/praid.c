@@ -70,7 +70,6 @@ int main(int argc,char **argv)
 
 	while(1)
 	{
-
 		readFDs = masterFDs;
 
 		if(select(FDmax+1, &readFDs,NULL,NULL,NULL) == -1){

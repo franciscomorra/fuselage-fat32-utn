@@ -15,6 +15,7 @@
 #include "request_handler.h"
 #include "utils.h"
 #include "log.h"
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -52,19 +53,19 @@ void* ppd_thread(void *data)
 
 				int32_t request_receive_result = recv(ppd_info->ppd_fd,request_received,523,MSG_WAITALL);
 
-				if (request_receive_result != SOCK_DISCONNECTED)
+				if (request_receive_result > 0)
 				{
 					uint32_t request_id = *((uint32_t*) (request_received+3));
 					uint32_t sector = *((uint32_t*) (request_received+7));
-
+					assert(request_id == 0);
 					if (request_id == 0)
 					{
 						ppd_node_t *synchronizing_ppd = PPDQUEUE_getByStatus(SYNCHRONIZING);
 						*request_received = WRITE_SECTORS;
 						//printf("%d\n",getMicroseconds()-one_sector_read_time);
 						//fflush(stdout);
-						SOCKET_sendAll(synchronizing_ppd->ppd_fd,request_received,523,0);
-						//send(synchronizing_ppd->ppd_fd,request_received,523,MSG_WAITALL);
+						//SOCKET_sendAll(synchronizing_ppd->ppd_fd,request_received,523,0);
+						send(synchronizing_ppd->ppd_fd,request_received,523,MSG_WAITALL);
 						uint32_t santi = 0;
 
 					}
@@ -78,7 +79,9 @@ void* ppd_thread(void *data)
 				}
 				else
 				{
+
 					log_info(raid_log,"MAIN_THREAD","DESCONEXION DISCO [ID: %d]",ppd_info->disk_id);
+					pthread_exit(NULL);
 					//REORGANIZAR REQUESTS DE ESTE DISCO
 				}
 				free(request_received);
