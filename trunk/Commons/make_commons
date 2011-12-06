@@ -1,0 +1,2 @@
+#!/bin/bash
+gcc -shared -o "libCommons.so" -I"./include" ./src/comm.c ./src/config_manager.c ./src/log.c ./src/nipc.c ./src/tad_queue.c ./src/tad_sockets.c ./src/utils.c
