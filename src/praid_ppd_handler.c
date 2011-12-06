@@ -9,6 +9,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <signal.h>
+
 #include "praid_ppd_handler.h"
 #include "praid_pfs_handler.h"
 #include "praid_console.h"
@@ -21,7 +23,11 @@
 #include "tad_sockets.h"
 #include <assert.h>
 
-
+volatile sig_atomic_t got_pipe_broken;
+void sigpipe_handler(int sig)
+{
+	got_pipe_broken = 1;
+}
 
 /*extern uint32_t DISK_SECTORS_AMOUNT; //CANTIDAD DE SECTORES DEL DISCO, PARA SYNCHRONIZE
 extern pthread_mutex_t mutex_LIST;
@@ -32,8 +38,21 @@ extern queue_t pending_request_list;
 extern pthread_mutex_t pending_request_list_mutex;
 extern pthread_mutex_t sync_mutex;
 
+
 void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 {
+		struct sigaction sa;
+
+		got_pipe_broken = 0;
+
+	    sa.sa_handler = sigpipe_handler;
+	    sa.sa_flags = 0;
+	    sigemptyset(&sa.sa_mask);
+
+	    if (sigaction(SIGPIPE, &sa, NULL) == -1) {
+	        perror("sigaction");
+	        exit(1);
+	    }
 
 	ppd_node_t *thread_info_node = (ppd_node_t*) data;
 
@@ -48,7 +67,7 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 		pthread_create(&synchronize_tid,NULL,synchronize_thread,(void*) thread_info_node);
 	}
 
-	while (1)
+	while ((thread_info_node->disconnected == false) && (!got_pipe_broken))
 	{
 
 		//if (sync_write_count == 0) thread_info_node->status = READY;
@@ -67,6 +86,7 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 		pthread_mutex_lock(&thread_info_node->sock_mutex);
 
 		int32_t	sent = 0;
+
 
 		if(FD_ISSET(thread_info_node->ppd_fd,&write_set))
 			//TODO VER BROKEN PIPE. SI SE DESCONECTA EL DISCO CUANDO SE LE ESTABA MANDANDO ALGO.
@@ -99,7 +119,7 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 
 		}
 
-		if (sent > 0)
+		if (sent > 0 && !got_pipe_broken)
 		{
 			pthread_mutex_lock(&pending_request_list_mutex);
 
@@ -110,10 +130,8 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 				new_pending_request->request_id = new_request->request_id;
 				new_pending_request->ppd_fd = thread_info_node->ppd_fd;
 				new_pending_request->sector = *((uint32_t*) (new_request->msg+7));
-
 				new_pending_request->write_count = (new_request->request_id == 0) ? 0 : QUEUE_length(&ppd_list);
 				new_pending_request->sync_write_response = (thread_info_node->status == SYNCHRONIZING) ? true : false;
-
 				QUEUE_appendNode(&pending_request_list,new_pending_request);
 			}
 			pthread_mutex_unlock(&pending_request_list_mutex);
@@ -125,6 +143,8 @@ void *ppd_handler_thread (void *data) //TODO recibir el socket de ppd
 
 	}
 
+	PPDLIST_handleDownPPD(thread_info_node);
+	print_Console("THREAD terminado",thread_info_node->disk_ID,1,true);
 	return NULL;
 }
 

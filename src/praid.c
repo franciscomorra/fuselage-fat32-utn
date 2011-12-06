@@ -51,8 +51,11 @@ uint32_t pending_writes_forSyncronization;
 
 t_log *raid_log_file;
 
+
 int main(int argc,char **argv)
 {
+//	signal (SIGPIPE, controladorPIPE);
+
 	uint32_t current_fd;
 	fd_set master_fd_set, read_fd_set , PPD_fd_set ,PFS_fd_set;
 	struct sockaddr_in remoteaddr;
@@ -66,7 +69,7 @@ int main(int argc,char **argv)
 
 	//Inicio Leer Archivo de Configuracion
 	config_param *praid_config;
-	CONFIG_read("config/praid.config",&praid_config);
+	CONFIG_read("/home/utn_so/Escritorio/Workspace/PRAID/config/praid.config",&praid_config);
 	RAID_CONSOLE  = atoi(CONFIG_getValue(praid_config,"Console"));
 	uint32_t PPD_Port = atoi(CONFIG_getValue(praid_config,"PpdPort"));
 	uint32_t PFS_Port = atoi(CONFIG_getValue(praid_config,"PfsPort"));
@@ -128,11 +131,9 @@ int main(int argc,char **argv)
 							FD_SET(newPFS_FD,&PFS_fd_set);
 							if(newPFS_FD > FDmax)
 								FDmax = newPFS_FD;
-
 							uint32_t received = 0;
 							COMM_receiveHandshake(newPFS_FD,&received);
 							COMM_sendHandshake(newPFS_FD,NULL,0);
-
 							PFSLIST_addNew(&pfs_list,newPFS_FD);
 						}
 						else
@@ -183,7 +184,7 @@ int main(int argc,char **argv)
 							pthread_mutex_unlock(&ppd_list_mutex);
 						}else{
 							//HANDSHAKE VINO MAL
-							 handshake = 0xFF;
+							handshake = 0xFF;
 							COMM_sendHandshake(newPPD_FD,&handshake,1);
 							close(newPPD_FD);
 						}
@@ -210,6 +211,8 @@ int main(int argc,char **argv)
 							}
 							else
 							{
+								print_Console("PFS DESCONECTADO",(uint32_t)pthread_self(),1,true);//CONSOLE WELCOME
+
 								free(msg_buf);
 								close(current_fd);
 								FD_CLR(current_fd,&master_fd_set);
@@ -228,7 +231,7 @@ int main(int argc,char **argv)
 						//uint32_t dataReceived = 0;
 						//uint32_t msg_len = 0;
 						ppd_node_t* ppd = PPDLIST_getByFd(ppd_list,current_fd);
-						pthread_mutex_lock(&ppd->sock_mutex);
+						//pthread_mutex_lock(&ppd->sock_mutex);
 
 						char* msg_buf = malloc(3);
 						int32_t result = SOCKET_recvAll(current_fd,msg_buf,3,0);
@@ -253,25 +256,22 @@ int main(int argc,char **argv)
 								uint32_t error = 0;
 							}*/
 
-							pthread_mutex_unlock(&ppd->sock_mutex);
+							//pthread_mutex_unlock(&ppd->sock_mutex);
 
 							if (result != SOCK_DISCONNECTED && result != SOCK_ERROR)
 							{
 								//assert(*((uint32_t*)(msg_buf+7)) <= 1048576);
-
 								pfs_pending_request_attendTo(current_fd,msg_buf);
-
 								free(msg_buf);
 							}
 							else
 							{
+								print_Console("Adios Proceso RAID",(uint32_t)pthread_self(),1,true);//CONSOLE WELCOME
 								close(current_fd);
 								FD_CLR(current_fd,&master_fd_set);
 								FD_CLR(current_fd,&PPD_fd_set);
-
 								//queueNode_t *cur_ppd_node = PPDLIST_getByFd(ppd_list,current_fd);
 								//PPDLIST_handleDownPPD(cur_ppd_node);
-
 /*
 								if (QUEUE_length(&ppd_list) > 1)
 								{
@@ -304,8 +304,21 @@ int main(int argc,char **argv)
 						}
 						else
 						{
+							print_Console("Disco desconectado",(uint32_t)pthread_self(),1,true);//CONSOLE WELCOME
+							close(current_fd);
+							FD_CLR(current_fd,&master_fd_set);
+							FD_CLR(current_fd,&PPD_fd_set);
+
+							ppd_node_t *ppd = PPDLIST_getByFd(ppd_list,current_fd);
+							ppd->disconnected = true;
+							/*
 							printf("Error: No se pudo reccibir la cabecera del mensaje IPC");
+							exit(1);
+							*/
 						}
+					}else{
+						printf("Error:");
+
 					}
 				}
 			}
