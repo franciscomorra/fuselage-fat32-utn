@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 		uint32_t recv = 0;
 		char* hndshk = COMM_receiveHandshake(inetListen.descriptor,&recv);
 		free(hndshk);
-		PFSLIST_addNew(&pfsList,inetListen.descriptor);
+		//PFSLIST_addNew(&pfsList,inetListen.descriptor);
 	}
 	FD_ZERO(&masterFDs);
 	FD_SET(inetListen.descriptor,&masterFDs); 						//agrego el descriptor que recibe conexiones al conjunto de FDs
@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
 						int32_t result = SOCKET_recvAll(newFD,handshake,3,NULL);
 						if (handshake[0] == HANDSHAKE && *((uint16_t*) (handshake+1)) == 0){
 							SOCKET_sendAll(newFD,handshake,3,0);
-							PFSLIST_addNew(&pfsList,newFD);
+							//PFSLIST_addNew(&pfsList,newFD);
 						}
 					}
 				}
@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
 					FD_SET(consoleFD.descriptor,&masterFDs);
 					if(consoleFD.descriptor > FDmax)
 						FDmax = consoleFD.descriptor;
-					PFSLIST_addNew(&pfsList,consoleFD.descriptor);
+					//PFSLIST_addNew(&pfsList,consoleFD.descriptor);
 					close(consoleListen.descriptor);
 					FD_CLR(currFD,&masterFDs);
 					consoleListen.status = SOCK_DISCONNECTED;
@@ -200,9 +200,9 @@ int main(int argc, char *argv[])
 				{ 																						//datos de un cliente
 					uint32_t dataRecieved = 0;
 					uint32_t msg_len = 0;
-					pfs_node_t *in_pfs = PFSLIST_getByFd(pfsList,currFD);
+					//pfs_node_t *in_pfs = PFSLIST_getByFd(pfsList,currFD);
 
-					pthread_mutex_lock(&in_pfs->sock_mutex);
+					//pthread_mutex_lock(&in_pfs->sock_mutex);
 
 					//char* msg_buf = COMM_receiveAll(currFD,&dataRecieved,&msg_len);
 					char* msg_buf = malloc(3);													//version santi
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
 //					assert(result == 520 || result == 8);
 //					assert(*((uint32_t*)(msg_buf+7)) <= 1048576);
 
-					pthread_mutex_unlock(&in_pfs->sock_mutex);
+					//pthread_mutex_unlock(&in_pfs->sock_mutex);
 
 					if (result != SOCK_DISCONNECTED && result != SOCK_ERROR)
 					{
@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
 					else
 					{
 						close(currFD);
-						PFSLIST_destroyNode(in_pfs,pfsList);
+						//PFSLIST_destroyNode(in_pfs,pfsList);
 						FD_CLR(currFD,&masterFDs);
 					}
 
@@ -239,8 +239,8 @@ int main(int argc, char *argv[])
 		}
 	//	sem_post(&mainMutex);
 		if(exit == 1){
-			pfs_node_t *in_pfs = PFSLIST_getByFd(pfsList,consoleFD.descriptor);
-			PFSLIST_destroyNode(in_pfs,pfsList);
+			//pfs_node_t *in_pfs = PFSLIST_getByFd(pfsList,consoleFD.descriptor);
+			//PFSLIST_destroyNode(in_pfs,pfsList);
 			break;
 		}
 	}
