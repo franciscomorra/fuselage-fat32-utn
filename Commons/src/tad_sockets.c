@@ -197,8 +197,8 @@ int32_t SOCKET_recvAll(uint32_t fd, char *buf, uint32_t len,uint32_t opt)
 uint32_t SOCKET_canSend(uint32_t fd)
 {
 	struct timeval timeout;
-	timeout->tv_sec=0;
-	timeout->tv_usec=0;
+	timeout.tv_sec=0;
+	timeout.tv_usec=0;
 
 	fd_set write_set;
 	FD_ZERO(&write_set);
