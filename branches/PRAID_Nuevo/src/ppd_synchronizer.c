@@ -16,6 +16,7 @@
 #include "tad_sockets.h"
 #include <stdlib.h>
 
+uint32_t SOCK_canSend(uint32_t fd);
 extern t_log *raid_log;
 
 void* ppd_synchronizer(void *data)
@@ -46,8 +47,8 @@ void* ppd_synchronizer(void *data)
 				//one_sector_read_time = getMicroseconds();
 				//send(selected_ppd->ppd_fd,msg_buf,11,MSG_WAITALL);
 
-				SOCKET_sendAll(selected_ppd->ppd_fd,msg_buf,11,0);
-				//send(selected_ppd->ppd_fd,msg_buf,11,MSG_WAITALL);
+				//SOCKET_sendAll(selected_ppd->ppd_fd,msg_buf,11,0);
+				send(selected_ppd->ppd_fd,msg_buf,11,MSG_WAITALL);
 				requests_sent++;
 				free(msg_buf);
 			}
@@ -71,5 +72,7 @@ void* ppd_synchronizer(void *data)
 	log_info(raid_log,"MAIN_THREAD","FIN SINCRONIZACION DISCO [ID: %d]",ppd_info->disk_id);
 	return sync_result;
 }
+
+
 
 
