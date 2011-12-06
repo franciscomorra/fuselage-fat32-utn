@@ -6,20 +6,25 @@
  */
 
 
-
+#include <stdint.h>
 #include <sys/ioctl.h>
+#include "log.h"
 #include <sys/socket.h>
 #include "nipc.h"
 #include "ppd_synchronizer.h"
 #include "ppd_queue.h"
 #include "tad_sockets.h"
+#include <stdlib.h>
 
-uint32_t checkSocketSend(uint32_t fd);
+extern t_log *raid_log;
 
 void* ppd_synchronizer(void *data)
 {
+	uint32_t *sync_result = malloc(4);
 	ppd_node_t *ppd_info = (ppd_node_t*) data;
 	uint32_t sectors_to_synchronize = ppd_info->sectors_count;
+
+	log_info(raid_log,"MAIN_THREAD","COMIENZO SINCRONIZACION DISCO [ID: %d]",ppd_info->disk_id);
 
 	uint32_t requests_sent = 0, requests_received = 0;
 	char *msg_buf;
@@ -30,7 +35,7 @@ void* ppd_synchronizer(void *data)
 		{
 			ppd_node_t *selected_ppd = PPDQUEUE_selectByLessRequests();
 
-			if (checkSocketSend(selected_ppd->ppd_fd))
+			if (SOCKET_canSend(selected_ppd->ppd_fd))
 			{
 			//pthread_mutex_lock(&selected_ppd->sock_mutex);
 				msg_buf = malloc(11);
@@ -63,17 +68,8 @@ void* ppd_synchronizer(void *data)
 		}
 
 	}
-
-	return 1;
+	log_info(raid_log,"MAIN_THREAD","FIN SINCRONIZACION DISCO [ID: %d]",ppd_info->disk_id);
+	return sync_result;
 }
 
-uint32_t checkSocketSend(uint32_t fd)
-{
-	fd_set write_set;
-	FD_ZERO(&write_set);
-	FD_SET(fd,&write_set);
-	uint32_t breakp;
 
-	return select(fd+1,NULL,&write_set,NULL,0) == 0 ? 0 : 1;
-
-}
