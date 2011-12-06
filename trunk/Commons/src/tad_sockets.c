@@ -193,3 +193,12 @@ int32_t SOCKET_recvAll(uint32_t fd, char *buf, uint32_t len,uint32_t opt)
 
 	return total;
 }
+
+uint32_t SOCKET_checkSocketSend(uint32_t fd)
+{
+	fd_set write_set;
+	FD_ZERO(&write_set);
+	FD_SET(fd,&write_set);
+	uint32_t breakp;
+	return select(fd+1,NULL,&write_set,NULL,0) == 0 ? 0 : 1;
+}

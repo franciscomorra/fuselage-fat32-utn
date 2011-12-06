@@ -49,6 +49,6 @@ socketInet_t SOCKET_inet_create(uint32_t style,char* address,uint32_t port,uint3
 socketUnix_t SOCKET_unix_create(uint32_t style,char* path,uint32_t mode);
 int32_t SOCKET_sendAll(uint32_t fd, char *buf, uint32_t len,uint32_t opt);
 int32_t SOCKET_recvAll(uint32_t fd, char *buf, uint32_t len,uint32_t opt);
-
+uint32_t SOCKET_checkSocketSend(uint32_t fd);
 
 #endif /* TAD_SOCKETS_H_ */
