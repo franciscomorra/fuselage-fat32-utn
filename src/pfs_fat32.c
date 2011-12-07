@@ -318,6 +318,7 @@ queue_t fat32_readDirectory(const char* path)
 
 fat32file_2_t* fat32_getFileEntry(const char* path)
 {
+	//TODO ARREGLAR QUE LEA EL DIRECTORIO RAIZ
 	char *location;
 	char *filename;																					//Copio el path (hasta donde empeiza el filename sin incluirlo) a location
 																								//TODO: Primero buscar en cache
