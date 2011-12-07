@@ -40,7 +40,7 @@ void* ppd_thread(void *data)
 			pthread_join(sync_thread_id,NULL);
 			ppd_info->status = READY;
 			log_info(raid_log,"PPD_THREAD","SYNCOK REQUEST_QUEUE_NUMER : %d",ppd_info->requests_count);
-			ppd_info->requests_count
+			ppd_info->requests_count = 0;
 		pthread_mutex_unlock(&PPD_SYNCHRONIZING_MUTEX);
 	}
 
