@@ -72,7 +72,7 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 			perror("select");
 		while(sent == 0){
 			if(FD_ISSET(request->sender,&writeFDs))
-				sent = SOCKET_sendAll(request->sender,msg,*((uint16_t*)(msg+1)) + 3,0);
+				sent = send(request->sender,msg,*((uint16_t*)(msg+1)) + 3,MSG_WAITALL);
 				//sent = COMM_send(msg,request->sender);
 		}
 		sem_post(&queueAvailableMutex);

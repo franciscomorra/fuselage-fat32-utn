@@ -79,7 +79,6 @@ int main(int argc, char *argv[])
 	fd_set readFDs;						//conjunto de FDs de los que deseamos recibir datos
 
 	sem_init(&(multiQueue->queueElemSem),0,0);
-//	sem_init(&mainMutex,0,1);
 	sem_init(&queueMutex,0,1);
 	sem_init(&queueAvailableMutex,0,5000);
 	multiQueue->qflag = QUEUE2_ACTIVE;
@@ -87,51 +86,83 @@ int main(int argc, char *argv[])
 	COMMON_readPPDConfig(&port,&diskID,&startingMode,&IP,
 		&sockUnixPath,&diskFilePath,&consolePath,&logPath,&initialDirection,&logFlag);
 
+
+
 	const char arg0[10];
 	const char arg1[10];
 	sprintf(arg0,"%d",Sector);
 	sprintf(arg1,"%d",Head);
 
-	switch(fork()){ 																	//ejecuta la consola
-		case 0: {																		//si crea un nuevo proceso entra por esta rama
-			execl(consolePath,consolePath,arg0,arg1,sockUnixPath,NULL); 			//ejecuta la consola en el nuevo proceso
-			break;
+	int32_t fork_result = fork();
+
+		if (fork_result > 0) 																	//ejecuta la consola
+		{
+			consoleListen = SOCKET_unix_create(SOCK_STREAM,sockUnixPath,MODE_LISTEN);
 		}
-		case -1:
-			log_error(Log,"Principal","Error en la creación del fork()");
-			break;
+		else if (fork_result == 0)
+		{
+			if (execl(consolePath,consolePath,arg0,arg1,sockUnixPath,NULL) == -1)
+			{
+				log_error(Log,"Principal",strerror(errno));
+				printf("Código de Error:%d Descripción: Falló función execl(). %s\n",errno,strerror(errno)); 				//ejecuta la consola en el nuevo proceso
+				return 1;
+			}
+		}
+		else if (fork_result == -1)
+		{
+			log_error(Log,"Principal",strerror(errno));
+			printf("Código de Error:%d Descripción: Falló función fork(). %s\n",errno,strerror(errno));
 		}
 
 	if(logFlag == OFF){
-		Log = malloc(sizeof(t_log));
-		pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-		Log->mutex = mutex;
-		Log->file =  NULL;
+			Log = malloc(sizeof(t_log));
+			pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+			Log->mutex = mutex;
+			Log->file =  NULL;
 	}
-	else
+	else{
 		Log = log_create("PPD",logPath,logFlag,M_CONSOLE_DISABLE);
+		if(Log == NULL){
+			printf("Error: Falló al crear archivo Log.");
+			return 1;
+		}
+	}
 
 	multiQueue->queue1 = malloc(sizeof(queue_t));
 	QUEUE_initialize(multiQueue->queue1);
 	if(Algorithm == SSTF){
 		multiQueue->qflag = SSTF;
 		multiQueue->direction = SSTF;
-		if(pthread_create(&TAKERtid,NULL,(void*)TAKER_main,SSTF_getNext)) 	//crea el thread correspondiente al TAKER
-			log_error(Log,"Principal","Error en la creación thread con algoritmo SSTF");
+
+		if(pthread_create(&TAKERtid,NULL,(void*)TAKER_main,SSTF_getNext) != 0){ 	//crea el thread correspondiente al TAKER
+			log_error(Log,"Principal",strerror(errno));
+			printf("Código de Error:%d Descripción:%s\n",errno,strerror(errno));
+			return 1;
+		}
+
 	} else {
 		multiQueue->qflag = QUEUE1_ACTIVE;
 		multiQueue->direction = initialDirection;
 		multiQueue->queue2 = malloc(sizeof(queue_t));
 		QUEUE_initialize(multiQueue->queue2);
-		if(pthread_create(&TAKERtid,NULL,(void*)TAKER_main,FSCAN_getNext))
-			log_error(Log,"Principal","Error en la creación thread con algoritmo FSCAN");
+
+		if(pthread_create(&TAKERtid,NULL,(void*)TAKER_main,FSCAN_getNext) != 0){
+			log_error(Log,"Principal",strerror(errno));
+			printf("Código de Error:%d Descripción:%s\n",errno,strerror(errno));
+			return 1;
+		}
 	}
 
 	uint32_t file_descriptor = IO_openDisk(diskFilePath);
 
-	consoleListen = SOCKET_unix_create(SOCK_STREAM,sockUnixPath,MODE_LISTEN);							//conecta la consola
+						//conecta la consola
 
 	inetListen = SOCKET_inet_create(SOCK_STREAM,IP,port,startingMode);										//crea un descriptor de socket encargado de recibir conexiones entrantes
+	if(inetListen.status != SOCK_OK){
+		log_error(Log,"Principal",strerror(inetListen.status));
+		printf("Código de Error: %d Descripción: %s\n",strerror(inetListen.status));
+		return 1;
+	}
 
 	if(startingMode == MODE_CONNECT){
 		char* payload = malloc(8);
@@ -142,7 +173,6 @@ int main(int argc, char *argv[])
 		uint32_t recv = 0;
 		char* hndshk = COMM_receiveHandshake(inetListen.descriptor,&recv);
 		free(hndshk);
-		//PFSLIST_addNew(&pfsList,inetListen.descriptor);
 	}
 	FD_ZERO(&masterFDs);
 	FD_SET(inetListen.descriptor,&masterFDs); 						//agrego el descriptor que recibe conexiones al conjunto de FDs
@@ -182,7 +212,6 @@ int main(int argc, char *argv[])
 						int32_t result = SOCKET_recvAll(newFD,handshake,3,NULL);
 						if (handshake[0] == HANDSHAKE && *((uint16_t*) (handshake+1)) == 0){
 							SOCKET_sendAll(newFD,handshake,3,0);
-							//PFSLIST_addNew(&pfsList,newFD);
 						}
 					}
 				}
@@ -191,7 +220,6 @@ int main(int argc, char *argv[])
 					FD_SET(consoleFD.descriptor,&masterFDs);
 					if(consoleFD.descriptor > FDmax)
 						FDmax = consoleFD.descriptor;
-					//PFSLIST_addNew(&pfsList,consoleFD.descriptor);
 					close(consoleListen.descriptor);
 					FD_CLR(currFD,&masterFDs);
 					consoleListen.status = SOCK_DISCONNECTED;
@@ -200,25 +228,16 @@ int main(int argc, char *argv[])
 				{ 																						//datos de un cliente
 					uint32_t dataRecieved = 0;
 					uint32_t msg_len = 0;
-					//pfs_node_t *in_pfs = PFSLIST_getByFd(pfsList,currFD);
 
-					//pthread_mutex_lock(&in_pfs->sock_mutex);
-
-					//char* msg_buf = COMM_receiveAll(currFD,&dataRecieved,&msg_len);
-					char* msg_buf = malloc(3);													//version santi
-					int32_t result = SOCKET_recvAll(currFD,msg_buf,3,NULL);
-//					assert(*((uint16_t*)(msg_buf+1)) == 8 || *((uint16_t*)(msg_buf+1)) == 520);
+					char* msg_buf = malloc(3);
+					int32_t result = recv(currFD,msg_buf,3,MSG_WAITALL);
 					msg_buf = realloc(msg_buf,*((uint16_t*)(msg_buf+1)) + 3);
+
 					if(*((uint16_t*)(msg_buf+1)) != 0)
-						result = SOCKET_recvAll(currFD,msg_buf+3,*((uint16_t*)(msg_buf+1)),NULL);
+						result = recv(currFD,msg_buf+3,*((uint16_t*)(msg_buf+1)),MSG_WAITALL);
 
-					if (result != SOCK_DISCONNECTED && result != SOCK_ERROR)
+					if (result > 0)
 					{
-//						uint32_t numero;
-//						memcpy(&numero,(msg_buf+(msg_index*msg_len))+7,4);
-//						printf("entrada: %d\n",numero);
-//						fflush(0);
-
 						exit = COMM_handleReceive(msg_buf,currFD);
 
 						free(msg_buf);
