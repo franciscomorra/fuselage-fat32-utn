@@ -54,10 +54,10 @@ char* PPDINTERFACE_readSectors(uint32_t* sectors_array, size_t sectors_array_len
 			if (readable_bytes >= 523)
 			{
 				msg_buf = malloc(response_message_len);
-				uint32_t time = getMicroseconds();
+
 				int32_t received = SOCKET_recvAll(ppd_socket->descriptor,msg_buf,response_message_len,MSG_DONTWAIT);
-				printf("%d",getMicroseconds() - time);
-				fflush(stdout);
+
+
 				if (received > 0)
 				{
 					memcpy(buffer+(responses_received*response_message_len),msg_buf,response_message_len);
@@ -83,7 +83,7 @@ char* PPDINTERFACE_readSectors(uint32_t* sectors_array, size_t sectors_array_len
 			*((uint32_t*) (msg_buf+3)) = request_id++;
 			*((uint32_t*) (msg_buf+7)) = sectors_array[requests_sent];
 
-			uint32_t time = getMicroseconds();
+
 
 			int32_t sent = SOCKET_sendAll(ppd_socket->descriptor,msg_buf,11,0);
 			if (sent == SOCK_DISCONNECTED || sent == SOCK_ERROR)
@@ -91,8 +91,7 @@ char* PPDINTERFACE_readSectors(uint32_t* sectors_array, size_t sectors_array_len
 				printf("ERROR: Se perdio la conexion con el otro extremo.\n");
 				exit(-1);
 			}
-			printf("%d",getMicroseconds() - time);
-			fflush(stdout);
+
 			free(msg_buf);
 			requests_sent++;
 		}
