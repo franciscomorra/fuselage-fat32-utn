@@ -25,7 +25,7 @@ ppd_node_t* PPDQUEUE_addNewPPD(uint32_t ppd_fd,uint32_t disk_id,uint32_t sectors
 
 	new_ppd->status = (PPD_COUNT == 0)? READY : WAIT_SYNCH;
 	pthread_mutex_init(&new_ppd->sock_mutex,NULL);
-
+//	QUEUE_initialize(&new_ppd->requests);
 	pthread_mutex_lock(&PPD_QUEUE_MUTEX);
 		QUEUE_appendNode(&PPD_QUEUE,new_ppd);
 	pthread_mutex_unlock(&PPD_QUEUE_MUTEX);
@@ -111,4 +111,35 @@ ppd_node_t* PPDQUEUE_getByStatus(uint32_t status)
 	}
 	pthread_mutex_unlock(&PPD_QUEUE_MUTEX);
 	return selected_ppd;
+}
+
+uint32_t PPDQUEUE_removePPD(uint32_t disk_id)
+{
+	queueNode_t *cur_ppd_node = PPD_QUEUE.begin;//RESPONSE LIST ES GLOBAL, SE PASA POR PARAMETRO?
+	queueNode_t *prev_ppd_node = cur_ppd_node;
+
+	while (cur_ppd_node != NULL)
+	{
+		ppd_node_t *cur_ppd = (ppd_node_t*) cur_ppd_node->data;
+
+		if (cur_ppd->disk_id == disk_id)
+		{
+			if (prev_ppd_node == cur_ppd_node)
+			{
+				PPD_QUEUE.begin = cur_ppd_node->next;
+				if (PPD_QUEUE.begin == NULL) PPD_QUEUE.end = NULL;
+			}
+			else
+			{
+				prev_ppd_node->next = cur_ppd_node->next;
+				if (prev_ppd_node->next == NULL) PPD_QUEUE.end = prev_ppd_node;
+			}
+			free(cur_ppd_node);
+			free(cur_ppd);
+			return 0;
+		}
+		prev_ppd_node = cur_ppd_node;
+		cur_ppd_node = cur_ppd_node->next;
+	}
+	return 1;
 }

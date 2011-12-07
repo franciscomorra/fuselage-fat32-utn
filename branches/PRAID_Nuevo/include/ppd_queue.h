@@ -33,5 +33,6 @@ ppd_node_t* PPDQUEUE_getByStatus(uint32_t status);
 ppd_node_t* PPDQUEUE_getByFd(uint32_t fd);
 ppd_node_t* PPDQUEUE_selectByLessRequests();
 ppd_node_t* PPDQUEUE_addNewPPD(uint32_t ppd_fd,uint32_t disk_id,uint32_t sectors_count);
+uint32_t PPDQUEUE_removePPD(uint32_t disk_id);
 
 #endif /* PPD_QUEUE_H_ */

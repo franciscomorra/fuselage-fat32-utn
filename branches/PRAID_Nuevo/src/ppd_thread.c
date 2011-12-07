@@ -42,51 +42,57 @@ void* ppd_thread(void *data)
 
 	while (ppd_info->status == READY)
 	{
-		int32_t readable_bytes = 0;
+		char *request_received = malloc(523);
 
-		/*if (ioctl(ppd_info->ppd_fd,FIONREAD,&readable_bytes) == 0)
+		int32_t request_receive_result = recv(ppd_info->ppd_fd,request_received,523,MSG_WAITALL);
+
+		if (request_receive_result > 0)
 		{
-			if (readable_bytes >= 523)
-			{*/
-				//pthread_mutex_lock(&ppd_info->sock_mutex);
-				char *request_received = malloc(523);
+			ppd_info->requests_count--;
+			char request_type = *request_received;
+			uint32_t request_id = *((uint32_t*) (request_received+3));
+			uint32_t sector = *((uint32_t*) (request_received+7));
+			//assert(request_id == 0);
 
-				int32_t request_receive_result = recv(ppd_info->ppd_fd,request_received,523,MSG_WAITALL);
+			if (request_id == 0)
+			{
+				request_t *sync_request = request_search(request_id,sector);
+				ppd_node_t *synchronizing_ppd = PPDQUEUE_getByStatus(SYNCHRONIZING);
+				*request_received = *(sync_request->msg) = WRITE_SECTORS;
 
-				if (request_receive_result > 0)
+				pthread_mutex_lock(&synchronizing_ppd->sock_mutex);
+					send(synchronizing_ppd->ppd_fd,request_received,523,MSG_WAITALL);
+				pthread_mutex_unlock(&synchronizing_ppd->sock_mutex);
+			}
+			else
+			{
+				if (request_type == WRITE_SECTORS)
 				{
-					uint32_t request_id = *((uint32_t*) (request_received+3));
-					uint32_t sector = *((uint32_t*) (request_received+7));
-					assert(request_id == 0);
-					if (request_id == 0)
-					{
-						ppd_node_t *synchronizing_ppd = PPDQUEUE_getByStatus(SYNCHRONIZING);
-						*request_received = WRITE_SECTORS;
-						//printf("%d\n",getMicroseconds()-one_sector_read_time);
-						//fflush(stdout);
-						//SOCKET_sendAll(synchronizing_ppd->ppd_fd,request_received,523,0);
-						send(synchronizing_ppd->ppd_fd,request_received,523,MSG_WAITALL);
-						uint32_t santi = 0;
+					request_t *request = request_search(request_id,sector);
 
-					}
-					else
+					if ((--request->write_count) == 0)
 					{
-						request_t *request = request_take(request_id,sector);
+						request = request_take(request_id,sector);
 						send(request->pfs_fd,request_received,523,MSG_WAITALL);
-						free(request_received);
 						request_free(request);
 					}
 				}
-				else
+				else if (request_type == READ_SECTORS)
 				{
-
-					log_info(raid_log,"MAIN_THREAD","DESCONEXION DISCO [ID: %d]",ppd_info->disk_id);
-					pthread_exit(NULL);
-					//REORGANIZAR REQUESTS DE ESTE DISCO
+					request_t *request = request_take(request_id,sector);
+					send(request->pfs_fd,request_received,523,MSG_WAITALL);
+					request_free(request);
 				}
-				free(request_received);
-				//pthread_mutex_unlock(&ppd_info->sock_mutex);
-			/*}
-		}*/
+
+			}
+		}
+		else
+		{
+
+			log_info(raid_log,"MAIN_THREAD","DESCONEXION DISCO [ID: %d]",ppd_info->disk_id);
+			pthread_exit(NULL);
+			//REORGANIZAR REQUESTS DE ESTE DISCO
+		}
+		free(request_received);
 	}
 }
