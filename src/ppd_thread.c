@@ -21,8 +21,9 @@
 
 extern pthread_mutex_t PPD_SYNCHRONIZING_MUTEX;
 extern pthread_mutex_t REQUEST_QUEUE_MUTEX;
+extern queue_t REQUEST_QUEUE;
 extern t_log *raid_log;
-
+void replan_requests(uint32_t ppd_fd);
 
 void* ppd_thread(void *data)
 {
@@ -100,9 +101,31 @@ void* ppd_thread(void *data)
 		{
 
 			log_info(raid_log,"MAIN_THREAD","DESCONEXION DISCO [ID: %d]",ppd_info->disk_id);
+			replan_requests(ppd_info->ppd_fd);
 			pthread_exit(NULL);
 			//REORGANIZAR REQUESTS DE ESTE DISCO
 		}
 		free(request_received);
 	}
+}
+
+void replan_requests(uint32_t ppd_fd)
+{
+	pthread_mutex_lock(&REQUEST_QUEUE_MUTEX);
+	queueNode_t *cur_node = REQUEST_QUEUE.begin;
+	while (cur_node != NULL)
+	{
+		request_t *cur_request = (request_t*) cur_node->data;
+		if (cur_request->ppd_fd == ppd_fd)
+		{
+			cur_request->write_count -= 1;
+			ppd_node_t *selected_ppd = PPDQUEUE_selectByLessRequests();
+			send(selected_ppd->ppd_fd,cur_request->msg,cur_request->msg_len,MSG_WAITALL);
+			selected_ppd->requests_count++;
+		}
+
+		cur_node = cur_node->next;
+	}
+	pthread_mutex_unlock(&REQUEST_QUEUE_MUTEX);
+	return;
 }
