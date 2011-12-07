@@ -265,5 +265,10 @@ int main(int argc, char *argv[])
 		QUEUE_destroyQueue(multiQueue->queue2);
 	free(multiQueue);
 	IO_closeDisk(file_descriptor);
+	char systemCall[30];
+	memset(systemCall,'/0',sizeof(systemCall));
+	sprintf(systemCall,"kill -9 %d",fork_result);
+	system(systemCall);
+	close();
 	return 0;
 }
