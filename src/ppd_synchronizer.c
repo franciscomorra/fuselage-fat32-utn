@@ -19,6 +19,7 @@
 
 uint32_t SOCK_canSend(uint32_t fd);
 extern t_log *raid_log;
+extern pthread_mutex_t REQUEST_QUEUE_MUTEX;
 
 void* ppd_synchronizer(void *data)
 {
@@ -68,7 +69,9 @@ void* ppd_synchronizer(void *data)
 				recv(ppd_info->ppd_fd,msg_buf,523,MSG_WAITALL);
 				uint32_t request_id = *((uint32_t*)(msg_buf+3));
 				uint32_t sector = *((uint32_t*)(msg_buf+7));
+				pthread_mutex_lock(&REQUEST_QUEUE_MUTEX);
 				request_t* sync_request = request_take(request_id,sector);
+				pthread_mutex_unlock(&REQUEST_QUEUE_MUTEX);
 				request_free(sync_request);
 				requests_received++;
 				free(msg_buf);

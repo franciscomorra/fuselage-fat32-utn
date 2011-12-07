@@ -126,19 +126,38 @@ int main(int argc,char **argv)
 					msg_in = realloc(msg_in,msg_len+3);
 					recv(currFD,msg_in+3,msg_len,MSG_WAITALL);
 
-					ppd_node_t *selected_ppd = PPDQUEUE_selectByLessRequests();
+					uint32_t request_id = *((uint32_t*)(msg_in+3));
+					uint32_t sector = *((uint32_t*)(msg_in+7));
 
-					request_addNew(selected_ppd->ppd_fd,currFD,msg_in);
-					selected_ppd->requests_count++;
+					if (*msg_in == WRITE_SECTORS)
+					{
+						request_addNew(0,currFD,msg_in);
 
-					send(selected_ppd->ppd_fd,msg_in,msg_len+3,MSG_WAITALL);
-
-					uint32_t sector = *((uint32_t*) (msg_in+7));
-
-					if (*msg_in == READ_SECTORS)
-						log_info(raid_log,"MAIN_THREAD","PEDIDO DE LECTURA SECTOR %d ENVIADO AL DISCO %d",sector,selected_ppd->disk_id);
+						queueNode_t *ppd_node = PPD_QUEUE.begin;
+						while (ppd_node != NULL)
+						{
+							ppd_node_t *ppd = (ppd_node_t*) ppd_node->data;
+							if (ppd->status == READY)
+							{
+								send(ppd->ppd_fd,msg_in,msg_len+3,MSG_WAITALL);
+								ppd->requests_count++;
+								log_info(raid_log,"MAIN_THREAD","PEDIDO DE ESCRITURA SECTOR %d ENVIADO AL DISCO %d",sector,ppd->disk_id);
+							}
+							ppd_node = ppd_node->next;
+						}
+					}
 					else
-						log_info(raid_log,"MAIN_THREAD","PEDIDO DE ESCRITURA SECTOR %d ENVIADO AL DISCO %d",sector,selected_ppd->disk_id);
+					{
+						ppd_node_t *selected_ppd = PPDQUEUE_selectByLessRequests();
+						selected_ppd->requests_count++;
+						request_addNew(selected_ppd->ppd_fd,currFD,msg_in);
+						send(selected_ppd->ppd_fd,msg_in,msg_len+3,MSG_WAITALL);
+
+						log_info(raid_log,"MAIN_THREAD","PEDIDO DE LECTURA SECTOR %d ENVIADO AL DISCO %d",sector,selected_ppd->disk_id);
+
+					}
+
+
 
 
 
