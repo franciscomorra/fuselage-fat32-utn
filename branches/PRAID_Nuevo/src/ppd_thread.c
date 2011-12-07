@@ -8,6 +8,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include "tad_sockets.h"
+#include "tad_queue.h"
 #include "nipc.h"
 #include "ppd_thread.h"
 #include "ppd_queue.h"
