@@ -5,7 +5,6 @@
  *      Author: utn_so
  */
 
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -21,6 +20,7 @@
 #include "ppd_queue.h"
 #include "ppd_thread.h"
 #include "request_handler.h"
+#include "nipc.h"
 
 pthread_mutex_t PPD_SYNCHRONIZING_MUTEX;
 extern pthread_mutex_t REQUEST_QUEUE_MUTEX;
@@ -38,7 +38,6 @@ uint32_t ppd_handshake(uint32_t ppd_fd,uint32_t *disk_id,uint32_t *disk_sectors)
 
 int main(int argc,char **argv)
 {
-
 	raid_log = log_create("PRAID","PRAID.log",INFO,M_CONSOLE_DISABLE);
 	log_info(raid_log,"MAIN_THREAD","INICIO RAID");
 	QUEUE_initialize(&PFS_QUEUE);
@@ -121,6 +120,27 @@ int main(int argc,char **argv)
 				}
 				else //DATOS DEL PFS
 				{
+					char *msg_in = malloc(3);
+					recv(currFD,msg_in,3,MSG_WAITALL);
+					uint16_t msg_len = *((uint16_t*)(msg_in+1));
+					msg_in = realloc(msg_in,msg_len+3);
+					recv(currFD,msg_in+3,msg_len,MSG_WAITALL);
+
+					ppd_node_t *selected_ppd = PPDQUEUE_selectByLessRequests();
+
+					request_addNew(selected_ppd->ppd_fd,currFD,msg_in);
+					selected_ppd->requests_count++;
+
+					send(selected_ppd->ppd_fd,msg_in,msg_len+3,MSG_WAITALL);
+
+					uint32_t sector = *((uint32_t*) (msg_in+7));
+
+					if (*msg_in == READ_SECTORS)
+						log_info(raid_log,"MAIN_THREAD","PEDIDO DE LECTURA SECTOR %d ENVIADO AL DISCO %d",sector,selected_ppd->disk_id);
+					else
+						log_info(raid_log,"MAIN_THREAD","PEDIDO DE ESCRITURA SECTOR %d ENVIADO AL DISCO %d",sector,selected_ppd->disk_id);
+
+
 
 				}
 			}

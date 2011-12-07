@@ -18,9 +18,10 @@ typedef struct request_t
 	uint32_t	pfs_fd;
 	uint32_t 	sector;
 	uint32_t 	request_id;
+	uint32_t 	write_count;
 } request_t;
 
 request_t *request_take(uint32_t request_id,uint32_t sector);
-
+request_t* request_createNew(uint32_t ppd_fd,uint32_t pfs_fd,char* msg);
 
 #endif /* REQUEST_HANDLER_H_ */

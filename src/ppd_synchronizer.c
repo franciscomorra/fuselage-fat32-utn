@@ -11,6 +11,7 @@
 #include "log.h"
 #include <sys/socket.h>
 #include "nipc.h"
+#include "request_handler.h"
 #include "ppd_synchronizer.h"
 #include "ppd_queue.h"
 #include "tad_sockets.h"
@@ -49,8 +50,10 @@ void* ppd_synchronizer(void *data)
 
 				//SOCKET_sendAll(selected_ppd->ppd_fd,msg_buf,11,0);
 				send(selected_ppd->ppd_fd,msg_buf,11,MSG_WAITALL);
+				selected_ppd->requests_count++;
+				request_addNew(selected_ppd->ppd_fd,ppd_info->ppd_fd,msg_buf);
 				requests_sent++;
-				free(msg_buf);
+				//free(msg_buf);
 			}
 			//pthread_mutex_unlock(&selected_ppd->sock_mutex);
 		}
@@ -63,6 +66,10 @@ void* ppd_synchronizer(void *data)
 			{
 				msg_buf = malloc(523);
 				recv(ppd_info->ppd_fd,msg_buf,523,MSG_WAITALL);
+				uint32_t request_id = *((uint32_t*)(msg_buf+3));
+				uint32_t sector = *((uint32_t*)(msg_buf+7));
+				request_t* sync_request = request_take(request_id,sector);
+				request_free(sync_request);
 				requests_received++;
 				free(msg_buf);
 			}
