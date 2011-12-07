@@ -41,6 +41,7 @@
 								</option>
 								<option id="gnu.c.link.option.libs.865007788" name="Libraries (-l)" superClass="gnu.c.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="Commons"/>
+									<listOptionValue builtIn="false" value="icui18n"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.1641447312" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
