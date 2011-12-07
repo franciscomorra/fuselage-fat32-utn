@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <errno.h>
+
 #include "config_manager.h"
 
 
@@ -16,6 +18,9 @@
 uint32_t CONFIG_read(const char *path,config_param **first_param)
 {
 	int config_filed = open(path,O_RDONLY);
+	if(config_filed < 0)
+		return errno;
+
 	char* chr = malloc(1);
 	char* tmp = malloc(200);
 
