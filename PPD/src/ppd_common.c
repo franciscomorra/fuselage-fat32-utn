@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <semaphore.h>
+#include <errno.h>
 
 #include "ppd_taker.h"
 #include "tad_queue.h"
@@ -69,14 +70,10 @@ char* COMMON_createLogChar(uint32_t sectorNum,request_t* request,uint32_t delay,
 
 	if(multiQueue->queueElemSem.__align > 0){
 
-		//sem_wait(&mainMutex);
 		flag_t previousDirection = multiQueue->direction;									//guardamos la direccion del cabezal por si la busqueda del proximo sector nos cambia la direccion del mismo
-		//flag_t previousFlag = multiQueue->qflag;
 		queue_t* queue = QMANAGER_selectActiveQueue(multiQueue);
 		getNext(queue,&queueNext,sectorNum + 1);
 		multiQueue->direction = previousDirection;
-		//multiQueue->qflag = previousFlag;
-		//sem_post(&mainMutex);																//Obtiene el proximo sector que mostrara segun la planificacion
 
 		if(queueNext == NULL)
 			nextSector = TAKER_turnToSectorNum(((request_t*)queue->begin->data)->CHS);
@@ -167,9 +164,15 @@ char* COMMON_writeInLog(queue_t* queue,queueNode_t* prevCandidate,request_t* req
 
 
 void COMMON_readPPDConfig(uint32_t* port, uint32_t* diskID,uint32_t* startingMode, char** IP,
-		char** sockUnixPath,char** diskFilePath,char** consolePath,char** logPath,flag_t* initialDirection,e_message_level* logFlag){
+	char** sockUnixPath,char** diskFilePath,char** consolePath,char** logPath,flag_t* initialDirection,e_message_level* logFlag){
 	config_param *ppd_config;
-	CONFIG_read("/home/utn_so/Desarrollo/Workspace/PPD/config/ppd.config",&ppd_config);
+	uint32_t status;
+
+	status = CONFIG_read("/home/utn_so/Desarrollo/Workspace/PPD/config/ppd.config",&ppd_config);
+	if(status != 1){
+		printf("Código de Error:%d Descripción: Fallo en archivo de configuración. %s\n",status,strerror(status));
+		exit(1);
+	}
 
 	Cylinder   = atoi(CONFIG_getValue(ppd_config,"Cylinder"));			//
 	Head =  atoi(CONFIG_getValue(ppd_config,"Head"));					//
