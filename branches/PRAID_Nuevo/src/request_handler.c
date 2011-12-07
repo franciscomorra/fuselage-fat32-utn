@@ -34,7 +34,6 @@ void request_addNew(uint32_t ppd_fd,uint32_t pfs_fd,char* msg)
 
 request_t *request_take(uint32_t request_id,uint32_t sector)
 {
-	pthread_mutex_lock(&REQUEST_QUEUE_MUTEX);
 	queueNode_t *cur_request_node = REQUEST_QUEUE.begin;//RESPONSE LIST ES GLOBAL, SE PASA POR PARAMETRO?
 	queueNode_t *prev_request_node = cur_request_node;
 
@@ -55,19 +54,18 @@ request_t *request_take(uint32_t request_id,uint32_t sector)
 				if (prev_request_node->next == NULL) REQUEST_QUEUE.end = prev_request_node;
 			}
 			free(cur_request_node);
-			pthread_mutex_unlock(&REQUEST_QUEUE_MUTEX);
 			return cur_request;
 		}
 		prev_request_node = cur_request_node;
 		cur_request_node = cur_request_node->next;
 	}
-	pthread_mutex_unlock(&REQUEST_QUEUE_MUTEX);
+
 	return NULL;
 }
 
 request_t *request_search(uint32_t request_id,uint32_t sector)
 {
-	pthread_mutex_lock(&REQUEST_QUEUE_MUTEX);
+
 	queueNode_t *cur_request_node = REQUEST_QUEUE.begin;//RESPONSE LIST ES GLOBAL, SE PASA POR PARAMETRO?
 	request_t *request_found = NULL;
 	while (cur_request_node != NULL)
@@ -77,10 +75,11 @@ request_t *request_search(uint32_t request_id,uint32_t sector)
 		if (cur_request->sector == sector && cur_request->request_id == request_id)
 		{
 			request_found = cur_request;
+			break;
 		}
 		cur_request_node = cur_request_node->next;
 	}
-	pthread_mutex_unlock(&REQUEST_QUEUE_MUTEX);
+
 	return request_found;
 }
 
