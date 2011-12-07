@@ -82,16 +82,10 @@ uint32_t console_clean(queue_t parameters,uint32_t ppdFD){
 	}
 	for(;recvs<totalSectors;recvs++){
 		recvLen = SOCKET_recvAll(ppdFD,msgIn,523,0);
-			if(recvLen == -1){
-				perror("recv");
-				exit(1);
-			}
-
-//		uint32_t numero;
-//		memcpy(&numero,msg+7,4);
-//		printf("consola: %d\n",numero);
-//		fflush(0);
-
+		if(recvLen == -1){
+			perror("recv");
+			exit(1);
+		}
 	}
 
 	printf("Se borro desde el sector: %d hasta el: %d\n",firstSector,lastSector);
