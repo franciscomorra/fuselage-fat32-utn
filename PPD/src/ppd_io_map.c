@@ -13,7 +13,7 @@
 #include "ppd_io.h"
 #include "log.h"
 
-#define MAX_WRITINGS_PERSYNC 10000
+#define MAX_WRITINGS_PERSYNC 999999
 
 extern uint32_t bytes_perSector;
 extern uint32_t ReadTime;
@@ -59,11 +59,12 @@ void IO_writeDisk(uint32_t sector,char* buf){
 	uint32_t diskSize = Cylinder * Sector * bytes_perSector;
 
 	memcpy(Map+(sector*bytes_perSector),buf,bytes_perSector);
-	writings++;
+
 	if(writings >= MAX_WRITINGS_PERSYNC){
 		msync(Map,diskSize,MS_ASYNC);
 		writings = 0;
 	}
+	writings++;
 	usleep(WriteTime*1000);
 }
 
@@ -79,52 +80,3 @@ void IO_closeDisk(uint32_t file_descriptor){
 		exit(1);
 	}
 }
-/*
-int32_t read_sector(uint32_t file_descriptor,uint32_t sector, char* buf)
-{
-	uint32_t page = floor(sector / sectors_perPage);
-
-
-	char* map = mmap(NULL,page_size , PROT_READ | PROT_WRITE, MAP_SHARED, file_descriptor, page_size*page);
-	if(map==MAP_FAILED)
-	    {
-	        perror("mmap");
-	        exit(1);
-	    }
-
-	posix_madvise(map+(sector-(sectors_perPage*page))*bytes_perSector,bytes_perSector,POSIX_MADV_WILLNEED);
-
-	memcpy(buf,map+((sector-(sectors_perPage*page))*bytes_perSector),bytes_perSector);
-
-	if (munmap(map, page_size) == -1) {
-		perror("Error un-mmapping the file");
-	    }
-
-	sleep(ReadTime/1000);
-
-	return 0;
-
-}
-*/
-/*
-int32_t write_sector(uint32_t file_descriptor,uint32_t sector, char *buf)
-{
-	page_size = getpagesize();
-	uint32_t page = floor(sector / sectors_perPage);
-
-	char* map = mmap(NULL,page_size , PROT_WRITE, MAP_SHARED, file_descriptor ,page_size*page);
-
-
-	posix_madvise(map+(sector-(sectors_perPage*page))*bytes_perSector,bytes_perSector,POSIX_MADV_RANDOM);
-
-
-	memcpy(map+(sector-(sectors_perPage*page))*bytes_perSector,buf,bytes_perSector);
-
-	munmap(map,page_size);
-
-	sleep(WriteTime/1000);
-
-	return 0;
-}
-
-*/
