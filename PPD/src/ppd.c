@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
 	char* diskFilePath;
 	char* consolePath;
 	char* logPath;
+	char* configPath = malloc(100);
 	flag_t initialDirection;
 	e_message_level logFlag;
 	socketUnix_t consoleListen;			//estructura socket de escucha correspondiente a la consola
@@ -83,10 +84,10 @@ int main(int argc, char *argv[])
 	sem_init(&queueAvailableMutex,0,5000);
 	multiQueue->qflag = QUEUE2_ACTIVE;
 
-	COMMON_readPPDConfig(&port,&diskID,&startingMode,&IP,
+	strcpy(configPath,argv[1]);
+
+	COMMON_readPPDConfig(configPath,&port,&diskID,&startingMode,&IP,
 		&sockUnixPath,&diskFilePath,&consolePath,&logPath,&initialDirection,&logFlag);
-
-
 
 	const char arg0[10];
 	const char arg1[10];
