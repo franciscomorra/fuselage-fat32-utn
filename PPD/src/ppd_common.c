@@ -168,7 +168,7 @@ void COMMON_readPPDConfig(uint32_t* port, uint32_t* diskID,uint32_t* startingMod
 	config_param *ppd_config;
 	uint32_t status;
 
-	status = CONFIG_read("/home/utn_so/Desarrollo/Workspace/PPD/config/ppd.config",&ppd_config);
+	status = CONFIG_read("/home/utn_so/Desktop/trabajos/PPD/config/ppd.config",&ppd_config);
 	if(status != 1){
 		printf("Código de Error:%d Descripción: Fallo en archivo de configuración. %s\n",status,strerror(status));
 		exit(1);

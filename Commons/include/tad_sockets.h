@@ -37,7 +37,7 @@ typedef struct socketUnix_t
 	uint32_t descriptor;
 	uint32_t style;
 	uint32_t mode;
-	uint32_t status;
+	int32_t status;
 	struct sockaddr * address;
 	char* path;
 

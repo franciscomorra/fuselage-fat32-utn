@@ -123,6 +123,7 @@ int main(int argc, char *argv[])
 	else{
 		Log = log_create("PPD",logPath,logFlag,M_CONSOLE_DISABLE);
 		if(Log == NULL){
+			log_error(Log,"Principal","Falló al crear archivo Log.");
 			printf("Error: Falló al crear archivo Log.");
 			return 1;
 		}
@@ -155,12 +156,10 @@ int main(int argc, char *argv[])
 
 	uint32_t file_descriptor = IO_openDisk(diskFilePath);
 
-						//conecta la consola
-
 	inetListen = SOCKET_inet_create(SOCK_STREAM,IP,port,startingMode);										//crea un descriptor de socket encargado de recibir conexiones entrantes
 	if(inetListen.status != SOCK_OK){
 		log_error(Log,"Principal",strerror(inetListen.status));
-		printf("Código de Error: %d Descripción: %s\n",strerror(inetListen.status));
+		printf("Código de Error: %d Fallo en el socket de escucha o al conectarse al servidor. %s\n",inetListen.status,strerror(inetListen.status));
 		return 1;
 	}
 
@@ -195,8 +194,11 @@ int main(int argc, char *argv[])
 	while(1){
 		FD_ZERO(&readFDs);
 		readFDs = masterFDs;
-		if(select(FDmax+1, &readFDs,NULL,NULL,NULL) == -1)
-			perror("select");
+		if(select(FDmax+1, &readFDs,NULL,NULL,NULL) == -1){
+			log_error(Log,"Principal",strerror(inetListen.status));
+			printf("Código de Error: %d Fallo en el thread principal funcion select. %s\n",inetListen.status,strerror(inetListen.status));
+			return 1;
+		}
 		//sem_wait(&mainMutex);
 		for(currFD = 0; currFD <= FDmax; currFD++){
 			if(FD_ISSET(currFD,&readFDs)){															//hay datos nuevos
@@ -209,7 +211,7 @@ int main(int argc, char *argv[])
 						if(newFD > FDmax)
 							FDmax = newFD;
 						char* handshake = malloc(3);
-						int32_t result = SOCKET_recvAll(newFD,handshake,3,NULL);
+						SOCKET_recvAll(newFD,handshake,3,0);
 						if (handshake[0] == HANDSHAKE && *((uint16_t*) (handshake+1)) == 0){
 							SOCKET_sendAll(newFD,handshake,3,0);
 						}
@@ -226,8 +228,6 @@ int main(int argc, char *argv[])
 				}
 				else
 				{ 																						//datos de un cliente
-					uint32_t dataRecieved = 0;
-					uint32_t msg_len = 0;
 
 					char* msg_buf = malloc(3);
 					int32_t result = recv(currFD,msg_buf,3,MSG_WAITALL);
@@ -269,6 +269,7 @@ int main(int argc, char *argv[])
 	memset(systemCall,'/0',sizeof(systemCall));
 	sprintf(systemCall,"kill -9 %d",fork_result);
 	system(systemCall);
-	close();
+	if(startingMode == MODE_LISTEN)
+		close(inetListen.descriptor);
 	return 0;
 }
