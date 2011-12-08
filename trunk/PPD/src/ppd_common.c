@@ -163,12 +163,13 @@ char* COMMON_writeInLog(queue_t* queue,queueNode_t* prevCandidate,request_t* req
 }
 
 
-void COMMON_readPPDConfig(uint32_t* port, uint32_t* diskID,uint32_t* startingMode, char** IP,
+void COMMON_readPPDConfig(char* configPath,uint32_t* port, uint32_t* diskID,uint32_t* startingMode, char** IP,
 	char** sockUnixPath,char** diskFilePath,char** consolePath,char** logPath,flag_t* initialDirection,e_message_level* logFlag){
 	config_param *ppd_config;
 	uint32_t status;
 
-	status = CONFIG_read("/home/utn_so/Desktop/trabajos/PPD/config/ppd.config",&ppd_config);
+	//status = CONFIG_read("/home/utn_so/Desktop/trabajos/PPD/config/ppd.config",&ppd_config);
+	status = CONFIG_read(configPath,&ppd_config);
 	if(status != 1){
 		printf("Código de Error:%d Descripción: Fallo en archivo de configuración. %s\n",status,strerror(status));
 		exit(1);
