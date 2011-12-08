@@ -31,9 +31,9 @@ socketInet_t SOCKET_inet_create(uint32_t style,char* address,uint32_t port,uint3
 	memset(&sock_addr,0,sizeof(sock_addr));
 	sock_addr.sin_family = AF_INET;
 	sock_addr.sin_port = htons(port);
-	uint32_t sockfd = socket(sock_addr.sin_family, style, 0);
+	int32_t sockfd = socket(sock_addr.sin_family, style, 0);
 
-	uint32_t optval = 1;
+	int32_t optval = 1;
 	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
 	if (sockfd < 0)
@@ -97,7 +97,7 @@ socketUnix_t SOCKET_unix_create(uint32_t style,char* path,uint32_t mode)
 	strcpy(sock_addr.sun_path, path);
 	size_t len = strlen(sock_addr.sun_path) + sizeof(sock_addr.sun_family);
 
-	uint32_t sockfd = socket(sock_addr.sun_family, style, 0);
+	int32_t sockfd = socket(sock_addr.sun_family, style, 0);
 
 	if (sockfd < 0)
 	{
