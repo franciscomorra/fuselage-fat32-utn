@@ -38,7 +38,7 @@ uint32_t ppd_handshake(uint32_t ppd_fd,uint32_t *disk_id,uint32_t *disk_sectors)
 
 int main(int argc,char **argv)
 {
-	raid_log = log_create("PRAID","PRAID.log",INFO,M_CONSOLE_DISABLE);
+	raid_log = log_create("PRAID","PRAID.log",OFF,M_CONSOLE_DISABLE);
 	log_info(raid_log,"MAIN_THREAD","INICIO RAID");
 	QUEUE_initialize(&PFS_QUEUE);
 	QUEUE_initialize(&PPD_QUEUE);
@@ -59,7 +59,7 @@ int main(int argc,char **argv)
 
 	socketInet_t listenPFS = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",9034,MODE_LISTEN);
 	sleep(1);//Porque el sleep?
-	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",9035,MODE_LISTEN);
+	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,"192.168.1.111",9035,MODE_LISTEN);
 
 	// Escuchar Sockets (select)
 
@@ -132,7 +132,7 @@ int main(int argc,char **argv)
 					if (*msg_in == WRITE_SECTORS)
 					{
 						request_addNew(0,currFD,msg_in);
-
+						pthread_mutex_lock(&PPD_QUEUE_MUTEX);
 						queueNode_t *ppd_node = PPD_QUEUE.begin;
 						while (ppd_node != NULL)
 						{
@@ -145,6 +145,7 @@ int main(int argc,char **argv)
 							}
 							ppd_node = ppd_node->next;
 						}
+						pthread_mutex_unlock(&PPD_QUEUE_MUTEX);
 					}
 					else
 					{
@@ -152,9 +153,7 @@ int main(int argc,char **argv)
 						selected_ppd->requests_count++;
 						request_addNew(selected_ppd->ppd_fd,currFD,msg_in);
 						send(selected_ppd->ppd_fd,msg_in,msg_len+3,MSG_WAITALL);
-
 						log_info(raid_log,"MAIN_THREAD","PEDIDO DE LECTURA SECTOR %d ENVIADO AL DISCO %d",sector,selected_ppd->disk_id);
-
 					}
 
 
