@@ -162,30 +162,22 @@ socketUnix_t COMM_ConsoleAccept(socketUnix_t connect){
 }
 
 void COMM_RaidHandshake(socketInet_t inetListen,uint32_t diskID){
-	uint16_t handshakeLen = sizeof(uint32_t)*2;
-	char* handshakePayload = malloc(handshakeLen);
-	char* handshake = malloc(3 + handshakeLen);
-	uint32_t totalSectors = Cylinder * Sector * Head;
+	char* payload = malloc(8);
+	*((uint32_t*) (payload)) = diskID;
+	*((uint32_t*) (payload+4)) =  Cylinder * Sector * Head;
+	COMM_sendHandshake(inetListen.descriptor,payload,8);
+	free(payload);
 
-	memcpy(handshakePayload,&diskID,4);
-	memcpy(handshakePayload+4,&totalSectors,4);
-	NIPC_createCharMsg(handshake,HANDSHAKE,handshakeLen,handshakePayload);
+	char* handshakeHeader = malloc(3);
+	SOCKET_recvAll(inetListen.descriptor, handshakeHeader, 3,0);
+	uint16_t len;
+	memcpy(&len,handshakeHeader,2);
 
-	COMM_send(handshake,inetListen.descriptor);
- 	free(handshakePayload);
-	free(handshake);
-
-	uint32_t dataReceived = 0;
-	uint32_t len;
-	char* msgIn = COMM_receiveAll(inetListen.descriptor,&dataReceived,&len);
-	if(dataReceived > 3){
-		uint16_t len;
-		memcpy(&len,msgIn,2);
-		char* errorMsg = malloc(len);
-		memcpy(&errorMsg,msgIn+3,len);
-		log_error(Log,"Main","%s",errorMsg);
-		free(msgIn);
-		free(errorMsg);
+	if((handshakeHeader[0] != HANDSHAKE) || (len != 0)){
+		log_error(Log,"Principal","Error en el Handshake con el proceso RAID.\n");
+		printf("Error en el Handshake con el proceso RAID.\n");
+		fflush(stdout);
+		free(handshakeHeader);
 		exit(1);
 	}
 

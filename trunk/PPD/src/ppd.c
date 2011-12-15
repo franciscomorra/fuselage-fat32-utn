@@ -104,14 +104,12 @@ int main(int argc, char *argv[])
 		{
 			if (execl(consolePath,consolePath,arg0,arg1,sockUnixPath,NULL) == -1)
 			{
-				log_error(Log,"Principal",strerror(errno));
 				printf("Código de Error:%d Descripción: Falló función execl(). %s\n",errno,strerror(errno)); 				//ejecuta la consola en el nuevo proceso
 				return 1;
 			}
 		}
 		else if (fork_result == -1)
 		{
-			log_error(Log,"Principal",strerror(errno));
 			printf("Código de Error:%d Descripción: Falló función fork(). %s\n",errno,strerror(errno));
 		}
 
@@ -124,8 +122,7 @@ int main(int argc, char *argv[])
 	else{
 		Log = log_create("PPD",logPath,logFlag,M_CONSOLE_DISABLE);
 		if(Log == NULL){
-			log_error(Log,"Principal","Falló al crear archivo Log.");
-			printf("Error: Falló al crear archivo Log.");
+			printf("Error: Falló al crear archivo Log.\n");
 			return 1;
 		}
 	}
@@ -165,14 +162,7 @@ int main(int argc, char *argv[])
 	}
 
 	if(startingMode == MODE_CONNECT){
-		char* payload = malloc(8);
-		*((uint32_t*) (payload)) = diskID;
-		*((uint32_t*) (payload+4)) =  Cylinder * Sector * Head;
-		COMM_sendHandshake(inetListen.descriptor,payload,8);
-		free(payload);
-		uint32_t recv = 0;
-		char* hndshk = COMM_receiveHandshake(inetListen.descriptor,&recv);
-		free(hndshk);
+		COMM_RaidHandshake(inetListen,diskID);
 	}
 	FD_ZERO(&masterFDs);
 	FD_SET(inetListen.descriptor,&masterFDs); 						//agrego el descriptor que recibe conexiones al conjunto de FDs
@@ -182,7 +172,7 @@ int main(int argc, char *argv[])
 		FDmax = inetListen.descriptor;
 	else
 		FDmax = consoleListen.descriptor;
-/* PRUEBA
+/*
 	char* msgPrueba = malloc(20+3);
 	char* payload = malloc(20);
 	uint32_t i = 0;
@@ -215,7 +205,24 @@ int main(int argc, char *argv[])
 						SOCKET_recvAll(newFD,handshake,3,0);
 						if (handshake[0] == HANDSHAKE && *((uint16_t*) (handshake+1)) == 0){
 							SOCKET_sendAll(newFD,handshake,3,0);
+						} else {
+							char* payload = malloc(*((uint16_t*) (handshake+1)));
+							SOCKET_recvAll(newFD,payload,*((uint16_t*) (handshake+1)),0);
+							char* msgOut = malloc(4);
+							memset(msgOut,0,4);
+							msgOut[0] = HANDSHAKE;
+							msgOut[1] = 0x01;
+							msgOut[3] = 0xFF;
+							SOCKET_sendAll(newFD,msgOut,4,0);
+							log_error(Log,"Principal","Error en el Handshake con el proceso PFS.\n");
+							printf("Error en el Handshake con el proceso PFS.\n");
+							fflush(stdout);
+							free(msgOut);
+							free(payload);
+							close(newFD);
+							FD_CLR(newFD,&masterFDs);
 						}
+						free(handshake);
 					}
 				}
 				else if ((currFD == consoleListen.descriptor)&&(consoleListen.status != SOCK_DISCONNECTED)){												//nueva conexion tipo UNIX
@@ -259,6 +266,7 @@ int main(int argc, char *argv[])
 	if(logFlag != OFF)
 		log_destroy(Log);
 	free(IP);
+	free(configPath);
 	QMANAGER_freeRequests(multiQueue->queue1);
 	QUEUE_destroyQueue(multiQueue->queue1);
 	if(Algorithm != SSTF)
