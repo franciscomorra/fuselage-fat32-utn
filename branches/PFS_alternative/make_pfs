@@ -1,2 +1,2 @@
-#!/bin/bash/
-gcc -L../Commons/Debug -I./include -I../Commons/include -lpthread -licui18n -lm -lCommons src/file_cache.c src/pfs_comm.c src/pfs_fat32.c src/pfs.c src/tad_cluster.c src/tad_direntry.c src/tad_fat.c src/tad_file.c src/tad_lfnentry.c -o PFS
+#!/bin/bash
+gcc -D_FILE_OFFSET_BITS=64 -DFUSE_USE_VERSION=28 -L"../Commons" -I"./include" -I"../Commons/include" -lfuse -lpthread -licui18n -lm -lCommons src/file_cache.c src/pfs_comm.c src/pfs_fat32.c src/pfs.c src/tad_cluster.c src/tad_direntry.c src/tad_fat.c src/tad_file.c src/tad_lfnentry.c -o PFS
