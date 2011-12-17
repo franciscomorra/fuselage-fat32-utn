@@ -333,7 +333,36 @@ uint32_t fat32_truncate(const char* fullpath,off_t new_size)
 		char* last_byte;
 		cluster_t last_cluster;
 
-		if (new_size == 0)
+		if (original_size == 0)
+		{
+			uint32_t index;
+			uint32_t appended_cl = 0;
+			size_t clusters_to_append = needed_clusters - 1;
+
+			appended_cl = FAT_get_next_free_cluster();
+			FAT_set_used_cluster(appended_cl);
+
+			memcpy(file_entry->dir_entry.low_cluster,&appended_cl,2);
+			memcpy(file_entry->dir_entry.high_cluster,((char*) &appended_cl)+2,2);
+
+			uint32_t prueba = DIRENTRY_getClusterNumber(&file_entry->dir_entry);
+			first_cluster_no = appended_cl;
+
+			cluster_t new_cluster = fat32_readCluster(appended_cl);
+			memset(new_cluster.data,'\0',4096);
+			fat32_writeCluster(&new_cluster);
+			CLUSTER_free(&new_cluster);
+
+			for(index=0;index < clusters_to_append;index++)
+			{
+				appended_cl = FAT_link_free_cluster(first_cluster_no);
+				new_cluster = fat32_readCluster(appended_cl);
+				memset(new_cluster.data,'\0',4096);
+				fat32_writeCluster(&new_cluster);
+				CLUSTER_free(&new_cluster);
+			}
+		}
+		else if (new_size == 0)
 		{
 			uint32_t index = 0;
 			for(index=0;index < file_clusters_no;index++)
@@ -341,6 +370,8 @@ uint32_t fat32_truncate(const char* fullpath,off_t new_size)
 				FAT_remove_last_linked_cluster(first_cluster_no);
 			}
 
+			memset(file_entry->dir_entry.low_cluster,0,2);
+			memset(file_entry->dir_entry.high_cluster,0,2);
 		}
 		else if (needed_clusters < file_clusters_no)
 		{
@@ -368,12 +399,7 @@ uint32_t fat32_truncate(const char* fullpath,off_t new_size)
 
 			for(index=0;index < clusters_to_append;index++)
 			{
-				//printf("   -- APPEND CLUSTER: ");
-				//time = getMicroseconds();
-							appended_cl = FAT_link_free_cluster(first_cluster_no);
-				//printf("%d\n",(getMicroseconds() - time));
-
-
+				appended_cl = FAT_link_free_cluster(first_cluster_no);
 				cluster_t new_cluster = fat32_readCluster(appended_cl);
 				memset(new_cluster.data,0,4096);
 				fat32_writeCluster(&new_cluster);

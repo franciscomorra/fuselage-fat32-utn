@@ -184,6 +184,7 @@ void* console_main()
 int main(int argc, char *argv[])
 {
 
+
 	CONFIG_read("/home/utn_so/Desarrollo/Workspace/PFS/config/pfs.config",&config_param_list);
 
 	char* ip = CONFIG_getValue(config_param_list,"IP");
@@ -354,7 +355,7 @@ static int fuselage_read(const char *path, char *file_buf, size_t bytes_to_read,
 static int fuselage_flush(const char *path, struct fuse_file_info *fi)
 {
 
-	/*queueNode_t *cur_cache_node;
+	queueNode_t *cur_cache_node;
 	queue_t aux_queue;
 	QUEUE_initialize(&aux_queue);
 
@@ -373,7 +374,7 @@ static int fuselage_flush(const char *path, struct fuse_file_info *fi)
 			free(cur_cache_block);
 		}
 	}
-*/
+
 	return 0;
 }
 
