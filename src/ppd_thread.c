@@ -31,6 +31,7 @@ void* ppd_thread(void *data)
 {
 
 	ppd_node_t *ppd_info = (ppd_node_t*) data;
+//	ppd_info->status = READY;
 
 	if (ppd_info->status == WAIT_SYNCH)
 	{

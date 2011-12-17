@@ -96,9 +96,10 @@ ppd_node_t* PPDQUEUE_getByID(uint32_t disk_id)
 
 ppd_node_t* PPDQUEUE_getByStatus(uint32_t status)
 {
+	pthread_mutex_lock(&PPD_QUEUE_MUTEX);
 	queueNode_t *cur_ppd_node = PPD_QUEUE.begin;
 	ppd_node_t *selected_ppd = NULL;
-	pthread_mutex_lock(&PPD_QUEUE_MUTEX);
+
 	while (cur_ppd_node != NULL)
 	{
 		ppd_node_t* cur_ppd = (ppd_node_t*) cur_ppd_node->data;
