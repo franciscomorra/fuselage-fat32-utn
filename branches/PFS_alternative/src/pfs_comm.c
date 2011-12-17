@@ -97,54 +97,55 @@ char* ppd_read_sectors(uint32_t* sectors_array, size_t sectors_array_len)
 
 	char *msg_buf;
 
-	while (requests_sent < sectors_array_len)
-	{
-		msg_buf = malloc(11);
-
-		*msg_buf = READ_SECTORS;
-		*((uint16_t*) (msg_buf+1)) = 8;
-		*((uint32_t*) (msg_buf+3)) = request_id++;
-		*((uint32_t*) (msg_buf+7)) = sectors_array[requests_sent];
-
-		int32_t sent = send(ppd_socket->descriptor,msg_buf,11,MSG_WAITALL);
-		if (sent == SOCK_DISCONNECTED || sent == SOCK_ERROR)
-		{
-			printf("ERROR: Se perdio la conexion con el otro extremo.\n");
-			exit(-1);
-		}
-
-		free(msg_buf);
-		requests_sent++;
-	}
-
 	while (responses_received < sectors_array_len)
 	{
+			if (requests_sent < sectors_array_len)
+			{
+				msg_buf = malloc(11);
 
-				//int32_t readable_bytes = 0;
+				*msg_buf = READ_SECTORS;
+				*((uint16_t*) (msg_buf+1)) = 8;
+				*((uint32_t*) (msg_buf+3)) = request_id++;
+				*((uint32_t*) (msg_buf+7)) = sectors_array[requests_sent];
 
-				/*if (ioctl(ppd_socket->descriptor,FIONREAD,&readable_bytes) == 0)
+				int32_t sent = send(ppd_socket->descriptor,msg_buf,11,MSG_WAITALL);
+				if (sent == SOCK_DISCONNECTED || sent == SOCK_ERROR)
 				{
-					if (readable_bytes >= 523)
-					{*/
-		msg_buf = malloc(response_message_len);
+					printf("ERROR: Se perdio la conexion con el otro extremo.\n");
+					exit(-1);
+				}
 
-		int32_t received = recv(ppd_socket->descriptor,msg_buf,response_message_len,MSG_WAITALL);
+				free(msg_buf);
+				requests_sent++;
+			}
 
-		if (received > 0)
+
+
+		int32_t readable_bytes = 0;
+
+		if (ioctl(ppd_socket->descriptor,FIONREAD,&readable_bytes) == 0)
 		{
-			memcpy(buffer+(responses_received*response_message_len),msg_buf,response_message_len);
-			responses_received++;
+			if (readable_bytes >= 523)
+			{
+				msg_buf = malloc(response_message_len);
+
+				int32_t received = recv(ppd_socket->descriptor,msg_buf,response_message_len,MSG_WAITALL);
+
+				if (received > 0)
+				{
+					memcpy(buffer+(responses_received*response_message_len),msg_buf,response_message_len);
+					responses_received++;
+				}
+				else if (received == -1 && errno != EWOULDBLOCK)
+				{
+					free(msg_buf);
+					free(buffer);
+					printf("ERROR: Se perdio la conexion con el otro extremo.\n");
+					exit(-1);
+				}
+				free(msg_buf);
+			}
 		}
-		else if (received == -1 && errno != EWOULDBLOCK)
-		{
-			free(msg_buf);
-			free(buffer);
-			printf("ERROR: Se perdio la conexion con el otro extremo.\n");
-			exit(-1);
-		}
-		free(msg_buf);
-					//}
-				/*}*/
 	}
 
 
