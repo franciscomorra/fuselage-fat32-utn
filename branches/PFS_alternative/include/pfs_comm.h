@@ -23,18 +23,16 @@ typedef struct socketPool_t
 } socketPool_t;
 
 
-char* PPDINTERFACE_readSectors(uint32_t* sectors_array, size_t sectors_array_len);
+uint32_t ppd_read_boot_sector();
 
-char* PPDINTERFACE_writeSectors(queue_t sectors_toWrite, size_t sectors_toWrite_len);
+char* ppd_read_sectors(uint32_t* sectors_array, size_t sectors_array_len);
 
-socketPool_t create_connections_pool(uint32_t max_conn,char* address,uint32_t port);
+char* ppd_write_sectors(queue_t sectors_toWrite, size_t sectors_toWrite_len);
 
-char* splitAndSort(char *sectors,uint32_t *indexes_array,size_t array_len);
+socketPool_t ppd_create_connection_pool(uint32_t max_conn,char* address,uint32_t port);
 
-int32_t sendMsgToPPD(socketInet_t socket,char *msg);
+char* ppd_reconstruct_data_from_responses(char *sectors,uint32_t *indexes_array,size_t array_len);
 
-char* createRequest(NIPC_type msg_type,uint32_t payload_len,char* payload);
-
-socketInet_t* PPDINTERFACE_getFreeSocket();
+socketInet_t* ppd_get_free_socket();
 
 #endif /* PFS_COMM_H_ */

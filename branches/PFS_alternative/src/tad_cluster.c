@@ -5,11 +5,10 @@
  *      Author: utn_so
  */
 
+#include <stdbool.h>
 #include "tad_cluster.h"
 #include "tad_queue.h"
 #include "tad_sector.h"
-#include <stdbool.h>
-#include "pfs_addressing.h"
 #include "tad_bootsector.h"
 
 extern bootSector_t boot_sector;
@@ -32,9 +31,9 @@ void CLUSTER_free(cluster_t* cluster)
 	sector_t* cur_sector;
 	while ((cur_sector_node = QUEUE_takeNode(&cluster->sectors)))
 	{
-		cur_sector = (sector_t*) cur_sector_node->data;
+		free(cur_sector_node->data);
 		//free(cur_sector->data);
-		free(cur_sector);
+		//free(cur_sector);
 		free(cur_sector_node);
 	}
 	free(cluster->data);
@@ -47,7 +46,7 @@ cluster_t* CLUSTER_newCluster(char* startOfData,uint32_t numberOfCluster)
 	uint32_t sector_index = 0;
 
 	sector_t *new_sector;
-	uint32_t *sectors = cluster_to_sectors(numberOfCluster);
+	uint32_t *sectors = CLUSTER_to_sectors(numberOfCluster);
 
 	for (sector_index = 0; sector_index < boot_sector.sectors_perCluster; sector_index++)
 	{
@@ -126,6 +125,21 @@ uint32_t CLUSTER_setModified2(char *addr,cluster_set_t *cluster_chain,size_t len
 			cluster_node = cluster_node->next;
 		}
 		return 1;
+}
+
+uint32_t* CLUSTER_to_sectors(uint32_t cluster)
+{
+	uint32_t first_sector_ofData = boot_sector.reserved_sectors+(boot_sector.fats_no*boot_sector.sectors_perFat32);
+	uint32_t first_sector_ofCluster = first_sector_ofData+(cluster-2)*boot_sector.sectors_perCluster;
+	uint32_t *sectors= malloc(boot_sector.sectors_perCluster*sizeof(uint32_t));
+	memset(sectors,0,boot_sector.sectors_perCluster*sizeof(uint32_t));
+	int index;
+
+	for (index=0;index < boot_sector.sectors_perCluster;index++)
+	{
+		sectors[index] = first_sector_ofCluster+index;
+	}
+	return sectors;
 }
 
 /*uint32_t CLUSTER_setModified(char *addr,cluster_t *cluster,size_t len_modified)

@@ -17,7 +17,6 @@
 #include "tad_sockets.h"
 #include <stdlib.h>
 
-uint32_t SOCK_canSend(uint32_t fd);
 extern t_log *raid_log;
 extern pthread_mutex_t REQUEST_QUEUE_MUTEX;
 
@@ -25,21 +24,22 @@ void* ppd_synchronizer(void *data)
 {
 	uint32_t *sync_result = malloc(4);
 	ppd_node_t *ppd_info = (ppd_node_t*) data;
+
 	uint32_t sectors_to_synchronize = ppd_info->sectors_count;
 
 	log_info(raid_log,"MAIN_THREAD","COMIENZO SINCRONIZACION DISCO [ID: %d]",ppd_info->disk_id);
 
 	uint32_t requests_sent = 0, requests_received = 0;
 	char *msg_buf;
-
+	int32_t left, received;
 	while (requests_received < sectors_to_synchronize)
 	{
 		if (requests_sent < sectors_to_synchronize )
 		{
 			ppd_node_t *selected_ppd = PPDQUEUE_selectByLessRequests();
 
-			if (SOCKET_canSend(selected_ppd->ppd_fd))
-			{
+			/*if (SOCKET_canSend(selected_ppd->ppd_fd))
+			{*/
 			//pthread_mutex_lock(&selected_ppd->sock_mutex);
 				msg_buf = malloc(11);
 				*msg_buf = READ_SECTORS;
@@ -50,12 +50,13 @@ void* ppd_synchronizer(void *data)
 				//send(selected_ppd->ppd_fd,msg_buf,11,MSG_WAITALL);
 
 				//SOCKET_sendAll(selected_ppd->ppd_fd,msg_buf,11,0);
+
 				send(selected_ppd->ppd_fd,msg_buf,11,MSG_WAITALL);
 				selected_ppd->requests_count++;
 				request_addNew(selected_ppd->ppd_fd,ppd_info->ppd_fd,msg_buf);
 				requests_sent++;
 				//free(msg_buf);
-			}
+			/*}*/
 			//pthread_mutex_unlock(&selected_ppd->sock_mutex);
 		}
 
@@ -65,16 +66,23 @@ void* ppd_synchronizer(void *data)
 		{
 			if (readable_bytes >= 523)
 			{
+
+
 				msg_buf = malloc(523);
-				recv(ppd_info->ppd_fd,msg_buf,523,MSG_WAITALL);
-				uint32_t request_id = *((uint32_t*)(msg_buf+3));
-				uint32_t sector = *((uint32_t*)(msg_buf+7));
-				pthread_mutex_lock(&REQUEST_QUEUE_MUTEX);
-				request_t* sync_request = request_take(request_id,sector);
-				pthread_mutex_unlock(&REQUEST_QUEUE_MUTEX);
-				request_free(sync_request);
-				requests_received++;
+				received = recv(ppd_info->ppd_fd,msg_buf,523, MSG_WAITALL);
+
+				if (received > 0)
+				{
+					uint32_t request_id = *((uint32_t*)(msg_buf+3));
+					uint32_t sector = *((uint32_t*)(msg_buf+7));
+					pthread_mutex_lock(&REQUEST_QUEUE_MUTEX);
+					request_t* sync_request = request_take(request_id,sector);
+					pthread_mutex_unlock(&REQUEST_QUEUE_MUTEX);
+					request_free(sync_request);
+					requests_received++;
+				}
 				free(msg_buf);
+
 			}
 		}
 
