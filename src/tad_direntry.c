@@ -19,7 +19,7 @@
 #include <time.h>
 
 //extern bootSector_t boot_sector;
-extern t_log *log_file;
+
 
 uint32_t DIRENTRY_getClusterNumber(dirEntry_t *entry)
 {
@@ -42,7 +42,7 @@ queue_t DIRTABLE_interpretFromCluster(cluster_t cluster)
 
 	if (*(cluster.data) == '.') //Si el primer char es '.' entonces no es el directorio raiz y debo agregar las dirEntry_t '.' y '..'
 	{
-		fat32file_2_t *pointFile = malloc(sizeof(fat32file_2_t));
+		fat32file_t *pointFile = malloc(sizeof(fat32file_t));
 		pointFile->long_file_name = malloc(1);
 		strcpy(pointFile->long_file_name,".");
 		pointFile->cluster = cluster.number;
@@ -50,7 +50,7 @@ queue_t DIRTABLE_interpretFromCluster(cluster_t cluster)
 		pointFile->dir_entry = *((dirEntry_t*) lfn_entry++);
 		QUEUE_appendNode(&file_list,pointFile);
 
-		fat32file_2_t *pointpointFile = malloc(sizeof(fat32file_2_t));
+		fat32file_t *pointpointFile = malloc(sizeof(fat32file_t));
 		pointpointFile->long_file_name = malloc(2);
 		strcpy(pointpointFile->long_file_name,"..");
 		pointpointFile->dir_entry = *((dirEntry_t*) lfn_entry++);
@@ -64,23 +64,48 @@ queue_t DIRTABLE_interpretFromCluster(cluster_t cluster)
 	{
 		//Borrado : number = 37
 
-		if (lfn_entry->sequence_no.number == 1 && lfn_entry->sequence_no.deleted == false)				//Si es la ultima LFN del archivo y no esta eliminada (Saltea tambien la DIRENTRY ya que las marca igual que las LFN eliminadas)
+		if (*((char*) lfn_entry) != 0xE5)				//Si es la ultima LFN del archivo y no esta eliminada (Saltea tambien la DIRENTRY ya que las marca igual que las LFN eliminadas)
 		{
-			//QUEUE_appendNode(lfn_entries,lfn_entry++);
+			if (lfn_entry->sequence_no.number == 1 && lfn_entry->sequence_no.deleted == false)				//Si es la ultima LFN del archivo y no esta eliminada (Saltea tambien la DIRENTRY ya que las marca igual que las LFN eliminadas)
+			{
+				fat32file_t *new_file = malloc(sizeof(fat32file_t));
+				new_file->cluster = cluster.number;
+				new_file->offset = ((char*) lfn_entry) - cluster.data;
+				new_file->long_file_name = malloc(14);
+				LFNENTRY_getString(*lfn_entry,new_file->long_file_name);
+				new_file->long_file_name[13] = '\0';
+				new_file->lfn_entry = *lfn_entry;
+				new_file->dir_entry = *((dirEntry_t*) ++lfn_entry);
+				new_file->has_lfn = true;
+				lfn_entry++;
+				QUEUE_appendNode(&file_list,new_file);
+			}
+			else
+			{
+				fat32file_t *new_file = malloc(sizeof(fat32file_t));
+				new_file->cluster = cluster.number;
+				new_file->offset = ((char*) lfn_entry) - cluster.data;
+				new_file->long_file_name = malloc(13);
+				strncpy(new_file->long_file_name,((dirEntry_t*) lfn_entry)->dos_name,8);
+				char *space =	strchr(new_file->long_file_name,' ');
+				if (space != NULL)
+				{
+					strncpy(space,".",1);
+					strncpy(space+1,((dirEntry_t*) lfn_entry)->dos_extension,strlen(((dirEntry_t*) lfn_entry)->dos_extension));
+					strncpy(space+strlen(((dirEntry_t*) lfn_entry)->dos_extension),"\0",1);
+				}
+				else
+				{
+					strncpy(new_file->long_file_name+8,".",1);
+					strncpy(new_file->long_file_name+9,((dirEntry_t*) lfn_entry)->dos_extension,3);
+					strncpy(new_file->long_file_name+strlen(new_file->long_file_name),"\0",1);
+				}
+				//strcpy(new_file->long_file_name,((dirEntry_t*) lfn_entry)->dos_name);
+				new_file->dir_entry = *((dirEntry_t*) lfn_entry++);
+				new_file->has_lfn = false;
+				QUEUE_appendNode(&file_list,new_file);
 
-			fat32file_2_t *new_file = malloc(sizeof(fat32file_2_t));
-			new_file->cluster = cluster.number;
-			new_file->offset = ((char*) lfn_entry) - cluster.data;
-			new_file->long_file_name = malloc(13);
-			LFNENTRY_getString(*lfn_entry,new_file->long_file_name);
-			new_file->lfn_entry = *lfn_entry;
-			new_file->dir_entry = *((dirEntry_t*) ++lfn_entry);
-			lfn_entry++;
-			QUEUE_appendNode(&file_list,new_file); 															//Lo agrego a la cola
-		}
-		else if (lfn_entry->sequence_no.deleted == true) 	//Si es una entrada eliminada la salteo
-		{
-			lfn_entry++; 		//Incremento 32 bytes para saltearla
+			}
 		}
 		else
 		{

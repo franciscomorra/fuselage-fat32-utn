@@ -6,44 +6,19 @@
  */
 
 #include "tad_file.h"
+#include "pfs_fat32.h"
 #include <fcntl.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include "log.h"
 
+extern queue_t opened_files;
+extern uint32_t cache_size_inBytes;
 
-/*fat32file_t* FILE_createStruct(char* filename,dirEntry_t *dirEntry)
-{
-			assert(dirEntry != NULL);
-			fat32file_t *new_file = malloc(sizeof(fat32file_t));
-			new_file->long_file_name = malloc(strlen(filename)+1);
-			memset(new_file->long_file_name, 0, strlen(filename) + 1); // Seteo a 0
-			strcpy(new_file->long_file_name, filename);
-			memcpy(&(new_file->dir_entry), dirEntry, sizeof(dirEntry_t));
-			return new_file;
-}
-
-fat32file_t* FILE_createStruct2(char* filename,dirEntry_t *dirEntry)
-{
-			assert(dirEntry != NULL);
-			fat32file_t *new_file = malloc(sizeof(fat32file_t));
-			new_file->long_file_name = malloc(strlen(filename)+1);
-			memset(new_file->long_file_name, 0, strlen(filename) + 1); // Seteo a 0
-			strcpy(new_file->long_file_name, filename);
-			new_file->dir_entry = dirEntry;
-			return new_file;
-}
-
-*/
-void FILE_free(fat32file_2_t *file)
+void FILE_free(fat32file_t *file)
 {
 	free(file->long_file_name);
-	/*queueNode_t *lfn_node;
-	while ((lfn_node = QUEUE_takeNode(&file->lfn_entries)) != NULL)
-	{
-		free(lfn_node);
-	}*/
 	//free(file);
 }
 
@@ -93,4 +68,39 @@ void FILE_splitNameFromPath(const char *path,char **ret_filename,char **ret_path
 		memset(*ret_path_to_filename,'/',1);
 	}
 	return;
+}
+
+opened_file_t* OFILE_get(const char* path)
+{
+
+	queueNode_t *opened_file_node = opened_files.begin;
+	while (opened_file_node != NULL)
+	{
+		opened_file_t *opened_file = (opened_file_t*) opened_file_node->data;
+
+		if (strcmp(opened_file->path,path) == 0)
+		{
+			return opened_file;
+		}
+		opened_file_node = opened_file_node->next;
+	}
+
+	fat32file_t *file_entry = fat32_getFileEntry(path);
+	opened_file_t *new = OFILE_add_new(path,*file_entry);
+	FILE_free(file_entry);
+	return new;
+}
+
+opened_file_t* OFILE_add_new(char* path,fat32file_t file_entry)
+{
+	opened_file_t *new_opened_file = malloc(sizeof(opened_file_t));
+	new_opened_file->path = malloc(strlen(path));
+	strcpy(new_opened_file->path,path);
+	new_opened_file->file_entry = file_entry;
+	new_opened_file->cache.begin = new_opened_file->cache.end	= NULL;
+	new_opened_file->cache_size = cache_size_inBytes;
+	pthread_mutex_init(&new_opened_file->write_mutex,NULL);
+	new_opened_file->open_count = 0;
+	QUEUE_appendNode(&opened_files,new_opened_file);
+	return new_opened_file;
 }
