@@ -1,5 +1,5 @@
-//#define _FILE_OFFSET_BITS 64
-//#define _USE_LARGEFILE64
+#define _FILE_OFFSET_BITS 64
+#define _USE_LARGEFILE64
 
 #include <stdio.h>
 #include <unistd.h>
@@ -51,8 +51,8 @@ void IO_readDisk(uint32_t sector,char* buf){
 //	uint32_t page = floor(sector / sectors_perPage);
 
 	memcpy(buf,Map+(sector*bytes_perSector),bytes_perSector);
-
-	usleep(ReadTime*1000);
+	if (ReadTime != 0)
+		usleep(ReadTime*1000);
 }
 
 void IO_writeDisk(uint32_t sector,char* buf){
@@ -66,7 +66,8 @@ void IO_writeDisk(uint32_t sector,char* buf){
 		writings = 0;
 	}
 	writings++;
-	usleep(WriteTime*1000);
+	if (WriteTime != 0)
+		usleep(WriteTime*1000);
 }
 
 void IO_closeDisk(uint32_t file_descriptor){

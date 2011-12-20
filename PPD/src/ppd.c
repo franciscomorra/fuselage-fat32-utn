@@ -247,7 +247,6 @@ int main(int argc, char *argv[])
 					if (result > 0)
 					{
 						exit = COMM_handleReceive(msg_buf,currFD);
-
 						free(msg_buf);
 					}
 					else
