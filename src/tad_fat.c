@@ -23,33 +23,27 @@ queue_t FAT_get_linked_clusters(uint32_t init_cluster)
 {
 	pthread_mutex_lock(&fat.mutex);
 
-	uint32_t root_cluster = 0x0FFFFFF8;
 	uint32_t  *cluster_number, cluster_no = init_cluster;
 
 	queue_t cluster_list;
 	QUEUE_initialize(&cluster_list);
 	uint32_t *casted_table = (uint32_t*) fat.table;
 
-	if (cluster_no == 0 || cluster_no == 1)
+	if (cluster_no == 0 || cluster_no == 1 || casted_table[cluster_no] == 0x00 )
 	{
 		pthread_mutex_unlock(&fat.mutex);
 		return cluster_list;
 
 	}
-	if (casted_table[cluster_no] == 0x00 )
+	else if (FAT_isEOC(casted_table[cluster_no]))
 	{
-		pthread_mutex_unlock(&fat.mutex);
-		return cluster_list;
-	}
-	else if (casted_table[cluster_no] == fat.EOC || casted_table[cluster_no] == root_cluster)
-	{
-			cluster_number = malloc(sizeof(uint32_t));
-			*cluster_number = cluster_no;
-			QUEUE_appendNode(&cluster_list,cluster_number);
+		cluster_number = malloc(sizeof(uint32_t));
+		*cluster_number = cluster_no;
+		QUEUE_appendNode(&cluster_list,cluster_number);
 	}
 	else if (casted_table[cluster_no] != fat.EOC)
 	{
-		while (casted_table[cluster_no] != fat.EOC)
+		while (FAT_isEOC(casted_table[cluster_no]) == 0)
 		{
 			cluster_number = malloc(sizeof(uint32_t));
 			*cluster_number = cluster_no;
@@ -62,6 +56,7 @@ queue_t FAT_get_linked_clusters(uint32_t init_cluster)
 		*cluster_number = cluster_no;
 		QUEUE_appendNode(&cluster_list,cluster_number);
 	}
+
 
 	pthread_mutex_unlock(&fat.mutex);
 	return cluster_list;
@@ -77,7 +72,7 @@ queue_t FAT_get_n_linked_clusters(uint32_t init_cluster,uint32_t linked_clusters
 	QUEUE_appendNode(&cluster_list,&cluster);
 	cluster = FAT_get_next_linked(cluster);
 
-	while (cluster != fat.EOC && cluster_count < linked_clusters_no)
+	while (FAT_isEOC(cluster) == 0 && cluster_count < linked_clusters_no)
 	{
 		cluster = FAT_get_next_linked(cluster);
 		QUEUE_appendNode(&cluster_list,&cluster);
@@ -114,32 +109,19 @@ uint32_t FAT_get_next_free_cluster()
 	pthread_mutex_lock(&fat.mutex);
 	uint32_t free_cluster_number = 2;
 	uint32_t *casted_table = (uint32_t*) fat.table;
+	uint32_t cluster_no = 2;
 
-	while (casted_table[free_cluster_number] != 0)
+	for(cluster_no = 2;cluster_no < fat.size;cluster_no++)
 	{
-		free_cluster_number++;
-
-		if (fat.size == free_cluster_number+1)
+		if (casted_table[cluster_no] == 0)
 		{
 			pthread_mutex_unlock(&fat.mutex);
-			return 0;
-		}
-
-
-	}
-	pthread_mutex_unlock(&fat.mutex);
-	return free_cluster_number;
-	/*for(cluster_no = 2;cluster_no < fat.size;cluster_no++)
-	{
-		if(casted_table[cluster_no] == 0)
-		{
-			pthread_mutex_unlock(&fat_mutex);
 			return cluster_no;
 		}
 	}
-*/
 
-	return 0; //DISCO LLENO
+	pthread_mutex_unlock(&fat.mutex);
+	return 0;
 }
 
 void FAT_set_used_cluster(uint32_t clusterToSet)
@@ -147,9 +129,7 @@ void FAT_set_used_cluster(uint32_t clusterToSet)
 	pthread_mutex_lock(&fat.mutex);
 	uint32_t *casted_table = (uint32_t*) fat.table;
 	casted_table[clusterToSet] = fat.EOC;
-
 	sector_t *modified_sector = FAT_searchSectorByPointer((char*) (casted_table+clusterToSet));
-
 	modified_sector->modified = true;
 	pthread_mutex_unlock(&fat.mutex);
 
@@ -160,7 +140,6 @@ void FAT_set_free_cluster(uint32_t clusterToSet)
 	pthread_mutex_lock(&fat.mutex);
 	uint32_t *casted_table = (uint32_t*) fat.table;
 	casted_table[clusterToSet] = 0;
-
 	sector_t *modified_sector = FAT_searchSectorByPointer((char*) (casted_table+clusterToSet));
 	modified_sector->modified = true;
 	pthread_mutex_unlock(&fat.mutex);
@@ -247,31 +226,16 @@ void FAT_write_table()
 
 uint32_t FAT_link_free_cluster(uint32_t first_cluster_of_chain)
 {
-
-	//queue_t modified_sectors;
-	//QUEUE_initialize(&modified_sectors);
 	pthread_mutex_lock(&fat.mutex);
 	uint32_t *casted_table = (uint32_t*) fat.table;
 
-
-	//queue_t cluster_chain = FAT_get_linked_clusters(first_cluster_of_chain);
-	//queueNode_t *cur_cluster_node;
 	uint32_t last_cluster = first_cluster_of_chain;
 	uint32_t appended_cluster_number, free_cluster_number = 2;
 
-	while (casted_table[last_cluster] != fat.EOC)
+	while (FAT_isEOC(casted_table[last_cluster]) == 0)
 	{
 		last_cluster = casted_table[last_cluster];
 	}
-
-		/*while ((cur_cluster_node = QUEUE_takeNode(&cluster_chain)) != NULL)
-		{
-			last_cluster = *((uint32_t*) cur_cluster_node->data);
-			free(cur_cluster_node->data);
-			free(cur_cluster_node);
-		}
-	*/
-
 
 	while (casted_table[free_cluster_number] != 0)
 	{
@@ -296,49 +260,72 @@ uint32_t FAT_remove_last_linked_cluster(uint32_t first_cluster_of_chain)
 	pthread_mutex_lock(&fat.mutex);
 	uint32_t *casted_table = (uint32_t*) fat.table;
 
-	uint32_t last_cluster = first_cluster_of_chain,before_lastcluster;
-
-	if (casted_table[last_cluster] == fat.EOC)
+	if (FAT_isEOC(casted_table[first_cluster_of_chain]))
 	{
-		casted_table[last_cluster] = 0;
-		sector_t *sector_modified = FAT_searchSectorByPointer((char*) (casted_table+last_cluster));
+		casted_table[first_cluster_of_chain] = 0;
+		sector_t *sector_modified = FAT_searchSectorByPointer((char*) (casted_table+first_cluster_of_chain));
 		sector_modified->modified = true;
 		pthread_mutex_unlock(&fat.mutex);
-		return last_cluster;
+		return 0;
 	}
-
-	while (casted_table[last_cluster] != fat.EOC)
+	else
 	{
-		before_lastcluster = last_cluster;
-		last_cluster = casted_table[last_cluster];
+		uint32_t removed_cluster, before_lastcluster, last_cluster = first_cluster_of_chain;
+
+		while (FAT_isEOC(casted_table[last_cluster]) == 0)
+		{
+			before_lastcluster = last_cluster;
+			last_cluster = casted_table[last_cluster];
+		}
+
+		casted_table[last_cluster] = 0;
+		removed_cluster = last_cluster;
+		casted_table[before_lastcluster] = fat.EOC;
+
+		sector_t *first_sector_modified = FAT_searchSectorByPointer((char*) (casted_table+before_lastcluster));
+		sector_t *second_sector_modified = FAT_searchSectorByPointer((char*) (casted_table+last_cluster));
+
+		first_sector_modified->modified = true;
+		second_sector_modified->modified = true;
+
+		pthread_mutex_unlock(&fat.mutex);
+		return removed_cluster;
 	}
 
-	casted_table[last_cluster] = 0;
-	uint32_t removed_cluster = last_cluster;
-	casted_table[before_lastcluster] = fat.EOC;
-
-	sector_t *first_sector_modified = FAT_searchSectorByPointer((char*) (casted_table+before_lastcluster));
-	sector_t *second_sector_modified = FAT_searchSectorByPointer((char*) (casted_table+last_cluster));
-
-	first_sector_modified->modified = true;
-	second_sector_modified->modified = true;
-
-	pthread_mutex_unlock(&fat.mutex);
-	return removed_cluster;
 }
 
 uint32_t FAT_get_next_linked(uint32_t cluster_no)
-{pthread_mutex_lock(&fat.mutex);
-
-	if (cluster_no == fat.EOC)
+{
+	pthread_mutex_lock(&fat.mutex);
+	if (FAT_isEOC(cluster_no))
 	{
 		pthread_mutex_unlock(&fat.mutex);
 		return fat.EOC;
 	}
 	uint32_t *casted_table = (uint32_t*) fat.table;
-	//queue_t cluster_chain = FAT_get_linked_clusters(cluster_no);
 	pthread_mutex_unlock(&fat.mutex);
 	return casted_table[cluster_no];
+}
+
+uint32_t FAT_get_last_linked(uint32_t cluster_no)
+{
+	pthread_mutex_lock(&fat.mutex);
+	if (FAT_isEOC(cluster_no))
+	{
+		pthread_mutex_unlock(&fat.mutex);
+		return fat.EOC;
+	}
+	uint32_t *casted_table = (uint32_t*) fat.table;
+
+	uint32_t last_cluster = cluster_no;
+
+	while (FAT_isEOC(casted_table[last_cluster]) == 0)
+	{
+		last_cluster = casted_table[last_cluster];
+	}
+
+	pthread_mutex_unlock(&fat.mutex);
+	return last_cluster;
 }
 
 //UTIL PARA SOLO ESCRIBIR LOS SECTORES QUE SE MODIFICAN
@@ -364,4 +351,9 @@ sector_t* FAT_searchSectorByPointer(char* pointer_to_search)
 		cur_sector_node = cur_sector_node->next;
 	}
 	return NULL;
+}
+
+uint32_t FAT_isEOC(uint32_t number)
+{
+	return (number >= 0x0FFFFFF8 && number <= 0x0FFFFFFF) ? 1 : 0;
 }

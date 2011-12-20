@@ -96,16 +96,31 @@ void* cache_dump()
 	fclose(cache_file);
 }
 
-void* console_main()
+void* console_main(char* mount_point)
 {
 	uint32_t character = 0;
+
 	char command[1024];
 	char* cmd;
 	char* param;
 
-	while (strcmp(command,"exit") != 0)
+	while (1)
 	{
-		if (strcmp(command,"finfo") == 0)
+		printf("\nfuselage>");
+		memset(command,0,1024);
+		while ((character = getchar()) != '\n')
+			strcat(command,(char*) &character);
+
+		param = strchr(command,' ');
+
+		if (param != NULL)
+			*param++ = '\0';
+
+		if (strcmp(command,"exit") == 0)
+		{
+			break;
+		}
+		else if (strcmp(command,"finfo") == 0 && param != NULL)
 		{
 			fat32file_t *fileentry = fat32_getFileEntry(param);
 			if (fileentry != NULL)
@@ -137,7 +152,7 @@ void* console_main()
 			}
 			else
 			{
-				printf("\nNo existe el archvivo\n");
+				printf("\nNo existe el archvivo");
 			}
 		}
 		else if (strcmp(command,"fsinfo") == 0)
@@ -157,7 +172,7 @@ void* console_main()
 			printf("Clusters libres: %d\n",count_free);
 			printf("Tamaño sector: %d bytes\n",boot_sector.bytes_perSector);
 			printf("Tamaño cluster: %d bytes\n",(boot_sector.bytes_perSector*boot_sector.sectors_perCluster));
-			printf("Tamaño FAT: %d Kb\n",(sizeof(uint32_t)*fat.size/1024));
+			printf("Tamaño FAT: %d Kb",(sizeof(uint32_t)*fat.size/1024));
 			fflush(stdout);
 
 		}
@@ -166,18 +181,10 @@ void* console_main()
 			printf("\nComando no reconocido");
 		}
 
-
-		printf("\nfuselage>");
-		memset(command,0,1024);
-		while ((character = getchar()) != '\n')
-			strcat(command,(char*) &character);
-
-		param = strchr(command,' ');
-
-		if (param != NULL)
-			*param++ = '\0';
-
 	}
+
+	execl("umount","",mount_point,NULL);
+	exit(0);
 	return NULL;
 }
 
@@ -217,7 +224,7 @@ int main(int argc, char *argv[])
 	//pthread_attr_t console_attr;
 	//pthread_attr_init(&console_attr);
 	//pthread_attr_setdetachstate(&console_attr, PTHREAD_CREATE_DETACHED);
-	pthread_create(&console_tid,NULL,console_main,NULL);
+	pthread_create(&console_tid,NULL,console_main,argv[argc-1]);
 
 	mount_point = malloc(strlen(argv[argc-1]));
 	strncpy(mount_point,argv[argc-1],strlen(argv[argc-1]));
@@ -268,33 +275,30 @@ static int fuselage_getattr(const char *path, struct stat *stbuf)
 		stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 2;
 		stbuf->st_size = 4096;
+		stbuf->st_ctim.tv_sec = DIRENTRY_convertDateTime(current_file->dir_entry.create_date,current_file->dir_entry.create_time);
+		stbuf->st_atim.tv_sec = DIRENTRY_convertDateTime(current_file->dir_entry.create_date,current_file->dir_entry.create_time);
+		stbuf->st_mtim.tv_sec = DIRENTRY_convertDateTime(current_file->dir_entry.create_date,current_file->dir_entry.create_time);
 
 	}
 	else if (current_file->dir_entry.file_attribute.archive == true) //Si es un archivo
 	{
-		stbuf->st_mode = S_IFREG | 0444;
+		stbuf->st_mode = S_IFREG | 0666;
 		stbuf->st_nlink = 1;
 		stbuf->st_size = current_file->dir_entry.file_size;
 		stbuf->st_ino = DIRENTRY_getClusterNumber(&current_file->dir_entry);
-
-
+		stbuf->st_ctim.tv_sec = DIRENTRY_convertDateTime(current_file->dir_entry.create_date,current_file->dir_entry.create_time);
+		stbuf->st_atim.tv_sec = DIRENTRY_convertDateTime(current_file->dir_entry.create_date,current_file->dir_entry.create_time);
+		stbuf->st_mtim.tv_sec = DIRENTRY_convertDateTime(current_file->dir_entry.create_date,current_file->dir_entry.create_time);
 	}
+
 
 	return res;
 }
 
 static int fuselage_open(const char *path, struct fuse_file_info *fi)
 {
-	//;
-
 	opened_file_t *opened_file = OFILE_get(path);
 	opened_file->open_count++;
-
-//fi->fh = (uint64_t) DIRENTRY_getClusterNumber(&opened_file->file_entry.dir_entry);
-
-	//queue_t FAT_get_linked_clusters(DIRENTRY_getClusterNumber(&opened_file->file_entry.dir_entry));
-//
-
 	return 0;
 }
 
@@ -360,8 +364,8 @@ static int fuselage_flush(const char *path, struct fuse_file_info *fi)
 	QUEUE_initialize(&aux_queue);
 
 	opened_file_t *file_to_flush = OFILE_get(path);
-	if (file_to_flush != NULL)
-	{
+	//if (file_to_flush != NULL)
+	//{
 		queueNode_t* cur_cache_block;
 		while((cur_cache_block = QUEUE_takeNode(&file_to_flush->cache)) != NULL)
 		{
@@ -373,7 +377,7 @@ static int fuselage_flush(const char *path, struct fuse_file_info *fi)
 			free(cur_block);
 			free(cur_cache_block);
 		}
-	}
+	//}
 
 	return 0;
 }
@@ -470,7 +474,9 @@ static int fuselage_rename(const char *cur_name, const char *new_name)
 
 static int fuselage_truncate(const char *fullpath, off_t new_size)
 {
-	return fat32_truncate(fullpath,new_size);
+	opened_file_t *opened_file = OFILE_get(fullpath);
+	opened_file->file_entry.dir_entry.file_size = fat32_truncate(fullpath,new_size);
+	return 0;
 }
 
 static int fuselage_write(const char *path, const char *file_buf, size_t bytes_to_write, off_t offset, struct fuse_file_info *fi)
@@ -479,9 +485,8 @@ static int fuselage_write(const char *path, const char *file_buf, size_t bytes_t
 	pthread_mutex_lock(&opened_file->write_mutex);
 	uint32_t bytes_perCluster = boot_sector.bytes_perSector * boot_sector.sectors_perCluster;
 
-	//if (offset+bytes_to_write > opened_file->file_entry.dir_entry.file_size)
-				fat32_truncate(path,offset+bytes_to_write);
-
+	if (offset+bytes_to_write > opened_file->file_entry.dir_entry.file_size)
+		opened_file->file_entry.dir_entry.file_size = fat32_truncate(path,offset+bytes_to_write);
 
 	uint32_t bytes_left_to_write = bytes_to_write;
 
@@ -491,8 +496,6 @@ static int fuselage_write(const char *path, const char *file_buf, size_t bytes_t
 	uint32_t cluster_count = 0;
 	uint32_t offset_in_file = offset;
 	uint32_t offset_in_buffer = 0;
-
-	//char* tmp_buf = malloc(clusters_to_write*bytes_perCluster);
 
 
 	for (;cluster_count < clusters_to_skip;cluster_count++)
@@ -540,8 +543,6 @@ static int fuselage_write(const char *path, const char *file_buf, size_t bytes_t
 			CLUSTER_free(&cluster);
 		}
 
-
-
 		bytes_left_to_write -= bytes_in_this_write;
 		offset_in_file+=bytes_in_this_write;
 		offset_in_buffer+=bytes_in_this_write;
@@ -549,81 +550,15 @@ static int fuselage_write(const char *path, const char *file_buf, size_t bytes_t
 		first_cluster_to_write = FAT_get_next_linked(first_cluster_to_write);
 	}
 
-
 	opened_file->file_entry.dir_entry.file_size = offset+bytes_to_write;
 
 	pthread_mutex_unlock(&opened_file->write_mutex);
 	return bytes_to_write;
 }
 
-/*static int fuselage_write2(const char *fullpath, const char *file_buff, size_t buff_size, off_t off, struct fuse_file_info *fi)
-{
-
-	fat32_truncate(fullpath,off+buff_size);
-
-	opened_file_t *opened_file = OFILE_get(fullpath);
-
-	/*if (opened_file == NULL)
-	{
-		opened_file = CACHE_createCache(fullpath);
-	}
-
-	pthread_mutex_lock(&opened_file->write_mutex);
-	fat32file_t *file_entry = fat32_getFileEntry(fullpath);
-
-
-	uint32_t first_cluster_no = DIRENTRY_getClusterNumber(&file_entry->dir_entry);
-	queue_t file_clusters = FAT_get_linked_clusters(first_cluster_no);
-
-	uint32_t bytes_perCluster = boot_sector.bytes_perSector * boot_sector.sectors_perCluster;
-
-	uint32_t first_cluster_write = off / bytes_perCluster;
-	uint32_t offset_in_cluster = off % bytes_perCluster;
-
-	//uint32_t clusters_in_write = ceilf(((float) buff_size) / ((float) 4096));
-
-	uint32_t cluster_index = 0;
-	//SACO TODOS LOS NODOS HATA EL PRIMER CLUSTER A ESCRIBIR
-	for (;cluster_index < first_cluster_write;cluster_index++)
-	{
-			queueNode_t *cluster_node = QUEUE_takeNode(&file_clusters);
-			free(cluster_node->data);
-			free(cluster_node);
-	}
-
-	queueNode_t *cluster_node = QUEUE_takeNode(&file_clusters);
-	uint32_t cluster_no = *((uint32_t*) cluster_node->data);
-
-	cluster_t cluster = fat32_readCluster(cluster_no);
-
-
-	memcpy(cluster.data+offset_in_cluster,file_buff,buff_size);
-
-	cluster_t *cluster_from_cache;
-
-	if ((cluster_from_cache = CACHE_write_block(&opened_file->cache,cluster)) != NULL)
-	{
-		fat32_writeCluster(cluster_from_cache);
-		CLUSTER_free(cluster_from_cache);
-	}
-	else
-	{
-		fat32_writeCluster(&cluster);
-		CLUSTER_free(&cluster);
-	}
-
-	printf("FIN WRITE:  ");
-	printf("%d\n\n",getMicroseconds() - first);
-
-	pthread_mutex_unlock(&opened_file->write_mutex);
-	return buff_size;
-}
-*/
 static int fuselage_create(const char *fullpath, mode_t mode, struct fuse_file_info *fi)
 {
-	fat32_mk(fullpath,ARCHIVE_ATTR);
-	return 0;
-
+	return fat32_mk(fullpath,ARCHIVE_ATTR);
 }
 
 static int fuselage_mkdir(const char *fullpath, mode_t mode)

@@ -45,5 +45,9 @@ uint32_t FAT_remove_last_linked_cluster(uint32_t first_cluster_of_chain);
 
 uint32_t FAT_get_next_linked(uint32_t cluster_no);
 
+uint32_t FAT_get_last_linked(uint32_t cluster_no);
+
+uint32_t FAT_isEOC(uint32_t number);
+
 sector_t* FAT_searchSectorByPointer(char* pointer_to_search);
 #endif /* TAD_FAT_H_ */
