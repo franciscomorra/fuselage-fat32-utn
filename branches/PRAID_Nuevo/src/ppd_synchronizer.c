@@ -27,7 +27,7 @@ void* ppd_synchronizer(void *data)
 
 	uint32_t sectors_to_synchronize = ppd_info->sectors_count;
 
-	log_info(raid_log,"MAIN_THREAD","COMIENZO SINCRONIZACION DISCO [ID: %d]",ppd_info->disk_id);
+	log_info(raid_log,"PPD_SYNCHRONIZER","COMIENZO SINCRONIZACION DISCO [ID: %d]",ppd_info->disk_id);
 
 	uint32_t requests_sent = 0, requests_received = 0;
 	char *msg_buf;
@@ -38,8 +38,8 @@ void* ppd_synchronizer(void *data)
 		{
 			ppd_node_t *selected_ppd = PPDQUEUE_selectByLessRequests();
 
-			/*if (SOCKET_canSend(selected_ppd->ppd_fd))
-			{*/
+			if (SOCKET_canSend(selected_ppd->ppd_fd))
+			{
 			//pthread_mutex_lock(&selected_ppd->sock_mutex);
 				msg_buf = malloc(11);
 				*msg_buf = READ_SECTORS;
@@ -56,7 +56,7 @@ void* ppd_synchronizer(void *data)
 				request_addNew(selected_ppd->ppd_fd,ppd_info->ppd_fd,msg_buf);
 				requests_sent++;
 				//free(msg_buf);
-			/*}*/
+			}
 			//pthread_mutex_unlock(&selected_ppd->sock_mutex);
 		}
 
@@ -66,8 +66,6 @@ void* ppd_synchronizer(void *data)
 		{
 			if (readable_bytes >= 523)
 			{
-
-
 				msg_buf = malloc(523);
 				received = recv(ppd_info->ppd_fd,msg_buf,523, MSG_WAITALL);
 
@@ -87,7 +85,7 @@ void* ppd_synchronizer(void *data)
 		}
 
 	}
-	log_info(raid_log,"MAIN_THREAD","FIN SINCRONIZACION DISCO [ID: %d]",ppd_info->disk_id);
+	log_info(raid_log,"PPD_SYNCHRONIZER","FIN SINCRONIZACION DISCO [ID: %d]",ppd_info->disk_id);
 	return sync_result;
 }
 

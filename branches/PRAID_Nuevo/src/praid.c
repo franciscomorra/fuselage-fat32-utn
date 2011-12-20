@@ -38,7 +38,7 @@ uint32_t ppd_handshake(uint32_t ppd_fd,uint32_t *disk_id,uint32_t *disk_sectors)
 
 int main(int argc,char **argv)
 {
-	raid_log = log_create("PRAID","PRAID.log",OFF,M_CONSOLE_DISABLE);
+	raid_log = log_create("PRAID","PRAID.log",INFO,M_CONSOLE_DISABLE);
 	log_info(raid_log,"MAIN_THREAD","INICIO RAID");
 	QUEUE_initialize(&PFS_QUEUE);
 	QUEUE_initialize(&PPD_QUEUE);
@@ -59,7 +59,7 @@ int main(int argc,char **argv)
 
 	socketInet_t listenPFS = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",9034,MODE_LISTEN);
 	sleep(1);//Porque el sleep?
-	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,"192.168.1.111",9035,MODE_LISTEN);
+	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,"192.168.2.117",9035,MODE_LISTEN);
 
 	// Escuchar Sockets (select)
 
@@ -141,7 +141,7 @@ int main(int argc,char **argv)
 							{
 								send(ppd->ppd_fd,msg_in,msg_len+3,MSG_WAITALL);
 								ppd->requests_count++;
-								log_info(raid_log,"MAIN_THREAD","PEDIDO DE ESCRITURA SECTOR %d ENVIADO AL DISCO %d",sector,ppd->disk_id);
+								//log_info(raid_log,"MAIN_THREAD","PEDIDO DE ESCRITURA SECTOR %d ENVIADO AL DISCO %d",sector,ppd->disk_id);
 							}
 							ppd_node = ppd_node->next;
 						}
