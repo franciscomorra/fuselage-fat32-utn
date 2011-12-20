@@ -119,8 +119,6 @@ char* ppd_read_sectors(uint32_t* sectors_array, size_t sectors_array_len)
 				requests_sent++;
 			}
 
-
-
 		int32_t readable_bytes = 0;
 
 		if (ioctl(ppd_socket->descriptor,FIONREAD,&readable_bytes) == 0)

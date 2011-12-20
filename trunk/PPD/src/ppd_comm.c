@@ -78,30 +78,22 @@ uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 		default:{ // puede ser tanto de lectura, escritura o de tipo trace
 			request_t* request = TRANSLATE_fromCharToRequest(msgIn,fd);
 			//assert(request->ID==0);
-			if(*((uint32_t*) (msgIn+3)) != 0)
-			{
-				uint32_t breadk = 0;
-			}
-			char* msgType = COMMON_getTypeByFlag(request->type);
 
 			sem_wait(&queueAvailableMutex);
-
-			pthread_mutex_lock(&Log->mutex);
-			sem_wait(&queueMutex);
 			if(Log->log_levels == INFO){
+				pthread_mutex_lock(&Log->mutex);
+				char* msgType = COMMON_getTypeByFlag(request->type);
 				log_writeHeaderWithoutMutex(Log,"Principal",Log->log_levels);
 				fprintf(Log->file,"Ingreso de pedido de sector: (%d:%d:%d) de tipo: %s\n\n",request->CHS->cylinder,request->CHS->head,request->CHS->sector,msgType);
+				free(msgType);
+				pthread_mutex_unlock(&Log->mutex);
 			}
-			sem_post(&multiQueue->queueElemSem);
+
+			sem_wait(&queueMutex);
 			queue_t* queue = QMANAGER_selectPassiveQueue(multiQueue);
 			QUEUE_appendNode(queue,request);
+			sem_post(&multiQueue->queueElemSem);
 			sem_post(&queueMutex);
-			pthread_mutex_unlock(&Log->mutex);
-
-
-			free(msgType);
-
-
 			break;
 		}
 	}

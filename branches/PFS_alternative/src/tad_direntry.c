@@ -60,11 +60,11 @@ queue_t DIRTABLE_interpretFromCluster(cluster_t cluster)
 
 	}
 
-	while (*((char*) lfn_entry) != 0x00) //Mientras el primer byte de cada 32 bytes que voy recorriendo sea distinto de 0x00 quiere decir que hay una LFN o una DIRENTRY
+	while (*((char*) lfn_entry) != '\x00') //Mientras el primer byte de cada 32 bytes que voy recorriendo sea distinto de 0x00 quiere decir que hay una LFN o una DIRENTRY
 	{
 		//Borrado : number = 37
 
-		if (*((char*) lfn_entry) != 0xE5)				//Si es la ultima LFN del archivo y no esta eliminada (Saltea tambien la DIRENTRY ya que las marca igual que las LFN eliminadas)
+		if (*((char*) lfn_entry) != '\xE5')
 		{
 			if (lfn_entry->sequence_no.number == 1 && lfn_entry->sequence_no.deleted == false)				//Si es la ultima LFN del archivo y no esta eliminada (Saltea tambien la DIRENTRY ya que las marca igual que las LFN eliminadas)
 			{
@@ -248,4 +248,18 @@ void DIRENTRY_setDosName(dirEntry_t *entry,char* filename)
 		entry->dos_name[7] = '1';
 	}
 	return;
+}
+
+time_t DIRENTRY_convertDateTime(date_bytes date,time_bytes time)
+{
+	struct tm timedate;
+	timedate.tm_min = time.minutes;
+	timedate.tm_sec = time.seconds;
+	timedate.tm_hour = time.hours;
+
+	timedate.tm_mon = date.month-1;
+	timedate.tm_mday = date.day;
+	timedate.tm_year = (date.year + 1980) - 1900;
+
+	return mktime(&timedate);
 }
