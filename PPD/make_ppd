@@ -1,0 +1,2 @@
+#!/bin/bash
+gcc -lpthread -licui18n -lCommons -L"../Commons/Debug" -I"./include" -I"../Commons/include" src/ppd_comm.c src/ppd_common.c src/ppd_FSCAN.c src/ppd_io_map.c src/ppd_pfsList.c src/ppd_qManager.c src/ppd_SSTF.c src/ppd_taker.c src/ppd_translate.c src/ppd.c -o PPD
