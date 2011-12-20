@@ -41,6 +41,7 @@ int32_t file_descriptor;
 uint32_t TracePosition;
 uint32_t ReadTime;
 uint32_t WriteTime;
+uint32_t Exit;
 flag_t Algorithm;
 multiQueue_t* multiQueue;
 sem_t queueMutex;
@@ -63,7 +64,7 @@ int main(int argc, char *argv[])
 	uint32_t currFD;					//current fd sirve para saber que fd tuvo cambios
 	uint32_t port;
 	uint32_t diskID;
-	uint32_t exit = 0;
+	Exit = 0;
 	char* IP;
 	char* sockUnixPath;
 	char* diskFilePath;
@@ -113,19 +114,12 @@ int main(int argc, char *argv[])
 			printf("Código de Error:%d Descripción: Falló función fork(). %s\n",errno,strerror(errno));
 		}
 
-	if(logFlag == OFF){
-			Log = malloc(sizeof(t_log));
-			pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-			Log->mutex = mutex;
-			Log->file =  NULL;
-	}
-	else{
 		Log = log_create("PPD",logPath,logFlag,M_CONSOLE_DISABLE);
 		if(Log == NULL){
 			printf("Error: Falló al crear archivo Log.\n");
 			return 1;
 		}
-	}
+
 
 	multiQueue->queue1 = malloc(sizeof(queue_t));
 	QUEUE_initialize(multiQueue->queue1);
@@ -246,7 +240,7 @@ int main(int argc, char *argv[])
 
 					if (result > 0)
 					{
-						exit = COMM_handleReceive(msg_buf,currFD);
+						Exit = COMM_handleReceive(msg_buf,currFD);
 						free(msg_buf);
 					}
 					else
@@ -258,7 +252,7 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
-		if(exit == 1){
+		if(Exit == 1){
 			break;
 		}
 	}

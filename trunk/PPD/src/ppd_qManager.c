@@ -52,12 +52,12 @@ conditionFunction_t QMANAGER_selectCondition(flag_t direction){
 
 uint32_t QMANAGER_toggleQFlag(flag_t* flag,queue_t* queue){
 	if(queue->begin == NULL){
-		//sem_wait(&queueMutex);
+		sem_wait(&queueMutex);
 		if(*flag == QUEUE1_ACTIVE)
 			*flag = QUEUE2_ACTIVE;
 		else
 			*flag = QUEUE1_ACTIVE;
-		//sem_post(&queueMutex);
+		sem_post(&queueMutex);
 		return 1;
 	} else
 		return 0;
