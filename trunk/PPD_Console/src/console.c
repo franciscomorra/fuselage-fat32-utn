@@ -37,13 +37,14 @@ int main (int argc, char *argv[]) {
 
 /*
 	*Head = 1;
-	*Sector = 512;
+	*Sector = 1024;
 	socketUnix_t ppd_socket = SOCKET_unix_create(SOCK_STREAM,"/home/utn_so/CONSOLE_socket",MODE_CONNECT);		//se coneccta al proceso PPD
 		printf("Connected.\n");
 */
-		printf("Ingrese un Comando\n");
-		if (fgets(input,CANTMAX,stdin) == 0 )
-			printf("error fgets\n");
+
+	printf("Ingrese un Comando\n");
+	if (fgets(input,CANTMAX,stdin) == 0 )
+	printf("error fgets\n");
 
 	CONSOLE_getCommand(input,command,&parameters,&len);
 
@@ -83,7 +84,8 @@ int main (int argc, char *argv[]) {
 		if (fgets(input,CANTMAX,stdin) == 0 )				//se ingresa el proximo comando
 			printf("error fgets\n");
 
-		CONSOLE_getCommand(input,command,&parameters,&len);
+		if(strcmp(input,"\n") == 1)
+			CONSOLE_getCommand(input,command,&parameters,&len);
 	}
 
 	char* exitMsg = malloc(sizeof(char)*3);
