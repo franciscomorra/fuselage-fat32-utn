@@ -46,7 +46,8 @@ int main (int argc, char *argv[]) {
 	if (fgets(input,CANTMAX,stdin) == 0 )
 	printf("error fgets\n");
 
-	CONSOLE_getCommand(input,command,&parameters,&len);
+	if(strcmp(input,"\n") == 1)
+		CONSOLE_getCommand(input,command,&parameters,&len);
 
 	while(1){
 
