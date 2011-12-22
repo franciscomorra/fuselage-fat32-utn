@@ -121,9 +121,9 @@ int main(int argc,char **argv)
 				else //DATOS DEL PFS
 				{
 					char *msg_in = malloc(3);
-					uint32_t recv = recv(currFD,msg_in,3,MSG_WAITALL)
+					uint32_t recvd = recv(currFD,msg_in,3,MSG_WAITALL);
 
-				if (recv > 0)
+				if (recvd > 0)
 				{
 					uint16_t msg_len = *((uint16_t*)(msg_in+1));
 					msg_in = realloc(msg_in,msg_len+3);
@@ -161,8 +161,8 @@ int main(int argc,char **argv)
 				}
 				else
 				{
-					FD_CLEAR(currFD,&PFS_FDs);
-					FD_CLEAR(currFD,&masterFDs);
+					FD_CLR(currFD,&PFS_FDs);
+					FD_CLR(currFD,&masterFDs);
 				}
 
 
