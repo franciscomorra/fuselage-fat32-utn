@@ -121,7 +121,10 @@ int main(int argc,char **argv)
 				else //DATOS DEL PFS
 				{
 					char *msg_in = malloc(3);
-					recv(currFD,msg_in,3,MSG_WAITALL);
+					uint32_t recv = recv(currFD,msg_in,3,MSG_WAITALL)
+
+				if (recv > 0)
+				{
 					uint16_t msg_len = *((uint16_t*)(msg_in+1));
 					msg_in = realloc(msg_in,msg_len+3);
 					recv(currFD,msg_in+3,msg_len,MSG_WAITALL);
@@ -155,9 +158,12 @@ int main(int argc,char **argv)
 						send(selected_ppd->ppd_fd,msg_in,msg_len+3,MSG_WAITALL);
 						log_info(raid_log,"MAIN_THREAD","PEDIDO DE LECTURA SECTOR %d ENVIADO AL DISCO %d",sector,selected_ppd->disk_id);
 					}
-
-
-
+				}
+				else
+				{
+					FD_CLEAR(currFD,&PFS_FDs);
+					FD_CLEAR(currFD,&masterFDs);
+				}
 
 
 				}
