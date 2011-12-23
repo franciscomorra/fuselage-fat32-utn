@@ -24,5 +24,6 @@ pthread_mutex_t* PFSQUEUE_getMutex(uint32_t pfs_fd);
 
 void PFSQUEUE_addNew(uint32_t pfs_fd);
 
+void PFSQUEUE_removeAll();
 
 #endif /* PFS_QUEUE_H_ */
