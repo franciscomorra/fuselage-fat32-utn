@@ -95,10 +95,17 @@ void* ppd_thread(void *data)
 						request_t *request = request_take(request_id,sector);
 					pthread_mutex_unlock(&REQUEST_QUEUE_MUTEX);
 
-					pthread_mutex_t *pfs_mutex = PFSQUEUE_getMutex(request->pfs_fd);
-					pthread_mutex_lock(pfs_mutex);
-					send(request->pfs_fd,request_received,523,MSG_WAITALL);
-					pthread_mutex_unlock(pfs_mutex);
+					if (PPD_COUNT > 1)
+					{
+						pthread_mutex_t *pfs_mutex = PFSQUEUE_getMutex(request->pfs_fd);
+						pthread_mutex_lock(pfs_mutex);
+						send(request->pfs_fd,request_received,523,MSG_WAITALL);
+						pthread_mutex_unlock(pfs_mutex);
+					}
+					else
+					{
+						send(request->pfs_fd,request_received,523,MSG_WAITALL);
+					}
 					request_free(request);
 				}
 
@@ -111,6 +118,7 @@ void* ppd_thread(void *data)
 			log_info(raid_log,"MAIN_THREAD","DESCONEXION DISCO [ID: %d]",disk_id);
 			pthread_mutex_lock(&PPD_QUEUE_MUTEX);
 			PPDQUEUE_removePPD(disk_id);
+			PPD_COUNT--;
 			pthread_mutex_unlock(&PPD_QUEUE_MUTEX);
 			replan_requests(ppd_info->ppd_fd);
 			pthread_exit(NULL);
