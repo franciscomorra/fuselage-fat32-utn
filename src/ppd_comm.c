@@ -80,15 +80,7 @@ uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 			//assert(request->ID==0);
 
 			sem_wait(&queueAvailableMutex);
-
-			sem_wait(&queueMutex);
-			queue_t* queue = QMANAGER_selectPassiveQueue(multiQueue);
-			QUEUE_appendNode(queue,request);
-			sem_post(&multiQueue->queueElemSem);
-			sem_post(&queueMutex);
-
-			if(Log->log_levels == INFO)
-			{
+			if(Log->log_levels == INFO){
 				pthread_mutex_lock(&Log->mutex);
 				char* msgType = COMMON_getTypeByFlag(request->type);
 				log_writeHeaderWithoutMutex(Log,"Principal",Log->log_levels);
@@ -97,9 +89,11 @@ uint32_t COMM_handleReceive(char* msgIn,uint32_t fd) {
 				pthread_mutex_unlock(&Log->mutex);
 			}
 
-
-
-
+			sem_wait(&queueMutex);
+			queue_t* queue = QMANAGER_selectPassiveQueue(multiQueue);
+			QUEUE_appendNode(queue,request);
+			sem_post(&multiQueue->queueElemSem);
+			sem_post(&queueMutex);
 			break;
 		}
 	}

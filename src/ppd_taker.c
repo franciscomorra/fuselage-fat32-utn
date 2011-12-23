@@ -25,15 +25,13 @@ extern uint32_t bytes_perSector;
 extern uint32_t TrackJumpTime;
 extern uint32_t TracePosition;
 extern uint32_t SectorJumpTime;
-extern uint32_t Exit;
-extern flag_t Algorithm;
 extern multiQueue_t* multiQueue;
 extern uint32_t HeadPosition;
 extern sem_t queueAvailableMutex;
-extern sem_t queueMutex;
 t_log* Log;
 //extern sem_t mainMutex;
 //extern queue_t pfsList;
+//extern sem_t queueMutex;
 //extern uint32_t file_descriptor;
 
 
@@ -42,7 +40,7 @@ t_log* Log;
 void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 {
 	fd_set writeFDs;
-	while(Exit != 1){
+	while(1){
 		sem_wait(&multiQueue->queueElemSem);
 
 		TracePosition = HeadPosition;
@@ -50,13 +48,8 @@ void* TAKER_main(uint32_t(*getNext)(queue_t*,queueNode_t**,uint32_t))
 		queueNode_t* prevCandidate = NULL;
 
 		queue_t* queue = QMANAGER_selectActiveQueue(multiQueue);
-
-		if(Algorithm == SSTF)
-			sem_wait(&queueMutex);
 		uint32_t delay = getNext(queue,&prevCandidate,HeadPosition);
 		request = TAKER_takeRequest(queue,prevCandidate,&delay);
-		if(Algorithm == SSTF)
-			sem_post(&queueMutex);
 
 		char* msg = TAKER_handleRequest(queue,request,delay,getNext,prevCandidate);
 /*

@@ -1,2 +1,0 @@
-#!/bin/bash
-gcc -lpthread -licui18n -lCommons -L"../Commons" -I"./include" -I"../Commons/include" src/console.c src/ppdConsole_Command.c src/ppdConsole_input.c -o PPD_Console
