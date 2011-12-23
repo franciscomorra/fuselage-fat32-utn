@@ -163,6 +163,7 @@ int main(int argc,char **argv)
 				{
 					FD_CLR(currFD,&PFS_FDs);
 					FD_CLR(currFD,&masterFDs);
+					//remover de la PFS LIST
 				}
 
 
