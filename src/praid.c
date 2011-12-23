@@ -20,6 +20,7 @@
 #include "ppd_queue.h"
 #include "ppd_thread.h"
 #include "request_handler.h"
+#include "config_manager.h"
 #include "nipc.h"
 
 pthread_mutex_t PPD_SYNCHRONIZING_MUTEX;
@@ -30,7 +31,7 @@ extern queue_t PPD_QUEUE;
 extern queue_t PFS_QUEUE;
 extern queue_t REQUEST_QUEUE;
 extern uint32_t PPD_COUNT;
-
+config_param *config;
 t_log *raid_log;
 
 uint32_t pfs_handshake(uint32_t pfs_fd);
@@ -38,7 +39,17 @@ uint32_t ppd_handshake(uint32_t ppd_fd,uint32_t *disk_id,uint32_t *disk_sectors)
 
 int main(int argc,char **argv)
 {
-	raid_log = log_create("PRAID","PRAID.log",INFO,M_CONSOLE_DISABLE);
+	if (CONFIG_read("config/praid.config",&config) != 1)
+	{
+		printf("\nNo se encuentra o no es posible leer el archivo ./config/praid.config");
+		exit(0);
+	}
+
+	uint32_t pfs_port = CONFIG_getValue(config,"PFS_PORT");
+	uint32_t ppd_port = CONFIG_getValue(config,"PPD_PORT");
+	uint32_t console_flag = strcmp(CONFIG_getValue(config,"CONSOLE"),"ON") == 0 ? 2 : 1;
+
+	raid_log = log_create("PRAID","PRAID.log",(console_flag == M_CONSOLE_ENABLE ? INFO : NULL),console_flag);
 	log_info(raid_log,"MAIN_THREAD","INICIO RAID");
 	QUEUE_initialize(&PFS_QUEUE);
 	QUEUE_initialize(&PPD_QUEUE);
