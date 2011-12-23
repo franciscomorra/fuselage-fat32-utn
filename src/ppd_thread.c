@@ -24,6 +24,7 @@ extern pthread_mutex_t PPD_SYNCHRONIZING_MUTEX;
 extern pthread_mutex_t PPD_QUEUE_MUTEX;
 extern pthread_mutex_t REQUEST_QUEUE_MUTEX;
 extern queue_t REQUEST_QUEUE;
+extern uint32_t PPD_COUNT;
 extern t_log *raid_log;
 void replan_requests(uint32_t ppd_fd);
 

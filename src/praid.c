@@ -49,7 +49,7 @@ int main(int argc,char **argv)
 	uint32_t ppd_port = CONFIG_getValue(config,"PPD_PORT");
 	uint32_t console_flag = strcmp(CONFIG_getValue(config,"CONSOLE"),"ON") == 0 ? 2 : 1;
 
-	raid_log = log_create("PRAID","PRAID.log",(console_flag == M_CONSOLE_ENABLE ? INFO : NULL),console_flag);
+	raid_log = log_create("PRAID","PRAID.log",(console_flag == M_CONSOLE_ENABLE ? INFO : OFF),console_flag);
 	log_info(raid_log,"MAIN_THREAD","INICIO RAID");
 	QUEUE_initialize(&PFS_QUEUE);
 	QUEUE_initialize(&PPD_QUEUE);
@@ -68,9 +68,9 @@ int main(int argc,char **argv)
 	FD_ZERO(&PPD_FDs);
 	FD_ZERO(&PFS_FDs);
 
-	socketInet_t listenPFS = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",9034,MODE_LISTEN);
+	socketInet_t listenPFS = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",pfs_port,MODE_LISTEN);
 	sleep(1);//Porque el sleep?
-	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,"192.168.2.117",9035,MODE_LISTEN);
+	socketInet_t listenPPD = SOCKET_inet_create(SOCK_STREAM,"127.0.0.1",ppd_port,MODE_LISTEN);
 
 	// Escuchar Sockets (select)
 
