@@ -45,8 +45,8 @@ int main(int argc,char **argv)
 		exit(0);
 	}
 
-	uint32_t pfs_port = CONFIG_getValue(config,"PFS_PORT");
-	uint32_t ppd_port = CONFIG_getValue(config,"PPD_PORT");
+	uint32_t pfs_port = atoi(CONFIG_getValue(config,"PFS_PORT"));
+	uint32_t ppd_port = atoi(CONFIG_getValue(config,"PPD_PORT"));
 	uint32_t console_flag = strcmp(CONFIG_getValue(config,"CONSOLE"),"ON") == 0 ? 2 : 1;
 
 	raid_log = log_create("PRAID","PRAID.log",(console_flag == M_CONSOLE_ENABLE ? INFO : OFF),console_flag);
