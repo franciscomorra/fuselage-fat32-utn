@@ -95,7 +95,10 @@ void* ppd_thread(void *data)
 						request_t *request = request_take(request_id,sector);
 					pthread_mutex_unlock(&REQUEST_QUEUE_MUTEX);
 
+					pthread_mutex_t *pfs_mutex = PFSQUEUE_getMutex(request->pfs_fd);
+					pthread_mutex_lock(pfs_mutex);
 					send(request->pfs_fd,request_received,523,MSG_WAITALL);
+					pthread_mutex_unlock(pfs_mutex);
 					request_free(request);
 				}
 
