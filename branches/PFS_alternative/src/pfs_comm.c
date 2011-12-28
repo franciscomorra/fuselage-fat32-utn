@@ -30,6 +30,7 @@
 bootSector_t boot_sector;
 socketPool_t sockets_toPPD;
 uint32_t request_id = 1;
+pthread_mutex_t sockPool_mutex;
 
 uint32_t ppd_read_boot_sector()
 {
@@ -84,11 +85,11 @@ char* ppd_read_sectors(uint32_t* sectors_array, size_t sectors_array_len)
 {
 	/* BUSQUEDA DE UN SOCKET LIBRE */
 	sem_wait(&sockets_toPPD.free_sockets);
+
+	pthread_mutex_lock(&sockPool_mutex);
 	socketInet_t *ppd_socket = ppd_get_free_socket();
-
-	pthread_mutex_lock(&ppd_socket->sock_mutex);
 	ppd_socket->status = SOCK_NOTFREE;
-
+	pthread_mutex_unlock(&sockPool_mutex);
 	/* FIN BUSQUEDA DE SOCKET LIBRE */
 
 	size_t responses_received = 0,requests_sent = 0;
@@ -151,10 +152,10 @@ char* ppd_read_sectors(uint32_t* sectors_array, size_t sectors_array_len)
 	//printf("%d\n",getMicroseconds()-time1);
 		//fflush(stdout);
 	ppd_socket->status = SOCK_FREE;
-	pthread_mutex_unlock(&ppd_socket->sock_mutex);
+	//pthread_mutex_unlock(&ppd_socket->sock_mutex);
 	sem_post(&sockets_toPPD.free_sockets);
 
-		char *final_buffer = ppd_reconstruct_data_from_responses(buffer,sectors_array,sectors_array_len);
+	char *final_buffer = ppd_reconstruct_data_from_responses(buffer,sectors_array,sectors_array_len);
 
 	free(buffer);
 	return final_buffer;
@@ -164,8 +165,10 @@ char* ppd_write_sectors(queue_t sectors_toWrite,size_t sectors_toWrite_len)
 {
 	/* BUSQUEDA DE UN SOCKET LIBRE */
 	sem_wait(&sockets_toPPD.free_sockets);
+	pthread_mutex_lock(&sockPool_mutex);
 	socketInet_t *ppd_socket = ppd_get_free_socket();
-	pthread_mutex_lock(&ppd_socket->sock_mutex);
+	ppd_socket->status = SOCK_NOTFREE;
+	pthread_mutex_unlock(&sockPool_mutex);
 	/* FIN BUSQUEDA DE SOCKET LIBRE */
 
 	size_t responses_received = 0,requests_sent = 0;
@@ -225,7 +228,7 @@ char* ppd_write_sectors(queue_t sectors_toWrite,size_t sectors_toWrite_len)
 	}
 
 	ppd_socket->status = SOCK_FREE;
-	pthread_mutex_unlock(&ppd_socket->sock_mutex);
+	//pthread_mutex_unlock(&ppd_socket->sock_mutex);
 	sem_post(&sockets_toPPD.free_sockets);
 
 
