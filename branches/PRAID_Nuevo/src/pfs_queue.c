@@ -45,5 +45,6 @@ void* PFSQUEUE_removeAll()
 		free(pfs_node);
 		pfs_node = aux;
 	}
+	PFS_QUEUE.begin = PFS_QUEUE.end = NULL;
 	return NULL;
 }

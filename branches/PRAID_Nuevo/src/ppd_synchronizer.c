@@ -27,7 +27,7 @@ void* ppd_synchronizer(void *data)
 
 	uint32_t sectors_to_synchronize = ppd_info->sectors_count;
 
-	log_info(raid_log,"PPD_SYNCHRONIZER","COMIENZO SINCRONIZACION DISCO [ID: %d]",ppd_info->disk_id);
+
 
 	uint32_t requests_sent = 0, requests_received = 0;
 	char *msg_buf;
@@ -85,7 +85,7 @@ void* ppd_synchronizer(void *data)
 		}
 
 	}
-	log_info(raid_log,"PPD_SYNCHRONIZER","FIN SINCRONIZACION DISCO [ID: %d]",ppd_info->disk_id);
+
 	return sync_result;
 }
 
