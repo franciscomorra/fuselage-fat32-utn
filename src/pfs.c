@@ -29,8 +29,8 @@ char *mount_point;
 extern socketPool_t sockets_toPPD;
 config_param *config_param_list;
 extern uint32_t cache_size_inBytes;
-
 extern bootSector_t boot_sector;
+
 fat_table_t fat;
 t_log *log_file;
 
@@ -52,8 +52,12 @@ void* cache_dump()
 	while (current_opened_file_node != NULL)
 	{
 		opened_file_t *current_opened_file = (opened_file_t*) current_opened_file_node->data;
+		time_t timestamp = time(NULL);
+		char formatted_time[200];
+		struct tm *time_struct = localtime(&timestamp);
+		strftime(formatted_time, sizeof(formatted_time),"%d-%m-%Y %H:%M:%S", time_struct);
 		fprintf(cache_file,"-------------------------------------\n");
-		fprintf(cache_file,"Timestamp:\n");
+		fprintf(cache_file,"Timestamp: %s\n",formatted_time);
 		fprintf(cache_file,"Tamano de Bloque de Cache: %d Kb\n",(current_opened_file->cache_size)/1024);
 		fprintf(cache_file,"Cantidad de Bloques de Cache: %d\n\n",QUEUE_length(&(current_opened_file->cache)));
 
@@ -128,7 +132,24 @@ void* console_main(char* mount_point)
 				printf("\n#Clusters:\n");
 				queue_t cluster_list = FAT_get_linked_clusters(DIRENTRY_getClusterNumber(&fileentry->dir_entry));
 
-				uint32_t cluster_index;
+				uint32_t cluster_number = DIRENTRY_getClusterNumber(&fileentry->dir_entry);
+				printf("%d, ",cluster_number);
+				uint32_t cluster_count = 0;
+				for (;cluster_count < 19;cluster_count++)
+				{
+					cluster_number = FAT_get_next_linked(cluster_number);
+					if (FAT_isEOC(cluster_number))
+					{
+						break;
+					}
+					else
+					{
+						printf("%d, ",cluster_number);
+					}
+				}
+				printf("\n");
+
+				/*uint32_t cluster_index;
 				queueNode_t* cur_node;
 
 				while ((cur_node = QUEUE_takeNode(&cluster_list)) != NULL)
@@ -148,7 +169,7 @@ void* console_main(char* mount_point)
 					}
 					cluster_index++;
 				}
-				FILE_free(fileentry);
+				FILE_free(fileentry);*/
 			}
 			else
 			{
@@ -190,8 +211,6 @@ void* console_main(char* mount_point)
 
 int main(int argc, char *argv[])
 {
-
-
 	CONFIG_read("/home/utn_so/Desarrollo/Workspace/PFS/config/pfs.config",&config_param_list);
 
 	char* ip = CONFIG_getValue(config_param_list,"IP");
@@ -210,10 +229,10 @@ int main(int argc, char *argv[])
 	signal(SIGINT,finish_him);
 	signal(SIGTERM,finish_him);
 	signal(SIGUSR1,cache_dump);
+	signal(SIGPIPE,finish_him);
 
+	log_file = log_create("PFS","pfs.log",INFO,M_CONSOLE_DISABLE);
 
-	log_file = log_create("PFS","pfs.log",DEBUG,M_CONSOLE_DISABLE);
-	log_debug(log_file,"PFS","Inicio PFS");
 
 	//boot_sector.bytes_perSector = 512; //Habra que hacer alguna funcion especial para leer solo el boot_sector;
 
@@ -230,7 +249,6 @@ int main(int argc, char *argv[])
 	strncpy(mount_point,argv[argc-1],strlen(argv[argc-1]));
 
 	fuse_main(argc,argv, &fuselage_oper,NULL);
-
 
 	return 0;
 }
@@ -299,6 +317,27 @@ static int fuselage_open(const char *path, struct fuse_file_info *fi)
 {
 	opened_file_t *opened_file = OFILE_get(path);
 	opened_file->open_count++;
+
+	uint32_t cluster_number = DIRENTRY_getClusterNumber(&opened_file->file_entry.dir_entry);
+
+	char *clusters = malloc(20);
+	char *aux = malloc(20);
+	memset(clusters,'\0',20);
+	memset(aux,'\0',20);
+
+	sprintf(aux,"%d ",cluster_number);
+	strcat(clusters,aux);
+
+	while (FAT_isEOC(cluster_number = FAT_get_next_linked(cluster_number)) == false)
+	{
+		sprintf(aux,"%d ",cluster_number);
+		strcat(clusters,aux);
+	}
+
+	log_info(log_file,"PFS","\nARCHIVO ABIERTO: %s\nCLUSTERS ASOCIADOS: %s",path,clusters);
+	free(aux);
+	free(clusters);
+
 	return 0;
 }
 
@@ -320,7 +359,6 @@ static int fuselage_read(const char *path, char *file_buf, size_t bytes_to_read,
 	uint32_t cluster_count = 0;
 
 	char* tmp_buf = malloc(clusters_to_read*bytes_perCluster);
-
 
 	for (;cluster_count < clusters_to_skip;cluster_count++)
 	{
