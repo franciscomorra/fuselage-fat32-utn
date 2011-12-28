@@ -34,13 +34,10 @@ void standby();
 
 void* ppd_thread(void *data)
 {
-
 	ppd_node_t *ppd_info = (ppd_node_t*) data;
 	//ppd_info->status = READY;
-
 	if (ppd_info->status == WAIT_SYNCH)
 	{
-
 		pthread_mutex_lock(&PPD_SYNCHRONIZING_MUTEX);
 			ppd_info->status = SYNCHRONIZING;
 			pthread_t sync_thread_id;
@@ -85,8 +82,8 @@ void* ppd_thread(void *data)
 					pthread_mutex_lock(&REQUEST_QUEUE_MUTEX);
 						request_t *request = request_search(request_id,sector);
 						request->write_count--;
-						pthread_mutex_unlock(&REQUEST_QUEUE_MUTEX);
-					//TODO VER ERROR ACA DE PORQUE NO ENVIA LA RESPUESTA
+					pthread_mutex_unlock(&REQUEST_QUEUE_MUTEX);
+
 					if (request->write_count == 0)
 					{
 						request = request_take(request_id,sector);
