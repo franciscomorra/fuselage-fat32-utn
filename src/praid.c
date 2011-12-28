@@ -33,6 +33,7 @@ extern queue_t REQUEST_QUEUE;
 extern uint32_t PPD_COUNT;
 config_param *config;
 t_log *raid_log;
+fd_set masterFDs, readFDs , PPD_FDs ,PFS_FDs;
 
 uint32_t pfs_handshake(uint32_t pfs_fd);
 uint32_t ppd_handshake(uint32_t ppd_fd,uint32_t *disk_id,uint32_t *disk_sectors);
@@ -60,7 +61,7 @@ int main(int argc,char **argv)
 	pthread_mutex_init(&PPD_SYNCHRONIZING_MUTEX,NULL);
 	pthread_mutex_init(&REQUEST_QUEUE_MUTEX,NULL);
 
-	fd_set masterFDs, readFDs , PPD_FDs ,PFS_FDs;
+
 	uint32_t currFD;
 	struct sockaddr_in remoteaddr;
 
@@ -123,16 +124,22 @@ int main(int argc,char **argv)
 						uint32_t newdisk_id = 0, newdisk_sectors = 0;
 						if (ppd_handshake(newPPD_FD,&newdisk_id,&newdisk_sectors))
 						{
+
 							log_info(raid_log,"MAIN_THREAD","CONEXION NUEVO DISCO [ID: %d]",newdisk_id);
+							log_info(raid_log,"PPD_THREAD","ESTADO: OPERATIVO");
 							ppd_node_t *new_ppd = PPDQUEUE_addNewPPD(newPPD_FD,newdisk_id,newdisk_sectors);
 							pthread_create(&new_ppd->thread_id,NULL,ppd_thread,(void*) new_ppd);
+						}
+						else
+						{
+							log_info(raid_log,"MAIN_THREAD","ERROR DE CONEXION DE DISCO - ID REPETIDO: %d",newdisk_id);
 						}
 					}
 				}
 				else //DATOS DEL PFS
 				{
 					char *msg_in = malloc(3);
-					uint32_t recvd = recv(currFD,msg_in,3,MSG_WAITALL);
+					int32_t recvd = recv(currFD,msg_in,3,MSG_WAITALL);
 
 				if (recvd > 0)
 				{
@@ -155,7 +162,7 @@ int main(int argc,char **argv)
 							{
 								send(ppd->ppd_fd,msg_in,msg_len+3,MSG_WAITALL);
 								ppd->requests_count++;
-								//log_info(raid_log,"MAIN_THREAD","PEDIDO DE ESCRITURA SECTOR %d ENVIADO AL DISCO %d",sector,ppd->disk_id);
+								log_info(raid_log,"MAIN_THREAD","PEDIDO DE ESCRITURA SECTOR %d ENVIADO AL DISCO %d",sector,ppd->disk_id);
 							}
 							ppd_node = ppd_node->next;
 						}
@@ -174,7 +181,8 @@ int main(int argc,char **argv)
 				{
 					FD_CLR(currFD,&PFS_FDs);
 					FD_CLR(currFD,&masterFDs);
-					//remover de la PFS LIST
+					PFSQUEUE_removeAll();
+					////remover de la PFS LIST
 				}
 
 
