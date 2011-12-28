@@ -1,2 +1,2 @@
 #!/bin/bash
-gcc -L"../Commons/Debug" -I"./include" -I"../Commons/include" -lpthread -licui18n -lCommons "src/pfs_queue.c" "src/ppd_queue.c" "src/ppd_synchronizer.c" "src/ppd_thread.c" "src/praid.c" "src/request_handler.c" -o PRAID
+gcc -L"../Commons" -I"./include" -I"../Commons/include" -lpthread -licui18n -lCommons "src/pfs_queue.c" "src/ppd_queue.c" "src/ppd_synchronizer.c" "src/ppd_thread.c" "src/praid.c" "src/request_handler.c" -o PRAID
