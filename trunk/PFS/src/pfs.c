@@ -320,23 +320,18 @@ static int fuselage_open(const char *path, struct fuse_file_info *fi)
 
 	uint32_t cluster_number = DIRENTRY_getClusterNumber(&opened_file->file_entry.dir_entry);
 
-	char *clusters = malloc(20);
-	char *aux = malloc(20);
-	memset(clusters,'\0',20);
-	memset(aux,'\0',20);
+	log_info(log_file,"PFS","\nARCHIVO ABIERTO: %s\nCLUSTERS ASOCIADOS: ",path);
+	FILE *fd = fopen("pfs.log","a");
 
-	sprintf(aux,"%d ",cluster_number);
-	strcat(clusters,aux);
+	fprintf(fd,"%d ",cluster_number);
 
 	while (FAT_isEOC(cluster_number = FAT_get_next_linked(cluster_number)) == false)
 	{
-		sprintf(aux,"%d ",cluster_number);
-		strcat(clusters,aux);
+		fprintf(fd,"%d ",cluster_number);
 	}
 
-	log_info(log_file,"PFS","\nARCHIVO ABIERTO: %s\nCLUSTERS ASOCIADOS: %s",path,clusters);
-	free(aux);
-	free(clusters);
+	fclose(fd);
+
 
 	return 0;
 }
