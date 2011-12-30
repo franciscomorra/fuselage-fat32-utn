@@ -87,7 +87,7 @@ queue_t FAT_get_free_clusters()
 uint32_t FAT_get_next_free_cluster()
 {
 	pthread_mutex_lock(&fat.mutex);
-	uint32_t free_cluster_number = 2;
+
 	uint32_t *casted_table = (uint32_t*) fat.table;
 	uint32_t cluster_no = 2;
 
