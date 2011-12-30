@@ -85,7 +85,6 @@ char* ppd_read_sectors(uint32_t* sectors_array, size_t sectors_array_len)
 {
 	/* BUSQUEDA DE UN SOCKET LIBRE */
 	sem_wait(&sockets_toPPD.free_sockets);
-
 	pthread_mutex_lock(&sockPool_mutex);
 	socketInet_t *ppd_socket = ppd_get_free_socket();
 	ppd_socket->status = SOCK_NOTFREE;
@@ -148,11 +147,8 @@ char* ppd_read_sectors(uint32_t* sectors_array, size_t sectors_array_len)
 	}
 
 
-
-	//printf("%d\n",getMicroseconds()-time1);
-		//fflush(stdout);
 	ppd_socket->status = SOCK_FREE;
-	//pthread_mutex_unlock(&ppd_socket->sock_mutex);
+
 	sem_post(&sockets_toPPD.free_sockets);
 
 	char *final_buffer = ppd_reconstruct_data_from_responses(buffer,sectors_array,sectors_array_len);
@@ -228,10 +224,7 @@ char* ppd_write_sectors(queue_t sectors_toWrite,size_t sectors_toWrite_len)
 	}
 
 	ppd_socket->status = SOCK_FREE;
-	//pthread_mutex_unlock(&ppd_socket->sock_mutex);
 	sem_post(&sockets_toPPD.free_sockets);
-
-
 	return NULL;
 }
 

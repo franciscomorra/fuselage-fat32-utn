@@ -24,8 +24,6 @@
 
 
 
-//cluster_set_t fat32_readClusterChain(uint32_t first_cluster);
-
 void fat32_writeCluster(cluster_t *cluster);
 
 queue_t fat32_readDirectory(const char* path);

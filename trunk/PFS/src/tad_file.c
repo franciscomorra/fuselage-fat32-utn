@@ -38,7 +38,6 @@ void FILE_freeQueue(queue_t* file_queue)
 
 void FILE_splitNameFromPath(const char *path,char **ret_filename,char **ret_path_to_filename)
 {
-
 	char *aux = path + (strlen(path) - 1);
 	uint32_t char_count = 0;
 
@@ -72,7 +71,6 @@ void FILE_splitNameFromPath(const char *path,char **ret_filename,char **ret_path
 
 opened_file_t* OFILE_get(const char* path)
 {
-
 	queueNode_t *opened_file_node = opened_files.begin;
 	while (opened_file_node != NULL)
 	{

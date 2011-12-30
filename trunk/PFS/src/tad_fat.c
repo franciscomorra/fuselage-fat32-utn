@@ -62,26 +62,6 @@ queue_t FAT_get_linked_clusters(uint32_t init_cluster)
 	return cluster_list;
 }
 
-queue_t FAT_get_n_linked_clusters(uint32_t init_cluster,uint32_t linked_clusters_no)
-{
-
-	uint32_t cluster = init_cluster;
-	uint32_t cluster_count = 1;
-	queue_t cluster_list;
-	QUEUE_initialize(&cluster_list);
-	QUEUE_appendNode(&cluster_list,&cluster);
-	cluster = FAT_get_next_linked(cluster);
-
-	while (FAT_isEOC(cluster) == 0 && cluster_count < linked_clusters_no)
-	{
-		cluster = FAT_get_next_linked(cluster);
-		QUEUE_appendNode(&cluster_list,&cluster);
-		cluster_count++;
-	}
-
-	return cluster_list;
-}
-
 queue_t FAT_get_free_clusters()
 {
 	pthread_mutex_lock(&fat.mutex);
