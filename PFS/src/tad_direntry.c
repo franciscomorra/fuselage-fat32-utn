@@ -18,9 +18,6 @@
 #include "utils.h"
 #include <time.h>
 
-//extern bootSector_t boot_sector;
-
-
 uint32_t DIRENTRY_getClusterNumber(dirEntry_t *entry)
 {
 	unsigned char cluster[4] = {entry->high_cluster[1],entry->high_cluster[0],entry->low_cluster[1],entry->low_cluster[0]};
@@ -37,8 +34,6 @@ queue_t DIRTABLE_interpretFromCluster(cluster_t cluster)
 
 	queue_t file_list; //Creo un puntero a la cola
 	QUEUE_initialize(&file_list); //Inicializo la cola
-
-	//queue_t *lfn_entries;
 
 	if (*(cluster.data) == '.') //Si el primer char es '.' entonces no es el directorio raiz y debo agregar las dirEntry_t '.' y '..'
 	{
@@ -62,8 +57,6 @@ queue_t DIRTABLE_interpretFromCluster(cluster_t cluster)
 
 	while (*((char*) lfn_entry) != '\x00') //Mientras el primer byte de cada 32 bytes que voy recorriendo sea distinto de 0x00 quiere decir que hay una LFN o una DIRENTRY
 	{
-		//Borrado : number = 37
-
 		if (*((char*) lfn_entry) != '\xE5')
 		{
 			if (lfn_entry->sequence_no.number == 1 && lfn_entry->sequence_no.deleted == false)				//Si es la ultima LFN del archivo y no esta eliminada (Saltea tambien la DIRENTRY ya que las marca igual que las LFN eliminadas)
@@ -100,7 +93,7 @@ queue_t DIRTABLE_interpretFromCluster(cluster_t cluster)
 					strncpy(new_file->long_file_name+9,((dirEntry_t*) lfn_entry)->dos_extension,3);
 					strncpy(new_file->long_file_name+strlen(new_file->long_file_name),"\0",1);
 				}
-				//strcpy(new_file->long_file_name,((dirEntry_t*) lfn_entry)->dos_name);
+
 				new_file->dir_entry = *((dirEntry_t*) lfn_entry++);
 				new_file->has_lfn = false;
 				QUEUE_appendNode(&file_list,new_file);
@@ -111,84 +104,12 @@ queue_t DIRTABLE_interpretFromCluster(cluster_t cluster)
 		{
 			lfn_entry++;
 		}
-
-
 	}
 
 	return file_list; //Retorno un puntero a la estructura de la cola
 }
 
-/*queue_t DIRENTRY_interpretTableData(cluster_set_t cluster_chain)
-{
-	lfnEntry_t *lfn_entry = (lfnEntry_t*) cluster_chain.data; //Uso este puntero para recorrer el cluster_data de a 32 bytes cada vez que incremento en 1 este puntero
 
-	queue_t file_list; //Creo un puntero a la cola
-	QUEUE_initialize(&file_list); //Inicializo la cola
-
-	queue_t *lfn_entries;
-
-
-	if (*(cluster_chain.data) == '.') //Si el primer char es '.' entonces no es el directorio raiz y debo agregar las dirEntry_t '.' y '..'
-	{
-		fat32file_t *pointFile = malloc(sizeof(fat32file_t));
-		lfn_entries = malloc(sizeof(queue_t));
-		QUEUE_initialize(lfn_entries);
-		pointFile->long_file_name = malloc(1);
-		strcpy(pointFile->long_file_name,".");
-		pointFile->lfn_entries = *lfn_entries;
-
-		pointFile->dir_entry = (dirEntry_t*) lfn_entry++;
-		QUEUE_appendNode(&file_list,pointFile); //Lo agrego a la cola
-
-
-		fat32file_t *pointpointFile = malloc(sizeof(fat32file_t));
-		lfn_entries = malloc(sizeof(queue_t));
-		QUEUE_initialize(lfn_entries);
-		pointpointFile->long_file_name = malloc(2);
-		strcpy(pointpointFile->long_file_name,"..");
-		pointpointFile->lfn_entries = *lfn_entries;
-		pointpointFile->dir_entry = (dirEntry_t*) lfn_entry++;
-		QUEUE_appendNode(&file_list,pointpointFile);
-
-	}
-
-	lfn_entries = malloc(sizeof(queue_t));
-	QUEUE_initialize(lfn_entries);
-
-	while (*((char*) lfn_entry) != 0x00) //Mientras el primer byte de cada 32 bytes que voy recorriendo sea distinto de 0x00 quiere decir que hay una LFN o una DIRENTRY
-	{
-		//Borrado : number = 37
-		if (lfn_entry->sequence_no.number == 1 && lfn_entry->sequence_no.deleted == false)				//Si es la ultima LFN del archivo y no esta eliminada (Saltea tambien la DIRENTRY ya que las marca igual que las LFN eliminadas)
-		{
-			QUEUE_appendNode(lfn_entries,lfn_entry++);
-
-			fat32file_t *new_file = malloc(sizeof(fat32file_t));
-			new_file->dir_entry =  (dirEntry_t*) lfn_entry++;
-			new_file->lfn_entries = *lfn_entries;
-
-			new_file->long_file_name = LFNENTRY_getLFN(new_file->lfn_entries);
-
-			QUEUE_appendNode(&file_list,new_file); 															//Lo agrego a la cola
-
-			lfn_entries = malloc(sizeof(queue_t));
-			QUEUE_initialize(lfn_entries);
-
-
-		}
-		else if (lfn_entry->sequence_no.number != 1 && lfn_entry->sequence_no.deleted == false)		 //Si no es la ultima LFN del archivo
-		{
-			QUEUE_appendNode(lfn_entries,lfn_entry++);
-		}
-		else if (lfn_entry->sequence_no.deleted == true) 	//Si es una entrada eliminada la salteo
-		{
-			lfn_entry++; 		//Incremento 32 bytes para saltearla
-		}
-
-	}
-
-	return file_list; //Retorno un puntero a la estructura de la cola
-}
-*/
 dirEntry_t DIRENTRY_create(char* filename,uint32_t cluster,uint32_t attr)
 {
 	dirEntry_t new_entry;

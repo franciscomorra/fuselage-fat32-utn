@@ -22,41 +22,6 @@ size_t LFNENTRY_getString(lfnEntry_t lfn,char* ret_longfilename) {
 	return strlen(ret_longfilename);
 }
 
-
-char* LFNENTRY_getLFN(queue_t lfn_entries)
-{
-	char *longfilename_buf = malloc(255);
-	memset(longfilename_buf,0,255);
-
-	char *tmp_longfilename_part = malloc(13);
-
-
-	uint32_t tmp_longfilename_part_size = 0;
-	uint32_t new_longfilename_size = 0;
-
-	queueNode_t *lfn_node = (queueNode_t*) lfn_entries.begin;
-	lfnEntry_t* lfn;
-	while (lfn_node != NULL)
-	{
-		lfn = (lfnEntry_t*) lfn_node->data;
-		tmp_longfilename_part_size = LFNENTRY_getString(*lfn, tmp_longfilename_part);
-		new_longfilename_size += tmp_longfilename_part_size;
-
-		shiftbytes_right(longfilename_buf, 255, tmp_longfilename_part_size);
-		memcpy(longfilename_buf, tmp_longfilename_part,	tmp_longfilename_part_size);
-
-		lfn_node = lfn_node->next;
-	}
-
-	char *ret_longfilename = malloc(new_longfilename_size+1);
-	memset(ret_longfilename,0,new_longfilename_size+1);
-	memcpy(ret_longfilename,longfilename_buf,new_longfilename_size);
-	free(longfilename_buf);
-	free(tmp_longfilename_part);
-	return ret_longfilename;
-
-}
-
 lfnEntry_t LFNENTRY_create(char* filename)
 {
 	lfnEntry_t new_lfn;

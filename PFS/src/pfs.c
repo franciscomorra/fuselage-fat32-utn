@@ -217,16 +217,10 @@ int main(int argc, char *argv[])
 
 	log_file = log_create("PFS","pfs.log",INFO,M_CONSOLE_DISABLE);
 
-
-	//boot_sector.bytes_perSector = 512; //Habra que hacer alguna funcion especial para leer solo el boot_sector;
-
 	ppd_read_boot_sector();
 	FAT_read_table();
 
 	pthread_t console_tid;
-	//pthread_attr_t console_attr;
-	//pthread_attr_init(&console_attr);
-	//pthread_attr_setdetachstate(&console_attr, PTHREAD_CREATE_DETACHED);
 	pthread_create(&console_tid,NULL,console_main,argv[argc-1]);
 
 	mount_point = malloc(strlen(argv[argc-1]));
@@ -246,7 +240,6 @@ int fuselage_readdir(const char *path, void *buf, fuse_fill_dir_t filler,off_t o
 	{
 		curr_file = (fat32file_t*) curr_file_node->data;
 		filler(buf, curr_file->long_file_name, NULL, 0);
-
 		FILE_free(curr_file);
 		free(curr_file_node);
 	}
@@ -315,8 +308,6 @@ static int fuselage_open(const char *path, struct fuse_file_info *fi)
 	}
 
 	fclose(fd);
-
-
 	return 0;
 }
 
@@ -381,29 +372,27 @@ static int fuselage_flush(const char *path, struct fuse_file_info *fi)
 	QUEUE_initialize(&aux_queue);
 
 	opened_file_t *file_to_flush = OFILE_get(path);
-	//if (file_to_flush != NULL)
-	//{
-		queueNode_t* cur_cache_block;
-		while((cur_cache_block = QUEUE_takeNode(&file_to_flush->cache)) != NULL)
+
+	queueNode_t* cur_cache_block;
+	while((cur_cache_block = QUEUE_takeNode(&file_to_flush->cache)) != NULL)
+	{
+		cache_block_t *cur_block = (cache_block_t*) cur_cache_block->data;
+		if (cur_block->modified)
 		{
-			cache_block_t *cur_block = (cache_block_t*) cur_cache_block->data;
-			if (cur_block->modified)
-			{
-				cluster_t *write_cluster = CLUSTER_newCluster(cur_block->data,cur_block->cluster_no);
-				fat32_writeCluster(write_cluster);
-				CLUSTER_free(write_cluster);
-				free(write_cluster);
-				free(cur_block);
-				free(cur_cache_block);
-			}
-			else
-			{
-				free(cur_block->data);
-				free(cur_block);
-				free(cur_cache_block);
-			}
+			cluster_t *write_cluster = CLUSTER_newCluster(cur_block->data,cur_block->cluster_no);
+			fat32_writeCluster(write_cluster);
+			CLUSTER_free(write_cluster);
+			free(write_cluster);
+			free(cur_block);
+			free(cur_cache_block);
 		}
-	//}
+		else
+		{
+			free(cur_block->data);
+			free(cur_block);
+			free(cur_cache_block);
+		}
+	}
 
 	return 0;
 }
@@ -412,7 +401,6 @@ static int fuselage_rename(const char *cur_name, const char *new_name)
 {
 	/* INICIO DEFINICION VARIABLE */
 		char *new_filename, *new_path, *path,*filename;
-
 		char *utf16_filename = malloc(26);
 		memset(utf16_filename,0,26);
 	/* FIN DEFINICION VARIABLES */
@@ -471,6 +459,7 @@ static int fuselage_rename(const char *cur_name, const char *new_name)
 
 			dirEntry_t *dirtable_index = (dirEntry_t*) newpath_cluster.data;
 			dirEntry_t *dirtable_lastentry = (dirEntry_t*) (newpath_cluster.data + 4096 - sizeof(dirEntry_t));
+
 			while (dirtable_index != dirtable_lastentry)
 			{
 				if (*((char*) dirtable_index) == 0xE5 || *((char*) dirtable_index) == 0x00)
@@ -487,7 +476,6 @@ static int fuselage_rename(const char *cur_name, const char *new_name)
 
 			fat32_writeCluster(&newpath_cluster);
 			CLUSTER_free(&newpath_cluster);
-
 		}
 
 	}
@@ -512,9 +500,8 @@ static int fuselage_write(const char *path, const char *file_buf, size_t bytes_t
 	uint32_t bytes_perCluster = boot_sector.bytes_perSector * boot_sector.sectors_perCluster;
 
 	if (offset+bytes_to_write > opened_file->file_entry.dir_entry.file_size)
-	{
 		opened_file->file_entry.dir_entry.file_size = fat32_truncate(path,offset+bytes_to_write);
-	}
+
 	uint32_t bytes_left_to_write = bytes_to_write;
 
 	uint32_t first_cluster_to_write = DIRENTRY_getClusterNumber(&(opened_file->file_entry.dir_entry));
@@ -523,7 +510,6 @@ static int fuselage_write(const char *path, const char *file_buf, size_t bytes_t
 	uint32_t cluster_count = 0;
 	uint32_t offset_in_file = offset;
 	uint32_t offset_in_buffer = 0;
-
 
 	for (;cluster_count < clusters_to_skip;cluster_count++)
 	{
@@ -543,7 +529,6 @@ static int fuselage_write(const char *path, const char *file_buf, size_t bytes_t
 		{
 			bytes_in_this_write = bytes_left_to_write;
 		}
-
 
 		cache_block_t *block = CACHE_read_block(&opened_file->cache,first_cluster_to_write);
 
@@ -574,11 +559,8 @@ static int fuselage_write(const char *path, const char *file_buf, size_t bytes_t
 		bytes_left_to_write -= bytes_in_this_write;
 		offset_in_file+=bytes_in_this_write;
 		offset_in_buffer+=bytes_in_this_write;
-
 		first_cluster_to_write = FAT_get_next_linked(first_cluster_to_write);
 	}
-
-
 
 	pthread_mutex_unlock(&opened_file->write_mutex);
 	return bytes_to_write;
@@ -616,7 +598,6 @@ static int fuselage_release(const char *path, struct fuse_file_info *fi)
 			fuselage_flush(path,fi);
 		}
 	}
-
 	return 0;
 }
 

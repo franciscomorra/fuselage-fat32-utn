@@ -50,8 +50,6 @@ typedef struct date_bytes
 	uint32_t day	:5;
 	uint32_t month	:4;
 	uint32_t year	:7;
-
-
 } __attribute__((__packed__)) date_bytes;
 
 //___STRUCT_DATE
@@ -76,12 +74,8 @@ typedef struct directory_entry
 //___STRUCT_DIR_ENTRY
 
 
-
 //DIRENTRY_getClusterNumber: Obtiene el numero de cluster a partir de los bytes de la Directory Entry de un archivo
 uint32_t DIRENTRY_getClusterNumber(dirEntry_t *dir_entry);
-
-//DIRENTRY_interpretTableData: Interpreta una tabla de directorio y devuelve una lista de todos los archivos/directorios que aparecen en ella
-queue_t DIRENTRY_interpretTableData(cluster_set_t cluster_chain);
 
 queue_t DIRTABLE_interpretFromCluster(cluster_t cluster);
 
@@ -92,6 +86,7 @@ date_bytes DIRENTRY_getDate();
 time_bytes DIRENTRY_getTime();
 
 time_t DIRENTRY_convertDateTime(date_bytes date,time_bytes time);
+
 void DIRENTRY_setDosName(dirEntry_t *entry,char* filename);
 
 #endif /* DIR_ENTRY_H_ */
