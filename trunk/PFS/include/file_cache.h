@@ -21,8 +21,7 @@ typedef struct cache_block
 	uint32_t size;
 	char* data;
 	time_t timestamp;
-	uint32_t uses;
-	bool written;
+	bool modified;
 
 } cache_block_t;
 
