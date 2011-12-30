@@ -16,7 +16,6 @@ extern bootSector_t boot_sector;
 void CLUSTER_free(cluster_t* cluster)
 {
 	queueNode_t *cur_sector_node;
-	sector_t* cur_sector;
 	while ((cur_sector_node = QUEUE_takeNode(&cluster->sectors)))
 	{
 		free(cur_sector_node->data);
