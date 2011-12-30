@@ -27,11 +27,10 @@
 #include "tad_lfnentry.h"
 #include "log.h"
 #include "file_cache.h"
-#include "pfs_addressing.h"
+
 
 extern bootSector_t boot_sector;
 extern fat_table_t fat;
-extern t_log *log_file;
 
 
 void fat32_writeCluster(cluster_t *cluster)
@@ -459,7 +458,6 @@ uint32_t fat32_truncate2(const char* fullpath,off_t new_size)
 			memcpy(file_entry->dir_entry.low_cluster,&appended_cl,2);
 			memcpy(file_entry->dir_entry.high_cluster,((char*) &appended_cl)+2,2);
 
-			uint32_t prueba = DIRENTRY_getClusterNumber(&file_entry->dir_entry);
 			first_cluster_no = appended_cl;
 
 			cluster_t new_cluster = fat32_readCluster(appended_cl);
