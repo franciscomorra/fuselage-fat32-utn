@@ -17,7 +17,6 @@
 #include "tad_sockets.h"
 #include <stdlib.h>
 
-extern t_log *raid_log;
 extern pthread_mutex_t REQUEST_QUEUE_MUTEX;
 
 void* ppd_synchronizer(void *data)

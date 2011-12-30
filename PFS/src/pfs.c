@@ -102,6 +102,7 @@ void* cache_dump()
 	}
 
 	fclose(cache_file);
+	return NULL;
 }
 
 void* console_main(char* mount_point)
@@ -615,6 +616,8 @@ static int fuselage_release(const char *path, struct fuse_file_info *fi)
 			fuselage_flush(path,fi);
 		}
 	}
+
+	return 0;
 }
 
 
