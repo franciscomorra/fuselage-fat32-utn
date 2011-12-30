@@ -152,28 +152,6 @@ void* console_main(char* mount_point)
 					}
 				}
 				printf("\n");
-
-				/*uint32_t cluster_index;
-				queueNode_t* cur_node;
-
-				while ((cur_node = QUEUE_takeNode(&cluster_list)) != NULL)
-				{
-					if (cluster_index < 20)
-					{
-						uint32_t *cur_cluster = (uint32_t*) cur_node->data;
-						printf("%d, ",*cur_cluster);
-
-						free(cur_node->data);
-						free(cur_node);
-					}
-					else
-					{
-						free(cur_node->data);
-						free(cur_node);
-					}
-					cluster_index++;
-				}
-				FILE_free(fileentry);*/
 			}
 			else
 			{
@@ -221,6 +199,7 @@ int main(int argc, char *argv[])
 	uint32_t port = atoi(CONFIG_getValue(config_param_list,"PORT"));
 	uint32_t max_connections = atoi(CONFIG_getValue(config_param_list,"MAX_CONNECTIONS"));
 	cache_size_inBytes = atoi(CONFIG_getValue(config_param_list,"CACHE_SIZE_INBYTES"));
+
 	sockets_toPPD = ppd_create_connection_pool(max_connections,ip,port);
 
 	if (sockets_toPPD.size == 0)
@@ -407,12 +386,21 @@ static int fuselage_flush(const char *path, struct fuse_file_info *fi)
 		while((cur_cache_block = QUEUE_takeNode(&file_to_flush->cache)) != NULL)
 		{
 			cache_block_t *cur_block = (cache_block_t*) cur_cache_block->data;
-			cluster_t *write_cluster = CLUSTER_newCluster(cur_block->data,cur_block->cluster_no);
-			fat32_writeCluster(write_cluster);
-			CLUSTER_free(write_cluster);
-			free(write_cluster);
-			free(cur_block);
-			free(cur_cache_block);
+			if (cur_block->modified)
+			{
+				cluster_t *write_cluster = CLUSTER_newCluster(cur_block->data,cur_block->cluster_no);
+				fat32_writeCluster(write_cluster);
+				CLUSTER_free(write_cluster);
+				free(write_cluster);
+				free(cur_block);
+				free(cur_cache_block);
+			}
+			else
+			{
+				free(cur_block->data);
+				free(cur_block);
+				free(cur_cache_block);
+			}
 		}
 	//}
 
@@ -561,6 +549,7 @@ static int fuselage_write(const char *path, const char *file_buf, size_t bytes_t
 		if (block != NULL)
 		{
 			memcpy(block->data+offset_in_cluster,file_buf+offset_in_buffer,bytes_in_this_write);
+			block->modified = true;
 		}
 		else
 		{
