@@ -161,7 +161,7 @@ int main(int argc,char **argv)
 							if (ppd->status == READY)
 							{
 								send(ppd->ppd_fd,msg_in,msg_len+3,MSG_WAITALL);
-								ppd->requests_count++;
+								ppd->requested = true;
 								log_info(raid_log,"MAIN_THREAD","PEDIDO DE ESCRITURA SECTOR %d ENVIADO AL DISCO %d",sector,ppd->disk_id);
 							}
 							ppd_node = ppd_node->next;
@@ -171,7 +171,6 @@ int main(int argc,char **argv)
 					else
 					{
 						ppd_node_t *selected_ppd = PPDQUEUE_selectByLessRequests();
-						selected_ppd->requests_count++;
 						request_addNew(selected_ppd->ppd_fd,currFD,msg_in);
 						send(selected_ppd->ppd_fd,msg_in,msg_len+3,MSG_WAITALL);
 						log_info(raid_log,"MAIN_THREAD","PEDIDO DE LECTURA SECTOR %d ENVIADO AL DISCO %d",sector,selected_ppd->disk_id);

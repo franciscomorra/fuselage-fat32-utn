@@ -10,7 +10,7 @@
 
 #include <pthread.h>
 #include <stdint.h>
-
+#include <stdbool.h>
 enum
 {
 	READY = 0, WAIT_SYNCH = 1, SYNCHRONIZING = 3,
@@ -22,7 +22,7 @@ typedef struct ppd_node_t
 	uint32_t ppd_fd;
 	uint32_t disk_id;
 	pthread_mutex_t sock_mutex;
-	uint32_t requests_count;
+	bool requested;
 	uint32_t status;
 	uint32_t sectors_count;
 
