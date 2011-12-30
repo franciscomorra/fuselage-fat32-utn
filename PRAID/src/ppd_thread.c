@@ -35,7 +35,7 @@ void standby();
 void* ppd_thread(void *data)
 {
 	ppd_node_t *ppd_info = (ppd_node_t*) data;
-	//ppd_info->status = READY;
+	ppd_info->status = READY;
 	if (ppd_info->status == WAIT_SYNCH)
 	{
 		pthread_mutex_lock(&PPD_SYNCHRONIZING_MUTEX);

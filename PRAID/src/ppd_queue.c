@@ -35,10 +35,11 @@ ppd_node_t* PPDQUEUE_addNewPPD(uint32_t ppd_fd,uint32_t disk_id,uint32_t sectors
 
 ppd_node_t* PPDQUEUE_selectByLessRequests()//Recorre todos los pedidos (puede ser numero muy grande y consume tiempo)
 {
+	pthread_mutex_lock(&PPD_QUEUE_MUTEX);
 	queueNode_t *cur_ppdnode = PPD_QUEUE.begin;
 	bool all_requested = true;
 	ppd_node_t *selected_one = NULL;
-	pthread_mutex_lock(&PPD_QUEUE_MUTEX);
+
 	while (cur_ppdnode != NULL)
 	{
 		ppd_node_t *cur_ppd = (ppd_node_t*) cur_ppdnode->data;
@@ -56,6 +57,7 @@ ppd_node_t* PPDQUEUE_selectByLessRequests()//Recorre todos los pedidos (puede se
 
 	if (all_requested)
 	{
+		cur_ppdnode = PPD_QUEUE.begin;
 		while (cur_ppdnode != NULL)
 		{
 			ppd_node_t *cur_ppd = (ppd_node_t*) cur_ppdnode->data;
