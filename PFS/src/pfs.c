@@ -194,7 +194,11 @@ void* console_main(char* mount_point)
 
 int main(int argc, char *argv[])
 {
-	CONFIG_read("./config/pfs.config",&config_param_list);
+	if (CONFIG_read("./config/pfs.config",&config_param_list) != 1)
+	{
+		printf("\nNo se encuentra o no es posible leer el archivo ./config/pfs.config");
+		exit(0);
+	}
 
 	char* ip = CONFIG_getValue(config_param_list,"IP");
 	uint32_t port = atoi(CONFIG_getValue(config_param_list,"PORT"));
