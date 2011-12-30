@@ -51,47 +51,51 @@ void* cache_dump()
 
 	while (current_opened_file_node != NULL)
 	{
+
 		opened_file_t *current_opened_file = (opened_file_t*) current_opened_file_node->data;
-		time_t timestamp = time(NULL);
-		char formatted_time[200];
-		struct tm *time_struct = localtime(&timestamp);
-		strftime(formatted_time, sizeof(formatted_time),"%d-%m-%Y %H:%M:%S", time_struct);
-		fprintf(cache_file,"-------------------------------------\n");
-		fprintf(cache_file,"Timestamp: %s\n",formatted_time);
-		fprintf(cache_file,"Tamano de Bloque de Cache: %d Kb\n",(current_opened_file->cache_size)/1024);
-		fprintf(cache_file,"Cantidad de Bloques de Cache: %d\n\n",QUEUE_length(&(current_opened_file->cache)));
-
-		queueNode_t *cache_block_node = current_opened_file->cache.begin;
-		uint32_t block_count = 1;
-		while (cache_block_node != NULL)
+		if (current_opened_file->cache.begin != NULL)
 		{
-			fprintf(cache_file,"Contenido de Bloque de Cache %d:\n",block_count);
-			cache_block_t *cache_block = (cache_block_t*) cache_block_node->data;
-			char *byte = cache_block->data;
-			uint32_t byte_count = 0;
-			while (byte != cache_block->data+4096)
+			time_t timestamp = time(NULL);
+			char formatted_time[200];
+			struct tm *time_struct = localtime(&timestamp);
+			strftime(formatted_time, sizeof(formatted_time),"%d-%m-%Y %H:%M:%S", time_struct);
+			fprintf(cache_file,"-------------------------------------\n");
+			fprintf(cache_file,"Timestamp: %s\n",formatted_time);
+			fprintf(cache_file,"Tamano de Bloque de Cache: %d Kb\n",(current_opened_file->cache_size)/1024);
+			fprintf(cache_file,"Cantidad de Bloques de Cache: %d\n\n",QUEUE_length(&(current_opened_file->cache)));
+
+			queueNode_t *cache_block_node = current_opened_file->cache.begin;
+			uint32_t block_count = 1;
+			while (cache_block_node != NULL)
 			{
-				if (*byte == '\0')
-					fprintf(cache_file,"/0");
-				else if (*byte == '\n')
-					fprintf(cache_file,"/n");
-				else
-					fprintf(cache_file,"%.1s",byte);
-
-				byte_count++;
-				byte++;
-
-				if (byte_count == 50)
+				fprintf(cache_file,"Contenido de Bloque de Cache %d:\n",block_count);
+				cache_block_t *cache_block = (cache_block_t*) cache_block_node->data;
+				char *byte = cache_block->data;
+				uint32_t byte_count = 0;
+				while (byte != cache_block->data+4096)
 				{
-					fprintf(cache_file,"\n");
-					byte_count=0;
+					if (*byte == '\0')
+						fprintf(cache_file,"/0");
+					else if (*byte == '\n')
+						fprintf(cache_file,"/n");
+					else
+						fprintf(cache_file,"%.1s",byte);
+
+					byte_count++;
+					byte++;
+
+					if (byte_count == 50)
+					{
+						fprintf(cache_file,"\n");
+						byte_count=0;
+					}
 				}
+
+				fprintf(cache_file,"\n\n");
+
+				block_count++;
+				cache_block_node = cache_block_node->next;
 			}
-
-			fprintf(cache_file,"\n\n");
-
-			block_count++;
-			cache_block_node = cache_block_node->next;
 		}
 
 		current_opened_file_node = current_opened_file_node->next;
@@ -211,7 +215,7 @@ void* console_main(char* mount_point)
 
 int main(int argc, char *argv[])
 {
-	CONFIG_read("/home/utn_so/Desarrollo/Workspace/PFS/config/pfs.config",&config_param_list);
+	CONFIG_read("./config/pfs.config",&config_param_list);
 
 	char* ip = CONFIG_getValue(config_param_list,"IP");
 	uint32_t port = atoi(CONFIG_getValue(config_param_list,"PORT"));
@@ -350,7 +354,7 @@ static int fuselage_read(const char *path, char *file_buf, size_t bytes_to_read,
 	uint32_t first_cluster_to_read = DIRENTRY_getClusterNumber(&(opened_file->file_entry.dir_entry));
 	uint32_t clusters_to_skip = offset / bytes_perCluster;
 	uint32_t offset_in_first_cluster = offset % bytes_perCluster;
-	uint32_t clusters_to_read = ceil(((float)offset+bytes_to_read)/bytes_perCluster)-((float)offset/bytes_perCluster);
+	uint32_t clusters_to_read = ceil(((float)offset+bytes_to_read)/bytes_perCluster-((float)offset/(float)bytes_perCluster));
 	uint32_t cluster_count = 0;
 
 	char* tmp_buf = malloc(clusters_to_read*bytes_perCluster);
@@ -519,13 +523,14 @@ static int fuselage_write(const char *path, const char *file_buf, size_t bytes_t
 	uint32_t bytes_perCluster = boot_sector.bytes_perSector * boot_sector.sectors_perCluster;
 
 	if (offset+bytes_to_write > opened_file->file_entry.dir_entry.file_size)
+	{
 		opened_file->file_entry.dir_entry.file_size = fat32_truncate(path,offset+bytes_to_write);
-
+	}
 	uint32_t bytes_left_to_write = bytes_to_write;
 
 	uint32_t first_cluster_to_write = DIRENTRY_getClusterNumber(&(opened_file->file_entry.dir_entry));
 	uint32_t clusters_to_skip = offset / bytes_perCluster;
-	uint32_t clusters_to_write = ((offset+bytes_to_write) + (bytes_perCluster - 1)) / bytes_perCluster;
+	uint32_t clusters_to_write = ceil(((float)offset+bytes_to_write)/bytes_perCluster-((float)offset/(float)bytes_perCluster));// ((offset+bytes_to_write) + (bytes_perCluster - 1)) / bytes_perCluster;
 	uint32_t cluster_count = 0;
 	uint32_t offset_in_file = offset;
 	uint32_t offset_in_buffer = 0;
@@ -583,7 +588,7 @@ static int fuselage_write(const char *path, const char *file_buf, size_t bytes_t
 		first_cluster_to_write = FAT_get_next_linked(first_cluster_to_write);
 	}
 
-	opened_file->file_entry.dir_entry.file_size = offset+bytes_to_write;
+
 
 	pthread_mutex_unlock(&opened_file->write_mutex);
 	return bytes_to_write;

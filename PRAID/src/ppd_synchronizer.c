@@ -52,7 +52,7 @@ void* ppd_synchronizer(void *data)
 				//SOCKET_sendAll(selected_ppd->ppd_fd,msg_buf,11,0);
 
 				send(selected_ppd->ppd_fd,msg_buf,11,MSG_WAITALL);
-				selected_ppd->requests_count++;
+
 				request_addNew(selected_ppd->ppd_fd,ppd_info->ppd_fd,msg_buf);
 				requests_sent++;
 				//free(msg_buf);

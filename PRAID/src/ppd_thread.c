@@ -46,7 +46,7 @@ void* ppd_thread(void *data)
 			pthread_join(sync_thread_id,NULL);
 			log_info(raid_log,"PPD_SYNCHRONIZER","ESTADO: FIN SINCRONIZACION DISCO [ID: %d]",ppd_info->disk_id);
 			ppd_info->status = READY;
-			ppd_info->requests_count = 0;
+
 		pthread_mutex_unlock(&PPD_SYNCHRONIZING_MUTEX);
 	}
 
@@ -59,7 +59,7 @@ void* ppd_thread(void *data)
 		if (request_receive_result > 0)
 		{
 			//TODO VERIFICAR QUE NO SEA CERO ANTES DE DECREMENTAR
-			ppd_info->requests_count--;
+
 			char request_type = *request_received;
 			uint32_t request_id = *((uint32_t*) (request_received+3));
 			uint32_t sector = *((uint32_t*) (request_received+7));
@@ -156,7 +156,7 @@ void replan_requests(uint32_t ppd_fd)
 		{
 			ppd_node_t *selected_ppd = PPDQUEUE_selectByLessRequests();
 			send(selected_ppd->ppd_fd,cur_request->msg,cur_request->msg_len,MSG_WAITALL);
-			selected_ppd->requests_count++;
+
 		}
 
 		cur_node = cur_node->next;
