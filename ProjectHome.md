@@ -1,0 +1,1 @@
+Modulo de manejo de FAT32 para una plataforma UNIX.
